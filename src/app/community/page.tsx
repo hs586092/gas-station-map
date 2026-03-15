@@ -51,7 +51,10 @@ export default function CommunityPage() {
   const [showAuth, setShowAuth] = useState(false);
   const [category, setCategory] = useState("all");
   const [posts, setPosts] = useState<Post[]>([]);
+  const [topPosts, setTopPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"latest" | "popular" | "comments">("latest");
 
   // 글쓰기 모달
   const [showWrite, setShowWrite] = useState(false);
@@ -76,24 +79,49 @@ export default function CommunityPage() {
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
+
+    const orderCol =
+      sortBy === "popular" ? "likes_count" :
+      sortBy === "comments" ? "comments_count" :
+      "created_at";
+
     let query = supabaseAuth
       .from("posts")
       .select("id, author_id, category, title, content, likes_count, comments_count, created_at, author:users_profile!author_id(nickname)")
-      .order("created_at", { ascending: false })
+      .order(orderCol, { ascending: false })
       .limit(50);
 
     if (category !== "all") {
       query = query.eq("category", category);
     }
 
+    if (searchQuery.trim()) {
+      query = query.or(`title.ilike.%${searchQuery.trim()}%,content.ilike.%${searchQuery.trim()}%`);
+    }
+
     const { data } = await query;
     setPosts((data as unknown as Post[]) || []);
     setLoading(false);
-  }, [category]);
+  }, [category, sortBy, searchQuery]);
+
+  // 인기글 TOP 5 (좋아요 기준, 전체 카테고리)
+  const fetchTopPosts = useCallback(async () => {
+    const { data } = await supabaseAuth
+      .from("posts")
+      .select("id, author_id, category, title, content, likes_count, comments_count, created_at, author:users_profile!author_id(nickname)")
+      .order("likes_count", { ascending: false })
+      .limit(5);
+    setTopPosts((data as unknown as Post[]) || []);
+  }, []);
+
+  const refreshAll = useCallback(() => {
+    refreshAll();
+    fetchTopPosts();
+  }, [fetchPosts, fetchTopPosts]);
 
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    refreshAll();
+  }, [refreshAll]);
 
   const handleWrite = async () => {
     if (!user || !writeTitle.trim() || !writeContent.trim()) return;
@@ -109,7 +137,7 @@ export default function CommunityPage() {
       setShowWrite(false);
       setWriteTitle("");
       setWriteContent("");
-      fetchPosts();
+      refreshAll();
     }
   };
 
@@ -155,7 +183,7 @@ export default function CommunityPage() {
     }
     // 리로드
     await openPost(postDetail.post);
-    fetchPosts();
+    refreshAll();
   };
 
   const addComment = async () => {
@@ -167,7 +195,7 @@ export default function CommunityPage() {
     });
     setCommentText("");
     await openPost(postDetail.post);
-    fetchPosts();
+    refreshAll();
   };
 
   const deletePost = async (postId: string) => {
@@ -175,14 +203,14 @@ export default function CommunityPage() {
     await supabaseAuth.from("posts").delete().eq("id", postId);
     setSelectedPost(null);
     setPostDetail(null);
-    fetchPosts();
+    refreshAll();
   };
 
   const deleteComment = async (commentId: string) => {
     if (!confirm("댓글을 삭제하시겠습니까?")) return;
     await supabaseAuth.from("comments").delete().eq("id", commentId);
     if (postDetail) await openPost(postDetail.post);
-    fetchPosts();
+    refreshAll();
   };
 
   // ── 비로그인 안내 ──
@@ -356,22 +384,77 @@ export default function CommunityPage() {
       <CommunityHeader user={user} profile={profile} signOut={signOut} />
 
       <div className="max-w-2xl mx-auto w-full p-4 flex-1">
-        {/* 카테고리 탭 */}
-        <div className="flex gap-1 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => setCategory(c.key)}
-              className={`px-3 py-2 text-[12px] font-semibold rounded-lg border-none cursor-pointer whitespace-nowrap transition-all ${
-                category === c.key
-                  ? "bg-navy text-white"
-                  : "bg-white text-gray-500 hover:bg-gray-100 shadow-sm"
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
+        {/* 검색바 */}
+        <div className="relative mb-3">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="게시글 검색 (제목, 내용)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-3 py-2.5 text-[13px] bg-white border border-gray-200 rounded-xl outline-none focus:border-navy transition-colors text-gray-900"
+          />
         </div>
+
+        {/* 카테고리 탭 + 정렬 */}
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.key}
+                onClick={() => setCategory(c.key)}
+                className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg border-none cursor-pointer whitespace-nowrap transition-all ${
+                  category === c.key
+                    ? "bg-navy text-white"
+                    : "bg-white text-gray-500 hover:bg-gray-100 shadow-sm"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "latest" | "popular" | "comments")}
+            className="px-2 py-1.5 text-[11px] bg-white border border-gray-200 rounded-lg outline-none text-gray-600 cursor-pointer shrink-0"
+          >
+            <option value="latest">최신순</option>
+            <option value="popular">인기순</option>
+            <option value="comments">댓글순</option>
+          </select>
+        </div>
+
+        {/* 인기글 TOP 5 */}
+        {topPosts.length > 0 && category === "all" && !searchQuery && sortBy === "latest" && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span className="text-[12px] font-bold text-accent-orange">인기글 TOP 5</span>
+            </div>
+            {topPosts.map((post, i) => (
+              <div
+                key={post.id}
+                onClick={() => openPost(post)}
+                className="px-4 py-2.5 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+              >
+                <span className={`text-[13px] font-bold w-5 text-center shrink-0 ${i === 0 ? "text-accent-orange" : "text-gray-300"}`}>
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-gray-800 truncate m-0">{post.title}</p>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-gray-400 shrink-0">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  {post.likes_count}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 글쓰기 버튼 */}
         <button
