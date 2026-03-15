@@ -27,8 +27,8 @@ const RADIUS_OPTIONS = [
 
 const BRAND_OPTIONS = [
   { code: "SKE", label: "SK에너지", color: "#f42a2a" },
-  { code: "GSC", label: "GS칼텍스", color: "#0066b3" },
-  { code: "HDO", label: "HD현대오일", color: "#00a651" },
+  { code: "GSC", label: "GS칼텍스", color: "#00a651" },
+  { code: "HDO", label: "HD현대오일", color: "#0066b3" },
   { code: "SOL", label: "S-OIL", color: "#ffd200" },
   { code: "RTO", label: "자영알뜰", color: "#ff8c00" },
   { code: "NHO", label: "농협알뜰", color: "#006838" },

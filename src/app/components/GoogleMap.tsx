@@ -36,8 +36,8 @@ const PROD_LABELS: Record<string, string> = {
 
 const BRAND_COLORS: Record<string, string> = {
   SKE: "#f42a2a",
-  GSC: "#0066b3",
-  HDO: "#00a651",
+  GSC: "#00a651",
+  HDO: "#0066b3",
   SOL: "#ffd200",
   RTO: "#ff8c00",
   NHO: "#006838",
