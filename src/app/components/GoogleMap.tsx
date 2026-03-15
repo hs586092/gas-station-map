@@ -421,7 +421,7 @@ function MapContent() {
 
       {/* 표시 중 카운트 */}
       {filteredStations.length > 0 && (
-        <div className="fixed bottom-6 left-[calc(var(--sidebar-width)+16px)] md:left-[396px] z-[1100] bg-white/90 backdrop-blur-sm text-text-secondary text-[11px] font-medium px-3 py-1.5 rounded-full shadow-sm border border-border">
+        <div className="fixed bottom-6 left-[calc(var(--sidebar-width)+16px)] z-[1100] bg-white/90 backdrop-blur-sm text-text-secondary text-[11px] font-medium px-3 py-1.5 rounded-full shadow-sm border border-border hidden md:block">
           표시 중: {filteredStations.length}개 주유소
         </div>
       )}

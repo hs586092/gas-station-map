@@ -281,9 +281,9 @@ export default function Sidebar({
       {/* 토글 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-[68px] z-[1001] bg-white border border-border rounded-lg w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-surface transition-colors"
+        className="fixed top-[72px] z-[1001] bg-white border border-border rounded-lg w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-surface transition-colors"
         style={{
-          left: isOpen ? "calc(var(--sidebar-width) - 14px)" : 12,
+          left: isOpen ? "calc(var(--sidebar-width) + 4px)" : 12,
           boxShadow: "var(--shadow-sm)",
         }}
       >
@@ -293,11 +293,12 @@ export default function Sidebar({
       </button>
 
       <div
-        className={`fixed top-0 left-0 h-full bg-white z-[1000] flex flex-col transition-transform duration-300 ${
+        className={`fixed top-[56px] left-0 bg-white z-[1000] flex flex-col transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{
           width: "var(--sidebar-width)",
+          height: "calc(100vh - 56px)",
           boxShadow: "var(--shadow-lg)",
           borderRight: "1px solid var(--border)",
         }}
