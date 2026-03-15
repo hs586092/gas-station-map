@@ -28,6 +28,9 @@ interface StationDetail {
   newAddress: string;
   tel: string;
   prices: { product: string; price: number }[];
+  hasLpg?: boolean;
+  hasCarWash?: boolean;
+  hasCvs?: boolean;
 }
 
 const PROD_LABELS: Record<string, string> = {
@@ -372,9 +375,33 @@ function MapContent() {
                   {selectedStation.name}
                 </h3>
                 {(stationDetail.newAddress || stationDetail.oldAddress) && (
-                  <p className="text-[12px] text-text-tertiary m-0 mb-3">
+                  <p className="text-[12px] text-text-tertiary m-0 mb-2">
                     {stationDetail.newAddress || stationDetail.oldAddress}
                   </p>
+                )}
+
+                {/* 태그 뱃지 */}
+                {(stationDetail.hasCarWash || stationDetail.hasCvs || stationDetail.hasLpg) && (
+                  <div className="flex gap-1 mb-3 flex-wrap">
+                    {stationDetail.hasCarWash && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v6M6 8l1.5 1.5M18 8l-1.5 1.5M4 14h16M6 22V14M18 22V14"/></svg>
+                        세차
+                      </span>
+                    )}
+                    {stationDetail.hasCvs && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-medium rounded-full">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                        편의점
+                      </span>
+                    )}
+                    {stationDetail.hasLpg && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-medium rounded-full">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                        LPG
+                      </span>
+                    )}
+                  </div>
                 )}
 
                 {/* 가격 */}
@@ -418,6 +445,21 @@ function MapContent() {
           </InfoWindow>
         )}
       </Map>
+
+      {/* 모바일 검색바 */}
+      <div className="md:hidden fixed top-[68px] left-3 right-3 z-[1100]">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9BA8B7" strokeWidth="2.5">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="주유소명, 지역 검색"
+            className="w-full h-10 pl-9 pr-3 bg-white text-[13px] text-text-primary placeholder-text-tertiary rounded-[12px] border border-border outline-none focus:border-navy transition-colors"
+            style={{ boxShadow: "var(--shadow-md)" }}
+          />
+        </div>
+      </div>
 
       {/* 표시 중 카운트 */}
       {filteredStations.length > 0 && (
