@@ -14,6 +14,9 @@ import Sidebar, {
   BRAND_LABELS,
 } from "./Sidebar";
 import PriceChart from "./PriceChart";
+import AuthModal from "./AuthModal";
+import { useAuth } from "@/lib/auth";
+import Link from "next/link";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
 
@@ -48,7 +51,9 @@ const ALL_BRANDS = new Set([
   "SKE", "GSC", "HDO", "SOL", "RTO", "NHO", "ETC",
 ]);
 
-function Header() {
+function Header({ onLoginClick }: { onLoginClick: () => void }) {
+  const { user, profile, signOut } = useAuth();
+
   return (
     <header className="h-[56px] bg-navy flex items-center justify-between px-4 md:px-6 shrink-0 z-[1200] relative">
       <div className="flex items-center gap-2.5">
@@ -57,10 +62,21 @@ function Header() {
             <path d="M3 22V8l5-6h4l-1 7h7a2 2 0 0 1 2 2.5L18 22H3z" />
           </svg>
         </div>
-        <h1 className="text-white text-[17px] font-bold tracking-tight">주유소 지도</h1>
-        <span className="hidden md:inline text-[11px] text-gray-400 ml-1">전국 최저가 주유소 찾기</span>
+        <h1 className="text-white text-[17px] font-bold tracking-tight">주유소맵</h1>
+
+        {/* 네비게이션 */}
+        <nav className="hidden md:flex items-center gap-1 ml-4">
+          <Link href="/" className="px-3 py-1.5 text-[12px] text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors no-underline">
+            지도
+          </Link>
+          <Link href="/community" className="px-3 py-1.5 text-[12px] text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors no-underline">
+            커뮤니티
+          </Link>
+        </nav>
       </div>
-      <div className="flex items-center gap-4">
+
+      <div className="flex items-center gap-3">
+        {/* 전국 평균가 */}
         <div className="hidden md:flex items-center gap-3 text-[12px]">
           <div className="flex items-center gap-1.5">
             <span className="text-gray-400">휘발유</span>
@@ -72,6 +88,35 @@ function Header() {
             <span className="text-white font-semibold">—</span>
           </div>
         </div>
+
+        {/* 모바일 커뮤니티 링크 */}
+        <Link href="/community" className="md:hidden text-gray-300 hover:text-white transition-colors no-underline">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </Link>
+
+        {/* 로그인/프로필 */}
+        {user ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] text-gray-300 hidden md:inline">
+              {profile?.nickname || "사용자"}
+            </span>
+            <button
+              onClick={signOut}
+              className="px-3 py-1.5 text-[11px] text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-md border-none cursor-pointer transition-colors"
+            >
+              로그아웃
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onLoginClick}
+            className="px-3 py-1.5 text-[12px] font-semibold text-navy bg-accent-orange hover:brightness-110 rounded-md border-none cursor-pointer transition-all"
+          >
+            로그인
+          </button>
+        )}
       </div>
     </header>
   );
@@ -394,14 +439,17 @@ function MapContent() {
 }
 
 export default function GoogleMap() {
+  const [showAuth, setShowAuth] = useState(false);
+
   return (
     <div className="flex flex-col h-screen w-screen">
-      <Header />
+      <Header onLoginClick={() => setShowAuth(true)} />
       <div className="flex-1 relative overflow-hidden">
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <MapContent />
         </APIProvider>
       </div>
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }
