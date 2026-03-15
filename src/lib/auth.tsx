@@ -23,7 +23,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, nickname: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signInWithKakao: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -86,9 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null };
   };
 
-  const signInWithKakao = async () => {
+  const signInWithGoogle = async () => {
     await supabaseAuth.auth.signInWithOAuth({
-      provider: "kakao",
+      provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   };
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, session, loading, signUp, signIn, signInWithKakao, signOut, refreshProfile }}
+      value={{ user, profile, session, loading, signUp, signIn, signInWithGoogle, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
