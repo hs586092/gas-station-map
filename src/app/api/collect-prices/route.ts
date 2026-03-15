@@ -31,9 +31,15 @@ const CITY_CENTERS = [
   { name: "여수", lat: 34.7604, lng: 127.6622 },
 ];
 
-export async function POST() {
-  const authHeader = process.env.CRON_SECRET;
-  // 간단한 보호: 환경변수 없으면 누구나 호출 가능 (개발용)
+export async function GET(request: Request) {
+  // Vercel Cron 보안: CRON_SECRET 검증
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
 
   const supabase = createServiceClient();
   const collectedAt = new Date().toISOString();
