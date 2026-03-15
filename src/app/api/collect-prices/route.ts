@@ -3,11 +3,11 @@ import { createServiceClient } from "@/lib/supabase";
 import {
   getAroundStations,
   getStationDetail,
+  katecToWgs84,
   wgs84ToKatec,
   PROD_CD,
 } from "@/lib/opinet";
 
-// 주요 도시 중심 좌표 (WGS84)
 const CITY_CENTERS = [
   { name: "서울", lat: 37.5665, lng: 126.978 },
   { name: "부산", lat: 35.1796, lng: 129.0756 },
@@ -32,7 +32,6 @@ const CITY_CENTERS = [
 ];
 
 export async function GET(request: Request) {
-  // Vercel Cron 보안: CRON_SECRET 검증
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
     const authHeader = request.headers.get("authorization");
@@ -44,7 +43,9 @@ export async function GET(request: Request) {
   const supabase = createServiceClient();
   const collectedAt = new Date().toISOString();
   const seenIds = new Set<string>();
-  const rows: Array<{
+
+  // 가격 이력용
+  const priceRows: Array<{
     station_id: string;
     station_name: string;
     brand: string;
@@ -54,21 +55,40 @@ export async function GET(request: Request) {
     collected_at: string;
   }> = [];
 
+  // 주유소 캐시용
+  const stationRows: Array<{
+    id: string;
+    name: string;
+    brand: string;
+    old_address: string;
+    new_address: string;
+    tel: string;
+    lat: number;
+    lng: number;
+    gasoline_price: number | null;
+    diesel_price: number | null;
+    premium_price: number | null;
+    lpg_yn: string;
+    car_wash_yn: string;
+    cvs_yn: string;
+    updated_at: string;
+  }> = [];
+
   let processed = 0;
   let errors = 0;
+  let apiCalls = 0;
 
   for (const city of CITY_CENTERS) {
     try {
       const katec = wgs84ToKatec(city.lat, city.lng);
-
-      // 휘발유 기준으로 주유소 목록 가져오기 (반경 20km)
       const stations = await getAroundStations(
         katec.x,
         katec.y,
         20000,
         PROD_CD.GASOLINE,
-        2 // 거리순
+        2
       );
+      apiCalls++;
 
       for (const station of stations) {
         if (seenIds.has(station.UNI_ID)) continue;
@@ -76,6 +96,9 @@ export async function GET(request: Request) {
 
         try {
           const detail = await getStationDetail(station.UNI_ID);
+          apiCalls++;
+
+          const wgs = katecToWgs84(detail.GIS_X_COOR, detail.GIS_Y_COOR);
 
           const gasolinePrice =
             detail.OIL_PRICE.find((p) => p.PRODCD === PROD_CD.GASOLINE)?.PRICE ?? null;
@@ -84,7 +107,7 @@ export async function GET(request: Request) {
           const premiumPrice =
             detail.OIL_PRICE.find((p) => p.PRODCD === PROD_CD.PREMIUM_GASOLINE)?.PRICE ?? null;
 
-          rows.push({
+          priceRows.push({
             station_id: station.UNI_ID,
             station_name: detail.OS_NM,
             brand: detail.POLL_DIV_CO.trim(),
@@ -94,9 +117,26 @@ export async function GET(request: Request) {
             collected_at: collectedAt,
           });
 
+          stationRows.push({
+            id: station.UNI_ID,
+            name: detail.OS_NM,
+            brand: detail.POLL_DIV_CO.trim(),
+            old_address: detail.VAN_ADR || "",
+            new_address: detail.NEW_ADR || "",
+            tel: detail.TEL || "",
+            lat: wgs.lat,
+            lng: wgs.lng,
+            gasoline_price: gasolinePrice,
+            diesel_price: dieselPrice,
+            premium_price: premiumPrice,
+            lpg_yn: detail.LPG_YN || "N",
+            car_wash_yn: detail.CAR_WASH_YN || "N",
+            cvs_yn: detail.CVS_YN || "N",
+            updated_at: collectedAt,
+          });
+
           processed++;
 
-          // API 부하 방지: 50개마다 100ms 대기
           if (processed % 50 === 0) {
             await new Promise((r) => setTimeout(r, 100));
           }
@@ -109,24 +149,53 @@ export async function GET(request: Request) {
     }
   }
 
-  // Supabase에 일괄 삽입 (1000개씩 배치)
-  let inserted = 0;
-  for (let i = 0; i < rows.length; i += 1000) {
-    const batch = rows.slice(i, i + 1000);
+  // 가격 이력 삽입
+  let historyInserted = 0;
+  for (let i = 0; i < priceRows.length; i += 1000) {
+    const batch = priceRows.slice(i, i + 1000);
     const { error } = await supabase.from("price_history").insert(batch);
     if (error) {
-      console.error("Supabase insert error:", error);
+      console.error("price_history insert error:", error);
     } else {
-      inserted += batch.length;
+      historyInserted += batch.length;
     }
   }
 
-  return NextResponse.json({
+  // stations 캐시 upsert
+  let stationsUpserted = 0;
+  for (let i = 0; i < stationRows.length; i += 500) {
+    const batch = stationRows.slice(i, i + 500);
+    const { error } = await supabase
+      .from("stations")
+      .upsert(batch, { onConflict: "id" });
+    if (error) {
+      console.error("stations upsert error:", error);
+    } else {
+      stationsUpserted += batch.length;
+    }
+  }
+
+  // API 호출 로그 기록
+  await supabase.from("api_call_log").insert({
+    endpoint: "collect-prices",
+    call_count: apiCalls,
+    caller: "cron",
+    success: errors === 0,
+    error_message: errors > 0 ? `${errors} errors during collection` : null,
+  });
+
+  const result = {
     success: true,
-    collected: rows.length,
-    inserted,
+    collected: priceRows.length,
+    historyInserted,
+    stationsUpserted,
+    apiCalls,
     errors,
     cities: CITY_CENTERS.length,
     collectedAt,
-  });
+  };
+
+  console.log("[collect-prices]", JSON.stringify(result));
+
+  return NextResponse.json(result);
 }
