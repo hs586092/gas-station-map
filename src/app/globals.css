@@ -3,11 +3,26 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --navy: #1a2332;
-  --navy-light: #243447;
-  --accent-orange: #f59e0b;
-  --accent-green: #10b981;
+  --navy: #1B2838;
+  --navy-light: #2A3A4E;
+  --emerald: #00C073;
+  --emerald-light: #E6F9F0;
+  --coral: #FF5252;
+  --coral-light: #FFF0F0;
+  --surface: #F5F6F8;
+  --border: #E8EBF0;
+  --text-primary: #1B2838;
+  --text-secondary: #6B7A8D;
+  --text-tertiary: #9BA8B7;
   --header-height: 56px;
+  --sidebar-width: 380px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 3px rgba(27,40,56,0.06);
+  --shadow-md: 0 4px 12px rgba(27,40,56,0.08);
+  --shadow-lg: 0 8px 24px rgba(27,40,56,0.12);
+  --shadow-xl: 0 12px 40px rgba(27,40,56,0.16);
 }
 
 @theme inline {
@@ -15,8 +30,15 @@
   --color-foreground: var(--foreground);
   --color-navy: var(--navy);
   --color-navy-light: var(--navy-light);
-  --color-accent-orange: var(--accent-orange);
-  --color-accent-green: var(--accent-green);
+  --color-emerald: var(--emerald);
+  --color-emerald-light: var(--emerald-light);
+  --color-coral: var(--coral);
+  --color-coral-light: var(--coral-light);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -26,26 +48,59 @@ body {
   color: var(--foreground);
   font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo",
-    "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", sans-serif;
+    "Noto Sans KR", "Malgun Gothic", sans-serif;
   margin: 0;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 스크롤바 스타일 */
+/* 스크롤바 */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D1D5DB;
   border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9CA3AF;
+}
+
+/* 트랜지션 유틸 */
+.transition-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.transition-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* line-clamp */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 스켈레톤 */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #F0F0F0 25%, #E0E0E0 50%, #F0F0F0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
 }
