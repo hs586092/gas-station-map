@@ -118,39 +118,42 @@ export default function Sidebar({
     </div>
   );
 
-  // ── 필터 칩 (반경 + 브랜드) ──
+  // ── 필터 칩 (반경 + 브랜드 2줄) ──
   const filterChips = (
-    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+    <div className="space-y-1.5">
       {/* 반경 */}
-      {RADIUS_OPTIONS.map((r) => (
-        <button
-          key={r.value}
-          onClick={() => onFiltersChange({ ...filters, radius: r.value })}
-          className={`shrink-0 h-[30px] px-3 text-[11px] font-medium rounded-full border cursor-pointer transition-all ${
-            filters.radius === r.value
-              ? "bg-navy text-white border-navy"
-              : "bg-white text-text-secondary border-border hover:border-text-tertiary"
-          }`}
-        >
-          {r.label}
-        </button>
-      ))}
-      <div className="w-px bg-border shrink-0 mx-0.5" />
+      <div className="flex gap-1.5">
+        {RADIUS_OPTIONS.map((r) => (
+          <button
+            key={r.value}
+            onClick={() => onFiltersChange({ ...filters, radius: r.value })}
+            className={`flex-1 h-[30px] text-[11px] font-medium rounded-full border cursor-pointer transition-all ${
+              filters.radius === r.value
+                ? "bg-navy text-white border-navy"
+                : "bg-white text-text-secondary border-border hover:border-text-tertiary"
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
       {/* 브랜드 */}
-      {BRAND_OPTIONS.map((b) => (
-        <button
-          key={b.code}
-          onClick={() => toggleBrand(b.code)}
-          className={`shrink-0 h-[30px] px-2.5 text-[11px] font-medium rounded-full border cursor-pointer transition-all flex items-center gap-1 ${
-            filters.brands.has(b.code)
-              ? "bg-white text-text-primary border-text-tertiary"
-              : "bg-white text-text-tertiary border-border hover:border-text-tertiary opacity-50"
-          }`}
-        >
-          <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: b.color }} />
-          {b.label}
-        </button>
-      ))}
+      <div className="flex gap-1.5 flex-wrap">
+        {BRAND_OPTIONS.map((b) => (
+          <button
+            key={b.code}
+            onClick={() => toggleBrand(b.code)}
+            className={`h-[30px] px-2.5 text-[11px] font-medium rounded-full border cursor-pointer transition-all flex items-center gap-1 ${
+              filters.brands.has(b.code)
+                ? "bg-white text-text-primary border-text-tertiary"
+                : "bg-white text-text-tertiary border-border hover:border-text-tertiary opacity-50"
+            }`}
+          >
+            <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: b.color }} />
+            {b.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 
