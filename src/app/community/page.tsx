@@ -115,7 +115,7 @@ export default function CommunityPage() {
   }, []);
 
   const refreshAll = useCallback(() => {
-    refreshAll();
+    fetchPosts();
     fetchTopPosts();
   }, [fetchPosts, fetchTopPosts]);
 
