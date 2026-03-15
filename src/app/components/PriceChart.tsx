@@ -45,11 +45,11 @@ export default function PriceChart({
           setData(
             json.history.map((d: PriceData) => ({
               ...d,
-              date: d.date.slice(5), // "MM-DD" 형태로 표시
+              date: d.date.slice(5),
             }))
           );
         } else {
-          setError("가격 추이 데이터가 없습니다.\n수집 API를 먼저 실행해주세요.");
+          setError("가격 추이 데이터가 없습니다.\n수집 후 확인 가능합니다.");
         }
       })
       .catch(() => setError("데이터를 불러오는데 실패했습니다."))
@@ -58,133 +58,106 @@ export default function PriceChart({
 
   return (
     <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "rgba(0,0,0,0.5)",
-        zIndex: 2000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-      }}
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        style={{
-          background: "white",
-          borderRadius: 16,
-          padding: 24,
-          width: "100%",
-          maxWidth: 600,
-          maxHeight: "80vh",
-          overflow: "auto",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-        }}
+        className="bg-white rounded-2xl w-full max-w-[600px] max-h-[80vh] overflow-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: 20,
-          }}
-        >
+        <div className="flex justify-between items-start p-5 pb-0">
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: "bold" }}>
+            <h2 className="text-[17px] font-bold text-gray-900 m-0">
               가격 추이
             </h2>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#888" }}>
+            <p className="text-[12px] text-gray-400 mt-1">
               {stationName} · 최근 30일
             </p>
           </div>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: 24,
-              cursor: "pointer",
-              color: "#999",
-              padding: 0,
-              lineHeight: 1,
-            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors border-none cursor-pointer text-gray-500"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
         {/* 차트 */}
-        {loading && (
-          <p style={{ textAlign: "center", color: "#aaa", padding: 40 }}>
-            로딩 중...
-          </p>
-        )}
+        <div className="p-5">
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-6 h-6 border-2 border-gray-200 border-t-navy rounded-full animate-spin" />
+            </div>
+          )}
 
-        {error && (
-          <p
-            style={{
-              textAlign: "center",
-              color: "#999",
-              padding: 40,
-              whiteSpace: "pre-line",
-              fontSize: 14,
-            }}
-          >
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="text-center text-gray-400 py-16 whitespace-pre-line text-[13px]">
+              {error}
+            </p>
+          )}
 
-        {!loading && !error && data.length > 0 && (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="date"
-                fontSize={11}
-                tick={{ fill: "#888" }}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                fontSize={11}
-                tick={{ fill: "#888" }}
-                domain={["dataMin - 20", "dataMax + 20"]}
-                tickFormatter={(v: number) => v.toLocaleString()}
-              />
-              <Tooltip
-                formatter={(value, name) => [
-                  `${Number(value).toLocaleString()}원`,
-                  name,
-                ]}
-                labelStyle={{ fontWeight: "bold" }}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="gasoline"
-                name="휘발유"
-                stroke="#e53e3e"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="diesel"
-                name="경유"
-                stroke="#3182ce"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
+          {!loading && !error && data.length > 0 && (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="date"
+                  fontSize={11}
+                  tick={{ fill: "#94a3b8" }}
+                  interval="preserveStartEnd"
+                  axisLine={{ stroke: "#e2e8f0" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  fontSize={11}
+                  tick={{ fill: "#94a3b8" }}
+                  domain={["dataMin - 20", "dataMax + 20"]}
+                  tickFormatter={(v: number) => v.toLocaleString()}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  formatter={(value, name) => [
+                    `${Number(value).toLocaleString()}원`,
+                    name,
+                  ]}
+                  labelStyle={{ fontWeight: "bold", color: "#1a2332" }}
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="gasoline"
+                  name="휘발유"
+                  stroke="#f59e0b"
+                  strokeWidth={2.5}
+                  dot={{ r: 2.5, fill: "#f59e0b" }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="diesel"
+                  name="경유"
+                  stroke="#1a2332"
+                  strokeWidth={2.5}
+                  dot={{ r: 2.5, fill: "#1a2332" }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+                  connectNulls
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </div>
     </div>
   );
