@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
     .gte("lng", lng - lngDelta)
     .lte("lng", lng + lngDelta)
     .not(priceColumn, "is", null)
-    .gt(priceColumn, 0);
+    .gt(priceColumn, 0)
+    .gt("lat", 0);
 
   if (error) {
     return NextResponse.json(

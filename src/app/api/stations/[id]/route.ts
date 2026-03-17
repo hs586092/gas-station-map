@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase";
+import { getStationDetail, katecToWgs84 } from "@/lib/opinet";
 
 export async function GET(
   request: NextRequest,
@@ -18,6 +20,34 @@ export async function GET(
       { error: "주유소 정보를 찾을 수 없습니다." },
       { status: 404 }
     );
+  }
+
+  // 상세 정보가 없으면 Opinet API로 on-demand 조회 후 DB 캐시
+  if (!data.old_address && !data.new_address) {
+    try {
+      const detail = await getStationDetail(id);
+      const wgs = katecToWgs84(detail.GIS_X_COOR, detail.GIS_Y_COOR);
+
+      const updates = {
+        old_address: detail.VAN_ADR || "",
+        new_address: detail.NEW_ADR || "",
+        tel: detail.TEL || "",
+        lat: wgs.lat,
+        lng: wgs.lng,
+        lpg_yn: detail.LPG_YN || "N",
+        car_wash_yn: detail.CAR_WASH_YN || "N",
+        cvs_yn: detail.CVS_YN || "N",
+      };
+
+      // service role로 DB 업데이트
+      const serviceClient = createServiceClient();
+      await serviceClient.from("stations").update(updates).eq("id", id);
+
+      // 응답에 반영
+      Object.assign(data, updates);
+    } catch {
+      // API 호출 실패 시 기존 데이터로 응답
+    }
   }
 
   const prices: { product: string; price: number }[] = [];
