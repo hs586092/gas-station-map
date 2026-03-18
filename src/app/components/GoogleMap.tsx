@@ -7,7 +7,6 @@ import {
   Marker,
   InfoWindow,
   useMap,
-  useMapsLibrary,
 } from "@vis.gl/react-google-maps";
 import Sidebar, {
   type Station,
@@ -146,19 +145,21 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
 
 function TrafficLayerOverlay() {
   const map = useMap();
-  const mapsLib = useMapsLibrary("maps");
-  const layerRef = useRef<google.maps.TrafficLayer | null>(null);
 
   useEffect(() => {
-    if (!map || !mapsLib) return;
-    if (!layerRef.current) {
-      layerRef.current = new google.maps.TrafficLayer();
+    if (!map) {
+      console.log("[TrafficLayer] map not ready yet");
+      return;
     }
-    layerRef.current.setMap(map);
+    console.log("[TrafficLayer] creating and attaching TrafficLayer to map");
+    const trafficLayer = new google.maps.TrafficLayer();
+    trafficLayer.setMap(map);
+
     return () => {
-      layerRef.current?.setMap(null);
+      console.log("[TrafficLayer] removing TrafficLayer from map");
+      trafficLayer.setMap(null);
     };
-  }, [map, mapsLib]);
+  }, [map]);
 
   return null;
 }
@@ -488,7 +489,10 @@ function MapContent() {
 
       {/* 교통 레이어 토글 */}
       <button
-        onClick={() => setShowTraffic((v) => !v)}
+        onClick={() => setShowTraffic((v) => {
+          console.log("[TrafficToggle] showTraffic:", !v);
+          return !v;
+        })}
         className="fixed bottom-[104px] right-6 z-[1100] w-10 h-10 border rounded-xl cursor-pointer flex items-center justify-center transition-colors"
         style={{
           background: showTraffic ? "#1B2838" : "white",
