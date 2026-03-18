@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
   APIProvider,
   Map,
-  AdvancedMarker,
+  Marker,
   InfoWindow,
   useMap,
 } from "@vis.gl/react-google-maps";
@@ -299,15 +299,22 @@ function MapContent() {
         defaultCenter={{ lat: 36.5, lng: 127.5 }}
         defaultZoom={7}
         style={{ width: "100%", height: "100%" }}
-        mapId="gas-station-map"
         onIdle={fetchStations}
         onClick={() => setSelectedStation(null)}
       >
         {/* 내 위치 마커 */}
         {myLocation && (
-          <AdvancedMarker position={myLocation}>
-            <div className="w-[14px] h-[14px] bg-[#4285F4] border-[2.5px] border-white rounded-full" style={{ boxShadow: "0 0 0 4px rgba(66,133,244,0.2), 0 2px 4px rgba(0,0,0,0.2)" }} />
-          </AdvancedMarker>
+          <Marker
+            position={myLocation}
+            icon={{
+              path: 0,
+              scale: 7,
+              fillColor: "#4285F4",
+              fillOpacity: 1,
+              strokeColor: "white",
+              strokeWeight: 2.5,
+            }}
+          />
         )}
 
         {/* 주유소 마커 */}
@@ -315,42 +322,30 @@ function MapContent() {
           const isSelected = selectedStation?.id === station.id;
           const brandColor = BRAND_COLORS[station.brand] || "#6b7280";
           return (
-            <AdvancedMarker
+            <Marker
               key={station.id}
               position={{ lat: station.lat, lng: station.lng }}
               onClick={() => handleStationSelect(station)}
-            >
-              <div className="flex flex-col items-center">
-                <div
-                  className="flex items-center rounded-full cursor-pointer transition-all duration-150 hover:scale-105"
-                  style={{
-                    background: isSelected ? "#1B2838" : "white",
-                    boxShadow: isSelected
-                      ? "0 2px 8px rgba(27,40,56,0.4)"
-                      : "0 1px 4px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04)",
-                    padding: "4px 10px 4px 6px",
-                    gap: "5px",
-                  }}
-                >
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: brandColor }} />
-                  <span
-                    className="text-[11px] font-bold whitespace-nowrap leading-none tracking-tight"
-                    style={{ color: isSelected ? "#00C073" : "#1B2838" }}
-                  >
-                    {station.price.toLocaleString()}
-                  </span>
-                </div>
-                <div
-                  className="w-0 h-0 -mt-px"
-                  style={{
-                    borderLeft: "4px solid transparent",
-                    borderRight: "4px solid transparent",
-                    borderTop: `4px solid ${isSelected ? "#1B2838" : "white"}`,
-                    filter: isSelected ? "none" : "drop-shadow(0 1px 1px rgba(0,0,0,0.1))",
-                  }}
-                />
-              </div>
-            </AdvancedMarker>
+              label={{
+                text: station.price.toLocaleString(),
+                fontSize: "11px",
+                fontWeight: "bold",
+                color: isSelected ? "#00C073" : "#1B2838",
+              }}
+              icon={{
+                url: `data:image/svg+xml,${encodeURIComponent(
+                  `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="28">` +
+                  `<rect x="0" y="0" width="60" height="24" rx="12" fill="${isSelected ? '#1B2838' : 'white'}" ` +
+                  `stroke="${isSelected ? 'none' : 'rgba(0,0,0,0.08)'}" stroke-width="1"/>` +
+                  `<circle cx="10" cy="12" r="4" fill="${brandColor}"/>` +
+                  `<polygon points="30,24 26,28 34,28" fill="${isSelected ? '#1B2838' : 'white'}"/>` +
+                  `</svg>`
+                )}`,
+                scaledSize: new google.maps.Size(60, 28),
+                anchor: new google.maps.Point(30, 28),
+                labelOrigin: new google.maps.Point(36, 12),
+              }}
+            />
           );
         })}
 
