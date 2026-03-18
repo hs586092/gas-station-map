@@ -7,6 +7,7 @@ import {
   Marker,
   InfoWindow,
   useMap,
+  useMapsLibrary,
 } from "@vis.gl/react-google-maps";
 import Sidebar, {
   type Station,
@@ -143,6 +144,25 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
   );
 }
 
+function TrafficLayerOverlay() {
+  const map = useMap();
+  const mapsLib = useMapsLibrary("maps");
+  const layerRef = useRef<google.maps.TrafficLayer | null>(null);
+
+  useEffect(() => {
+    if (!map || !mapsLib) return;
+    if (!layerRef.current) {
+      layerRef.current = new google.maps.TrafficLayer();
+    }
+    layerRef.current.setMap(map);
+    return () => {
+      layerRef.current?.setMap(null);
+    };
+  }, [map, mapsLib]);
+
+  return null;
+}
+
 function MapContent() {
   const map = useMap();
   const [stations, setStations] = useState<Station[]>([]);
@@ -162,6 +182,7 @@ function MapContent() {
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [topStations, setTopStations] = useState<Station[]>([]);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [showTraffic, setShowTraffic] = useState(false);
 
   useEffect(() => {
     requestLocation();
@@ -302,6 +323,8 @@ function MapContent() {
         onIdle={fetchStations}
         onClick={() => setSelectedStation(null)}
       >
+        {showTraffic && <TrafficLayerOverlay />}
+
         {/* 내 위치 마커 */}
         {myLocation && (
           <Marker
@@ -462,6 +485,22 @@ function MapContent() {
           표시 중: {filteredStations.length}개 주유소
         </div>
       )}
+
+      {/* 교통 레이어 토글 */}
+      <button
+        onClick={() => setShowTraffic((v) => !v)}
+        className="fixed bottom-[104px] right-6 z-[1100] w-10 h-10 border rounded-xl cursor-pointer flex items-center justify-center transition-colors"
+        style={{
+          background: showTraffic ? "#1B2838" : "white",
+          borderColor: showTraffic ? "#1B2838" : "var(--color-border)",
+          boxShadow: "var(--shadow-md)",
+        }}
+        title={showTraffic ? "교통 정보 끄기" : "교통 정보 켜기"}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={showTraffic ? "#00C073" : "#9BA8B7"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 18h3V9H5zM10.5 18h3V4h-3zM16 18h3v-7h-3z"/>
+        </svg>
+      </button>
 
       {/* 내 위치 버튼 */}
       <button
