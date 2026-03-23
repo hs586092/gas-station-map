@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export interface Station {
   id: string;
@@ -271,6 +272,18 @@ export default function Sidebar({
                   </p>
                 </div>
               )}
+              {/* 모바일 유동인구 분석 링크 */}
+              <div className="px-4 py-3 border-t border-border">
+                <Link
+                  href="/population"
+                  className="flex items-center justify-center gap-2 w-full h-9 bg-navy text-white text-[12px] font-semibold rounded-[10px] no-underline hover:opacity-90 transition-opacity"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/>
+                  </svg>
+                  유동인구 분석
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -343,6 +356,19 @@ export default function Sidebar({
               <p className="text-[13px] text-text-tertiary m-0">필터 조건에 맞는 주유소가 없습니다</p>
             </div>
           )}
+        </div>
+
+        {/* 유동인구 분석 링크 */}
+        <div className="px-4 py-3 border-t border-border shrink-0">
+          <Link
+            href="/population"
+            className="flex items-center justify-center gap-2 w-full h-9 bg-navy text-white text-[12px] font-semibold rounded-[10px] no-underline hover:opacity-90 transition-opacity"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/>
+            </svg>
+            유동인구 분석
+          </Link>
         </div>
       </div>
     </>
