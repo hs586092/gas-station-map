@@ -165,8 +165,10 @@ function MapContent() {
   const [topStations, setTopStations] = useState<Station[]>([]);
   const [locatingUser, setLocatingUser] = useState(false);
   const [showTraffic, setShowTraffic] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const rawMapRef = useRef<google.maps.Map | null>(null);
   const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
+  const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
   // TrafficLayer 토글: rawMapRef에서 직접 제어
   useEffect(() => {
@@ -181,6 +183,55 @@ function MapContent() {
       trafficLayerRef.current.setMap(null);
     }
   }, [showTraffic]);
+
+  const filteredStations =
+    filters.brands.size === 0
+      ? stations
+      : stations.filter((s) => filters.brands.has(s.brand));
+
+  // 히트맵 레이어 토글
+  useEffect(() => {
+    const rawMap = rawMapRef.current;
+    if (!rawMap) return;
+
+    if (showHeatmap) {
+      const prices = filteredStations.map(s => s.price).filter(p => p > 0);
+      if (prices.length === 0) return;
+
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      const range = maxPrice - minPrice || 1;
+
+      const heatmapData = filteredStations
+        .filter(s => s.price > 0)
+        .map(s => ({
+          location: new google.maps.LatLng(s.lat, s.lng),
+          weight: 0.1 + ((s.price - minPrice) / range) * 0.9,
+        }));
+
+      if (heatmapLayerRef.current) {
+        heatmapLayerRef.current.setMap(null);
+      }
+
+      heatmapLayerRef.current = new google.maps.visualization.HeatmapLayer({
+        data: heatmapData,
+        radius: 30,
+        opacity: 0.7,
+        gradient: [
+          'rgba(0, 0, 255, 0)',
+          'rgba(0, 100, 255, 0.6)',
+          'rgba(0, 200, 100, 0.7)',
+          'rgba(255, 255, 0, 0.8)',
+          'rgba(255, 150, 0, 0.9)',
+          'rgba(255, 0, 0, 1)',
+        ],
+      });
+      heatmapLayerRef.current.setMap(rawMap);
+    } else if (heatmapLayerRef.current) {
+      heatmapLayerRef.current.setMap(null);
+      heatmapLayerRef.current = null;
+    }
+  }, [showHeatmap, filteredStations]);
 
   useEffect(() => {
     requestLocation();
@@ -275,11 +326,6 @@ function MapContent() {
     [filters.prodCd, filters.radius, fetchStations, fetchTopStations]
   );
 
-  const filteredStations =
-    filters.brands.size === 0
-      ? stations
-      : stations.filter((s) => filters.brands.has(s.brand));
-
   const handleStationSelect = useCallback(
     async (station: Station) => {
       setSelectedStation(station);
@@ -343,8 +389,8 @@ function MapContent() {
           />
         )}
 
-        {/* 주유소 마커 */}
-        {filteredStations.map((station) => {
+        {/* 주유소 마커 (히트맵 모드에서는 숨김) */}
+        {!showHeatmap && filteredStations.map((station) => {
           const isSelected = selectedStation?.id === station.id;
           const brandColor = BRAND_COLORS[station.brand] || "#6b7280";
           return (
@@ -375,7 +421,7 @@ function MapContent() {
           );
         })}
 
-        {selectedStation && stationDetail && (
+        {!showHeatmap && selectedStation && stationDetail && (
           <InfoWindow
             position={{ lat: selectedStation.lat, lng: selectedStation.lng }}
             onCloseClick={() => setSelectedStation(null)}
@@ -490,11 +536,87 @@ function MapContent() {
       </div>
 
       {/* 표시 중 카운트 */}
-      {filteredStations.length > 0 && (
+      {!showHeatmap && filteredStations.length > 0 && (
         <div className="fixed bottom-6 left-[calc(var(--sidebar-width)+16px)] z-[1100] bg-white/90 backdrop-blur-sm text-text-secondary text-[11px] font-medium px-3 py-1.5 rounded-full shadow-sm border border-border hidden md:block">
           표시 중: {filteredStations.length}개 주유소
         </div>
       )}
+
+      {/* 히트맵 토글 */}
+      <button
+        onClick={() => {
+          setShowHeatmap((v) => !v);
+          if (!showHeatmap) setSelectedStation(null);
+        }}
+        className="fixed bottom-[168px] right-6 z-[1100] w-10 h-10 border rounded-xl cursor-pointer flex items-center justify-center transition-colors"
+        style={{
+          background: showHeatmap ? "#1B2838" : "white",
+          borderColor: showHeatmap ? "#1B2838" : "var(--color-border)",
+          boxShadow: "var(--shadow-md)",
+        }}
+        title={showHeatmap ? "마커 보기" : "히트맵 보기"}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={showHeatmap ? "#FF6B35" : "#9BA8B7"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2c-4 0-8 3.5-8 9.5S12 22 12 22s8-4.5 8-10.5S16 2 12 2z"/>
+          <circle cx="12" cy="11" r="3"/>
+        </svg>
+      </button>
+
+      {/* 히트맵 범례 */}
+      {showHeatmap && filteredStations.length > 0 && (() => {
+        const prices = filteredStations.map(s => s.price).filter(p => p > 0);
+        if (prices.length === 0) return null;
+        const minP = Math.min(...prices);
+        const maxP = Math.max(...prices);
+        return (
+          <div
+            className="hidden md:block fixed bottom-6 z-[1100] bg-white/95 backdrop-blur-sm rounded-xl px-4 py-3 border border-border"
+            style={{
+              left: "calc(var(--sidebar-width) + 16px)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          >
+            <div className="text-[11px] font-semibold text-text-secondary mb-2">가격 히트맵</div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-blue-600">{minP.toLocaleString()}원</span>
+              <div
+                className="h-3 rounded-full"
+                style={{
+                  width: 120,
+                  background: "linear-gradient(to right, rgba(0,100,255,0.8), rgba(0,200,100,0.8), rgba(255,255,0,0.9), rgba(255,150,0,0.95), rgba(255,0,0,1))",
+                }}
+              />
+              <span className="text-[11px] font-medium text-red-600">{maxP.toLocaleString()}원</span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 모바일 히트맵 범례 */}
+      {showHeatmap && filteredStations.length > 0 && (() => {
+        const prices = filteredStations.map(s => s.price).filter(p => p > 0);
+        if (prices.length === 0) return null;
+        const minP = Math.min(...prices);
+        const maxP = Math.max(...prices);
+        return (
+          <div
+            className="md:hidden fixed bottom-20 left-3 right-3 z-[1100] bg-white/95 backdrop-blur-sm rounded-xl px-4 py-3 border border-border"
+            style={{ boxShadow: "var(--shadow-md)" }}
+          >
+            <div className="text-[11px] font-semibold text-text-secondary mb-2">가격 히트맵</div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-blue-600">{minP.toLocaleString()}원</span>
+              <div
+                className="flex-1 h-3 rounded-full"
+                style={{
+                  background: "linear-gradient(to right, rgba(0,100,255,0.8), rgba(0,200,100,0.8), rgba(255,255,0,0.9), rgba(255,150,0,0.95), rgba(255,0,0,1))",
+                }}
+              />
+              <span className="text-[11px] font-medium text-red-600">{maxP.toLocaleString()}원</span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 교통 레이어 토글 */}
       <button
@@ -559,7 +681,7 @@ export default function GoogleMap() {
     <div className="flex flex-col h-screen w-screen">
       <Header onLoginClick={() => setShowAuth(true)} />
       <div className="flex-1 relative overflow-hidden">
-        <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+        <APIProvider apiKey={GOOGLE_MAPS_API_KEY} libraries={['visualization']}>
           <MapContent />
         </APIProvider>
       </div>
