@@ -204,7 +204,7 @@ export default function PopulationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="h-screen overflow-y-auto bg-surface">
         <header className="h-[56px] bg-navy flex items-center px-5">
           <span className="text-white text-[16px] font-bold">분석 로딩 중...</span>
         </header>
@@ -219,7 +219,7 @@ export default function PopulationPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
+      <div className="h-screen overflow-y-auto bg-surface flex items-center justify-center">
         <p className="text-text-secondary">데이터를 불러올 수 없습니다.</p>
       </div>
     );
@@ -229,9 +229,9 @@ export default function PopulationPage() {
   const corrColor = Math.abs(summary.correlation) < 0.2 ? "#6B7A8D" : summary.correlation > 0 ? "#16A34A" : "#DC2626";
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="h-screen overflow-y-auto bg-surface">
       {/* 헤더 */}
-      <header className="h-[56px] bg-navy flex items-center gap-4 px-4 md:px-5 shrink-0">
+      <header className="h-[56px] bg-navy flex items-center gap-4 px-4 md:px-5 shrink-0 sticky top-0 z-50">
         <Link href="/" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors no-underline">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
         </Link>
