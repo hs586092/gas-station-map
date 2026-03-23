@@ -169,19 +169,54 @@ function MapContent() {
   const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
   const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
-  // TrafficLayer 토글: useMap() 훅의 map 인스턴스 사용
+  // TrafficLayer 토글: useMap() + DOM 직접 탐색 fallback
   useEffect(() => {
-    if (!map) return;
-    if (showTraffic) {
-      if (!trafficLayerRef.current) {
-        trafficLayerRef.current = new google.maps.TrafficLayer({
-          autoRefresh: true,
-        });
+    if (!showTraffic) {
+      if (trafficLayerRef.current) {
+        trafficLayerRef.current.setMap(null);
       }
-      trafficLayerRef.current.setMap(map);
-    } else if (trafficLayerRef.current) {
-      trafficLayerRef.current.setMap(null);
+      return;
     }
+
+    // DOM에서 실제 google.maps.Map 인스턴스 찾기
+    const findGoogleMap = (): google.maps.Map | null => {
+      const container = document.querySelector('[aria-label="Map"]')
+        || document.querySelector('.gm-style')?.parentElement;
+      if (!container) return null;
+
+      for (const key of Object.keys(container)) {
+        try {
+          const val = (container as any)[key];
+          if (val instanceof google.maps.Map) return val;
+        } catch {}
+      }
+
+      const gmStyle = container.querySelector('.gm-style');
+      if (gmStyle) {
+        for (const key of Object.keys(gmStyle)) {
+          try {
+            const val = (gmStyle as any)[key];
+            if (val instanceof google.maps.Map) return val;
+          } catch {}
+        }
+      }
+
+      return null;
+    };
+
+    const realMap = map || findGoogleMap();
+
+    if (!realMap) {
+      console.warn('[Traffic] Map 인스턴스를 찾을 수 없음');
+      return;
+    }
+
+    if (!trafficLayerRef.current) {
+      trafficLayerRef.current = new google.maps.TrafficLayer({ autoRefresh: true });
+    }
+    trafficLayerRef.current.setMap(realMap);
+
+    console.log('[Traffic] 적용 완료. map type:', typeof realMap, 'getZoom:', realMap.getZoom?.());
   }, [showTraffic, map]);
 
   const filteredStations =
