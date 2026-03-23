@@ -216,7 +216,13 @@ function MapContent() {
     }
     trafficLayerRef.current.setMap(realMap);
 
-    console.log('[Traffic] 적용 완료. map type:', typeof realMap, 'getZoom:', realMap.getZoom?.());
+    const layer = trafficLayerRef.current;
+    console.log('[Traffic] layer.getMap():', layer.getMap());
+    console.log('[Traffic] map styles:', realMap.get('styles'));
+    console.log('[Traffic] map mapId:', realMap.get('mapId'));
+    console.log('[Traffic] map renderingType:', realMap.get('renderingType'));
+    console.log('[Traffic] realMap === map:', realMap === map);
+    console.log('[Traffic] realMap constructor:', realMap.constructor?.name);
   }, [showTraffic, map]);
 
   const filteredStations =
