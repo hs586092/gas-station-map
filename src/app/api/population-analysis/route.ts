@@ -3,8 +3,7 @@ import { createServiceClient } from "@/lib/supabase";
 
 interface StationRow {
   id: string;
-  old_address: string | null;
-  new_address: string | null;
+  district: string;
   gasoline_price: number | null;
   diesel_price: number | null;
 }
@@ -13,12 +12,6 @@ interface PopRow {
   hour: number;
   adm_nm: string;
   total_pop: number;
-}
-
-function extractDistrict(address: string): string | null {
-  // "서울 강남구 ..." 또는 "서울특별시 강남구 ..."
-  const match = address.match(/서울(?:특별시)?\s+(\S+구)/);
-  return match ? match[1] : null;
 }
 
 function pearsonCorrelation(xs: number[], ys: number[]): number {
@@ -46,26 +39,18 @@ function pearsonCorrelation(xs: number[], ys: number[]): number {
 export async function GET() {
   const supabase = createServiceClient();
 
-  // 1. 서울 주유소 가져오기 (주소가 있는 것만)
+  // 1. 서울 주유소 가져오기 (district 컬럼 사용, 경기도 제외)
   const { data: allStations, error: stErr } = await supabase
     .from("stations")
-    .select("id, old_address, new_address, gasoline_price, diesel_price")
-    .not("old_address", "is", null);
+    .select("id, district, gasoline_price, diesel_price")
+    .not("district", "is", null)
+    .neq("district", "경기도");
 
   if (stErr) {
     return NextResponse.json({ error: stErr.message }, { status: 500 });
   }
 
-  // 서울 주유소 필터 + 자치구 추출
-  const seoulStations: (StationRow & { district: string })[] = [];
-  for (const s of allStations as StationRow[]) {
-    const addr = s.old_address || s.new_address;
-    if (!addr) continue;
-    const district = extractDistrict(addr);
-    if (district) {
-      seoulStations.push({ ...s, district });
-    }
-  }
+  const seoulStations = allStations as StationRow[];
 
   // 2. population_data에서 최근 날짜 데이터
   const { data: latestDate } = await supabase
@@ -99,7 +84,7 @@ export async function GET() {
   }
 
   // 4. 자치구별 주유소 집계
-  const stationsByDistrict: Record<string, (StationRow & { district: string })[]> = {};
+  const stationsByDistrict: Record<string, StationRow[]> = {};
   for (const s of seoulStations) {
     if (!stationsByDistrict[s.district]) stationsByDistrict[s.district] = [];
     stationsByDistrict[s.district].push(s);
@@ -125,7 +110,6 @@ export async function GET() {
 
   const analysis = Array.from(allDistricts)
     .map((district) => {
-      // 인구 분석
       const popRows = popByDistrict[district] || [];
       const hourlyPops = popRows.map((r) => ({ hour: r.hour, pop: r.total_pop }));
       hourlyPops.sort((a, b) => b.pop - a.pop);
@@ -142,7 +126,6 @@ export async function GET() {
           ? Math.round(nightRows.reduce((s, r) => s + r.total_pop, 0) / nightRows.length)
           : 0;
 
-      // 주유소 분석
       const stations = stationsByDistrict[district] || [];
       const gasPrices = stations
         .map((s) => s.gasoline_price)
@@ -162,7 +145,6 @@ export async function GET() {
       const minGasoline = gasPrices.length > 0 ? Math.min(...gasPrices) : 0;
       const maxGasoline = gasPrices.length > 0 ? Math.max(...gasPrices) : 0;
 
-      // 인사이트
       const popPerStation = stations.length > 0 ? Math.round(avgPop / stations.length) : 0;
       const priceVsAvg = avgGasoline > 0 ? avgGasoline - avgGasolineSeoul : 0;
 
@@ -172,7 +154,6 @@ export async function GET() {
       else if (popPerStation < 40000) competitionLevel = "medium";
       else competitionLevel = "low";
 
-      // 상관계수용 데이터 수집
       if (avgPop > 0 && avgGasoline > 0) {
         correlationPops.push(avgPop);
         correlationPrices.push(avgGasoline);
