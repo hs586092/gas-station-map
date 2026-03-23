@@ -164,39 +164,8 @@ function MapContent() {
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [topStations, setTopStations] = useState<Station[]>([]);
   const [locatingUser, setLocatingUser] = useState(false);
-  const [showTraffic, setShowTraffic] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const trafficLayerRef = useRef<google.maps.ImageMapType | null>(null);
   const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
-
-  // 교통 타일 오버레이 (ImageMapType 방식)
-  useEffect(() => {
-    if (!map) return;
-
-    if (showTraffic) {
-      if (!trafficLayerRef.current) {
-        const trafficTiles = new google.maps.ImageMapType({
-          getTileUrl: (coord, zoom) =>
-            `https://mt0.google.com/vt?lyrs=traffic&x=${coord.x}&y=${coord.y}&z=${zoom}`,
-          tileSize: new google.maps.Size(256, 256),
-          maxZoom: 20,
-          opacity: 0.7,
-          name: 'traffic',
-        });
-        trafficLayerRef.current = trafficTiles;
-        map.overlayMapTypes.push(trafficTiles);
-      }
-    } else if (trafficLayerRef.current) {
-      const overlays = map.overlayMapTypes;
-      for (let i = 0; i < overlays.getLength(); i++) {
-        if ((overlays.getAt(i) as any)?.name === 'traffic') {
-          overlays.removeAt(i);
-          break;
-        }
-      }
-      trafficLayerRef.current = null;
-    }
-  }, [showTraffic, map]);
 
   const filteredStations =
     filters.brands.size === 0
@@ -376,7 +345,6 @@ function MapContent() {
       <Map
         defaultCenter={{ lat: 36.5, lng: 127.5 }}
         defaultZoom={7}
-        renderingType={"RASTER" as unknown as google.maps.RenderingType}
         style={{ width: "100%", height: "100%" }}
         onIdle={() => {
           fetchStations();
@@ -558,7 +526,7 @@ function MapContent() {
           setShowHeatmap((v) => !v);
           if (!showHeatmap) setSelectedStation(null);
         }}
-        className="fixed bottom-[168px] right-6 z-[1100] w-10 h-10 border rounded-xl cursor-pointer flex items-center justify-center transition-colors"
+        className="fixed bottom-[104px] right-6 z-[1100] w-10 h-10 border rounded-xl cursor-pointer flex items-center justify-center transition-colors"
         style={{
           background: showHeatmap ? "#1B2838" : "white",
           borderColor: showHeatmap ? "#1B2838" : "var(--color-border)",
@@ -627,22 +595,6 @@ function MapContent() {
           </div>
         );
       })()}
-
-      {/* 교통 레이어 토글 */}
-      <button
-        onClick={() => setShowTraffic((v) => !v)}
-        className="fixed bottom-[104px] right-6 z-[1100] w-10 h-10 border rounded-xl cursor-pointer flex items-center justify-center transition-colors"
-        style={{
-          background: showTraffic ? "#1B2838" : "white",
-          borderColor: showTraffic ? "#1B2838" : "var(--color-border)",
-          boxShadow: "var(--shadow-md)",
-        }}
-        title={showTraffic ? "교통 정보 끄기" : "교통 정보 켜기"}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={showTraffic ? "#00C073" : "#9BA8B7"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 18h3V9H5zM10.5 18h3V4h-3zM16 18h3v-7h-3z"/>
-        </svg>
-      </button>
 
       {/* 내 위치 버튼 */}
       <button
