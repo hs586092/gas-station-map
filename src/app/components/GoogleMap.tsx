@@ -173,14 +173,18 @@ function MapContent() {
   // TrafficLayer 토글: rawMapRef에서 직접 제어
   useEffect(() => {
     const rawMap = rawMapRef.current;
+    console.log('[TrafficLayer] useEffect 실행 — showTraffic:', showTraffic, '| rawMap:', rawMap ? '있음' : 'null');
     if (!rawMap) return;
     if (showTraffic) {
       if (!trafficLayerRef.current) {
         trafficLayerRef.current = new google.maps.TrafficLayer();
+        console.log('[TrafficLayer] 새 인스턴스 생성:', trafficLayerRef.current);
       }
       trafficLayerRef.current.setMap(rawMap);
+      console.log('[TrafficLayer] setMap(rawMap) 호출 완료');
     } else if (trafficLayerRef.current) {
       trafficLayerRef.current.setMap(null);
+      console.log('[TrafficLayer] setMap(null) — 비활성화');
     }
   }, [showTraffic]);
 
@@ -368,6 +372,7 @@ function MapContent() {
           // 실제 google.maps.Map 인스턴스를 캡처
           if (e && e.map && !rawMapRef.current) {
             rawMapRef.current = e.map;
+            console.log('[rawMap] 캡처 완료:', e.map);
           }
           fetchStations();
         }}
