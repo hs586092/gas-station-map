@@ -166,63 +166,36 @@ function MapContent() {
   const [locatingUser, setLocatingUser] = useState(false);
   const [showTraffic, setShowTraffic] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
+  const trafficLayerRef = useRef<google.maps.ImageMapType | null>(null);
   const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
-  // TrafficLayer 토글: useMap() + DOM 직접 탐색 fallback
+  // 교통 타일 오버레이 (ImageMapType 방식)
   useEffect(() => {
-    if (!showTraffic) {
-      if (trafficLayerRef.current) {
-        trafficLayerRef.current.setMap(null);
+    if (!map) return;
+
+    if (showTraffic) {
+      if (!trafficLayerRef.current) {
+        const trafficTiles = new google.maps.ImageMapType({
+          getTileUrl: (coord, zoom) =>
+            `https://mt0.google.com/vt?lyrs=traffic&x=${coord.x}&y=${coord.y}&z=${zoom}`,
+          tileSize: new google.maps.Size(256, 256),
+          maxZoom: 20,
+          opacity: 0.7,
+          name: 'traffic',
+        });
+        trafficLayerRef.current = trafficTiles;
+        map.overlayMapTypes.push(trafficTiles);
       }
-      return;
-    }
-
-    // DOM에서 실제 google.maps.Map 인스턴스 찾기
-    const findGoogleMap = (): google.maps.Map | null => {
-      const container = document.querySelector('[aria-label="Map"]')
-        || document.querySelector('.gm-style')?.parentElement;
-      if (!container) return null;
-
-      for (const key of Object.keys(container)) {
-        try {
-          const val = (container as any)[key];
-          if (val instanceof google.maps.Map) return val;
-        } catch {}
-      }
-
-      const gmStyle = container.querySelector('.gm-style');
-      if (gmStyle) {
-        for (const key of Object.keys(gmStyle)) {
-          try {
-            const val = (gmStyle as any)[key];
-            if (val instanceof google.maps.Map) return val;
-          } catch {}
+    } else if (trafficLayerRef.current) {
+      const overlays = map.overlayMapTypes;
+      for (let i = 0; i < overlays.getLength(); i++) {
+        if ((overlays.getAt(i) as any)?.name === 'traffic') {
+          overlays.removeAt(i);
+          break;
         }
       }
-
-      return null;
-    };
-
-    const realMap = map || findGoogleMap();
-
-    if (!realMap) {
-      console.warn('[Traffic] Map 인스턴스를 찾을 수 없음');
-      return;
+      trafficLayerRef.current = null;
     }
-
-    if (!trafficLayerRef.current) {
-      trafficLayerRef.current = new google.maps.TrafficLayer({ autoRefresh: true });
-    }
-    trafficLayerRef.current.setMap(realMap);
-
-    const layer = trafficLayerRef.current;
-    console.log('[Traffic] layer.getMap():', layer.getMap());
-    console.log('[Traffic] map styles:', realMap.get('styles'));
-    console.log('[Traffic] map mapId:', realMap.get('mapId'));
-    console.log('[Traffic] map renderingType:', realMap.get('renderingType'));
-    console.log('[Traffic] realMap === map:', realMap === map);
-    console.log('[Traffic] realMap constructor:', realMap.constructor?.name);
   }, [showTraffic, map]);
 
   const filteredStations =
