@@ -14,6 +14,7 @@ import Sidebar, {
   BRAND_LABELS,
 } from "./Sidebar";
 import PriceChart from "./PriceChart";
+import CompetitorModal from "./CompetitorModal";
 import AuthModal from "./AuthModal";
 import { useAuth } from "@/lib/auth";
 import Link from "next/link";
@@ -143,21 +144,6 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
   );
 }
 
-function TrafficLayerOverlay() {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!map) return;
-    const trafficLayer = new google.maps.TrafficLayer();
-    trafficLayer.setMap(map);
-    return () => {
-      trafficLayer.setMap(null);
-    };
-  }, [map]);
-
-  return null;
-}
-
 function MapContent() {
   const map = useMap();
   const [stations, setStations] = useState<Station[]>([]);
@@ -173,11 +159,28 @@ function MapContent() {
   filtersRef.current = filters;
 
   const [showChart, setShowChart] = useState<{ id: string; name: string } | null>(null);
+  const [showCompetitor, setShowCompetitor] = useState<{ id: string; name: string } | null>(null);
 
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [topStations, setTopStations] = useState<Station[]>([]);
   const [locatingUser, setLocatingUser] = useState(false);
   const [showTraffic, setShowTraffic] = useState(false);
+  const rawMapRef = useRef<google.maps.Map | null>(null);
+  const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
+
+  // TrafficLayer 토글: rawMapRef에서 직접 제어
+  useEffect(() => {
+    const rawMap = rawMapRef.current;
+    if (!rawMap) return;
+    if (showTraffic) {
+      if (!trafficLayerRef.current) {
+        trafficLayerRef.current = new google.maps.TrafficLayer();
+      }
+      trafficLayerRef.current.setMap(rawMap);
+    } else if (trafficLayerRef.current) {
+      trafficLayerRef.current.setMap(null);
+    }
+  }, [showTraffic]);
 
   useEffect(() => {
     requestLocation();
@@ -315,10 +318,15 @@ function MapContent() {
         defaultCenter={{ lat: 36.5, lng: 127.5 }}
         defaultZoom={7}
         style={{ width: "100%", height: "100%" }}
-        onIdle={fetchStations}
+        onIdle={(e) => {
+          // 실제 google.maps.Map 인스턴스를 캡처
+          if (e && e.map && !rawMapRef.current) {
+            rawMapRef.current = e.map;
+          }
+          fetchStations();
+        }}
         onClick={() => setSelectedStation(null)}
       >
-        {showTraffic && <TrafficLayerOverlay />}
 
         {/* 내 위치 마커 */}
         {myLocation && (
@@ -453,6 +461,13 @@ function MapContent() {
                     가격 추이
                   </button>
                 </div>
+                <button
+                  onClick={() => setShowCompetitor({ id: selectedStation.id, name: selectedStation.name })}
+                  className="w-full h-9 mt-2 bg-surface text-text-secondary text-[12px] font-semibold rounded-[10px] border border-border cursor-pointer flex items-center justify-center gap-1.5 hover:bg-border/30 transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  경쟁사 비교
+                </button>
               </div>
             </div>
           </InfoWindow>
@@ -518,6 +533,14 @@ function MapContent() {
           onClose={() => setShowChart(null)}
         />
       )}
+
+      {/* 경쟁사 비교 모달 */}
+      <CompetitorModal
+        stationId={showCompetitor?.id || ""}
+        stationName={showCompetitor?.name || ""}
+        isOpen={!!showCompetitor}
+        onClose={() => setShowCompetitor(null)}
+      />
 
       {loading && (
         <div className="fixed top-[72px] left-1/2 -translate-x-1/2 bg-white text-text-secondary px-4 py-2 rounded-full text-[12px] font-medium z-[1100] border border-border flex items-center gap-2" style={{ boxShadow: "var(--shadow-md)" }}>
