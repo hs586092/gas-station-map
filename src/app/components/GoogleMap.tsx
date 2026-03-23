@@ -166,25 +166,23 @@ function MapContent() {
   const [locatingUser, setLocatingUser] = useState(false);
   const [showTraffic, setShowTraffic] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const rawMapRef = useRef<google.maps.Map | null>(null);
   const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
   const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
-  // TrafficLayer 토글: rawMapRef에서 직접 제어
+  // TrafficLayer 토글: useMap() 훅의 map 인스턴스 사용
   useEffect(() => {
-    const rawMap = rawMapRef.current;
-    if (!rawMap) return;
+    if (!map) return;
     if (showTraffic) {
       if (!trafficLayerRef.current) {
         trafficLayerRef.current = new google.maps.TrafficLayer({
           autoRefresh: true,
         });
       }
-      trafficLayerRef.current.setMap(rawMap);
+      trafficLayerRef.current.setMap(map);
     } else if (trafficLayerRef.current) {
       trafficLayerRef.current.setMap(null);
     }
-  }, [showTraffic]);
+  }, [showTraffic, map]);
 
   const filteredStations =
     filters.brands.size === 0
@@ -193,8 +191,7 @@ function MapContent() {
 
   // 히트맵 레이어 토글
   useEffect(() => {
-    const rawMap = rawMapRef.current;
-    if (!rawMap) return;
+    if (!map) return;
 
     if (showHeatmap) {
       const prices = filteredStations.map(s => s.price).filter(p => p > 0);
@@ -228,12 +225,12 @@ function MapContent() {
           'rgba(255, 0, 0, 1)',
         ],
       });
-      heatmapLayerRef.current.setMap(rawMap);
+      heatmapLayerRef.current.setMap(map);
     } else if (heatmapLayerRef.current) {
       heatmapLayerRef.current.setMap(null);
       heatmapLayerRef.current = null;
     }
-  }, [showHeatmap, filteredStations]);
+  }, [showHeatmap, filteredStations, map]);
 
   useEffect(() => {
     requestLocation();
@@ -367,11 +364,7 @@ function MapContent() {
         defaultZoom={7}
         renderingType={"RASTER" as unknown as google.maps.RenderingType}
         style={{ width: "100%", height: "100%" }}
-        onIdle={(e) => {
-          // 실제 google.maps.Map 인스턴스를 캡처
-          if (e && e.map && !rawMapRef.current) {
-            rawMapRef.current = e.map;
-          }
+        onIdle={() => {
           fetchStations();
         }}
         onClick={() => setSelectedStation(null)}
