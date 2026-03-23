@@ -367,6 +367,7 @@ function MapContent() {
       <Map
         defaultCenter={{ lat: 36.5, lng: 127.5 }}
         defaultZoom={7}
+        renderingType={"RASTER" as unknown as google.maps.RenderingType}
         style={{ width: "100%", height: "100%" }}
         onIdle={(e) => {
           // 실제 google.maps.Map 인스턴스를 캡처
