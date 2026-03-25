@@ -31,45 +31,43 @@ const SEOUL_DISTRICTS = [
   { name: "강동구", lat: 37.5301, lng: 127.1238 },
 ];
 
-// 서울 대략적 범위
-const SEOUL_BOUNDS = {
-  latMin: 37.41,
-  latMax: 37.72,
-  lngMin: 126.76,
-  lngMax: 127.18,
-};
+// 최대 매칭 거리 (km) - 구청에서 5km 이상 떨어지면 서울이 아님
+const MAX_DISTRICT_DISTANCE_KM = 5;
 
-function distance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const dlat = lat1 - lat2;
-  const dlng = (lng1 - lng2) * Math.cos(((lat1 + lat2) / 2) * (Math.PI / 180));
-  return Math.sqrt(dlat * dlat + dlng * dlng);
-}
-
-function isInSeoul(lat: number, lng: number): boolean {
-  return (
-    lat >= SEOUL_BOUNDS.latMin &&
-    lat <= SEOUL_BOUNDS.latMax &&
-    lng >= SEOUL_BOUNDS.lngMin &&
-    lng <= SEOUL_BOUNDS.lngMax
-  );
+// Haversine 거리 계산 (km 단위)
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function extractDistrict(address: string): string | null {
-  const match = address.match(/서울(?:특별시)?\s+(\S+구)/);
+  const match = address.match(/서울(?:특별시|시)?\s*(\S+구)/);
   return match ? match[1] : null;
 }
 
-function findNearestDistrict(lat: number, lng: number): string {
+// 가장 가까운 구청을 찾되, 5km 이내인 경우만 서울로 판정
+function findNearestDistrict(lat: number, lng: number): { name: string; distKm: number } | null {
   let minDist = Infinity;
   let nearest = SEOUL_DISTRICTS[0].name;
   for (const d of SEOUL_DISTRICTS) {
-    const dist = distance(lat, lng, d.lat, d.lng);
+    const dist = distanceKm(lat, lng, d.lat, d.lng);
     if (dist < minDist) {
       minDist = dist;
       nearest = d.name;
     }
   }
-  return nearest;
+  if (minDist > MAX_DISTRICT_DISTANCE_KM) {
+    return null; // 서울이 아님
+  }
+  return { name: nearest, distKm: minDist };
 }
 
 export async function GET(request: Request) {
@@ -81,7 +79,17 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient();
 
-  // 모든 주유소 가져오기
+  // 1. 전체 district를 null로 초기화 (오매칭 리셋)
+  const { error: resetError } = await supabase
+    .from("stations")
+    .update({ district: null })
+    .not("id", "is", null); // 전체 행 대상
+
+  if (resetError) {
+    return NextResponse.json({ error: `Reset failed: ${resetError.message}` }, { status: 500 });
+  }
+
+  // 2. 모든 주유소 가져오기
   const { data: stations, error } = await supabase
     .from("stations")
     .select("id, lat, lng, old_address, new_address");
@@ -92,7 +100,7 @@ export async function GET(request: Request) {
 
   let addressMatched = 0;
   let coordMatched = 0;
-  let gyeonggi = 0;
+  let skipped = 0;
   const districtCounts: Record<string, number> = {};
 
   const updates: { id: string; district: string }[] = [];
@@ -100,45 +108,44 @@ export async function GET(request: Request) {
   for (const s of stations) {
     let district: string | null = null;
 
-    // 1. 주소에서 추출 시도
-    const addr = s.old_address || s.new_address;
-    if (addr) {
-      district = extractDistrict(addr);
-      if (district) addressMatched++;
+    // 1순위: 주소에서 '서울 OO구' 추출 (가장 정확)
+    const addr = s.old_address || s.new_address || "";
+    district = extractDistrict(addr);
+    if (district) {
+      // 주소에서 서울 자치구를 찾았으므로 신뢰
+      addressMatched++;
     }
 
-    // 2. 주소에서 못 찾으면 좌표로 매칭
+    // 2순위: 좌표 기반 → 가장 가까운 구청, 5km 이내만
     if (!district && s.lat && s.lng) {
-      if (isInSeoul(s.lat, s.lng)) {
-        district = findNearestDistrict(s.lat, s.lng);
+      const nearest = findNearestDistrict(s.lat, s.lng);
+      if (nearest) {
+        district = nearest.name;
         coordMatched++;
       } else {
-        district = "경기도";
-        gyeonggi++;
+        // 5km 이내 구청 없음 → 서울 아님, district=null 유지
+        skipped++;
+        continue;
       }
     }
 
     if (district) {
       updates.push({ id: s.id, district });
       districtCounts[district] = (districtCounts[district] || 0) + 1;
+    } else {
+      skipped++;
     }
   }
 
   // 배치 업데이트
-  const BATCH_SIZE = 500;
   let updatedCount = 0;
+  for (const item of updates) {
+    const { error: updateErr } = await supabase
+      .from("stations")
+      .update({ district: item.district })
+      .eq("id", item.id);
 
-  for (let i = 0; i < updates.length; i += BATCH_SIZE) {
-    const batch = updates.slice(i, i + BATCH_SIZE);
-    // upsert로 district만 업데이트
-    for (const item of batch) {
-      const { error: updateErr } = await supabase
-        .from("stations")
-        .update({ district: item.district })
-        .eq("id", item.id);
-
-      if (!updateErr) updatedCount++;
-    }
+    if (!updateErr) updatedCount++;
   }
 
   // 자치구별 정렬
@@ -146,9 +153,7 @@ export async function GET(request: Request) {
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => ({ name, count }));
 
-  const seoulTotal = sortedDistricts
-    .filter((d) => d.name !== "경기도")
-    .reduce((s, d) => s + d.count, 0);
+  const seoulTotal = sortedDistricts.reduce((s, d) => s + d.count, 0);
 
   return NextResponse.json({
     success: true,
@@ -157,10 +162,9 @@ export async function GET(request: Request) {
     matching: {
       address_matched: addressMatched,
       coord_matched: coordMatched,
-      gyeonggi: gyeonggi,
+      skipped_not_seoul: skipped,
     },
     seoul_total: seoulTotal,
-    gyeonggi_total: gyeonggi,
     districts: sortedDistricts,
   });
 }
