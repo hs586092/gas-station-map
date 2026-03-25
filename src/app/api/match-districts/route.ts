@@ -78,24 +78,41 @@ export async function GET(request: Request) {
   }
 
   const supabase = createServiceClient();
+  const PAGE_SIZE = 1000;
 
   // 1. 전체 district를 null로 초기화 (오매칭 리셋)
-  const { error: resetError } = await supabase
-    .from("stations")
-    .update({ district: null })
-    .not("id", "is", null); // 전체 행 대상
+  // Supabase update도 기본 1,000개 제한 → 반복 실행
+  let resetCount = 0;
+  while (true) {
+    const { data: resetData, error: resetError } = await supabase
+      .from("stations")
+      .update({ district: null })
+      .not("district", "is", null)
+      .select("id");
 
-  if (resetError) {
-    return NextResponse.json({ error: `Reset failed: ${resetError.message}` }, { status: 500 });
+    if (resetError) {
+      return NextResponse.json({ error: `Reset failed: ${resetError.message}` }, { status: 500 });
+    }
+    resetCount += resetData?.length || 0;
+    if (!resetData || resetData.length < PAGE_SIZE) break;
   }
 
-  // 2. 모든 주유소 가져오기
-  const { data: stations, error } = await supabase
-    .from("stations")
-    .select("id, lat, lng, old_address, new_address");
+  // 2. 모든 주유소 가져오기 (페이징)
+  const stations: { id: string; lat: number; lng: number; old_address: string; new_address: string }[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("stations")
+      .select("id, lat, lng, old_address, new_address")
+      .range(from, from + PAGE_SIZE - 1);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!data || data.length === 0) break;
+    stations.push(...data);
+    from += PAGE_SIZE;
+    if (data.length < PAGE_SIZE) break;
   }
 
   let addressMatched = 0;
