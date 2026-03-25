@@ -232,13 +232,25 @@ export default function PopulationPage() {
     <div className="h-screen overflow-y-auto bg-surface">
       {/* 헤더 */}
       <header className="h-[56px] bg-navy flex items-center gap-4 px-4 md:px-5 shrink-0 sticky top-0 z-50">
-        <Link href="/" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors no-underline">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+        <Link href="/" className="flex items-center gap-2 no-underline shrink-0">
+          <div className="w-7 h-7 bg-emerald rounded-lg flex items-center justify-center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+          </div>
+          <span className="text-white text-[16px] font-bold tracking-tight hidden md:block">주유소맵</span>
         </Link>
-        <div>
-          <h1 className="text-white text-[15px] font-bold m-0">서울 유동인구 × 주유소 가격 분석</h1>
-          <p className="text-gray-400 text-[11px] m-0">기준일: {summary.date}</p>
-        </div>
+        <nav className="hidden md:flex items-center gap-0.5 ml-1">
+          <Link href="/" className="px-3 py-1.5 text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg no-underline transition-colors">
+            지도
+          </Link>
+          <Link href="/community" className="px-3 py-1.5 text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg no-underline transition-colors">
+            커뮤니티
+          </Link>
+          <Link href="/population" className="px-3 py-1.5 text-[13px] font-medium text-white bg-white/15 rounded-lg no-underline transition-colors">
+            유동인구 분석
+          </Link>
+        </nav>
       </header>
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-6">

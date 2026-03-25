@@ -18,6 +18,7 @@ import CompetitorModal from "./CompetitorModal";
 import AuthModal from "./AuthModal";
 import { useAuth } from "@/lib/auth";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
 
@@ -58,6 +59,13 @@ const ALL_BRANDS = new Set([
 function Header({ onLoginClick }: { onLoginClick: () => void }) {
   const { user, profile, signOut } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const pathname = usePathname();
+
+  const navItems = [
+    { href: "/", label: "지도" },
+    { href: "/community", label: "커뮤니티" },
+    { href: "/population", label: "유동인구 분석" },
+  ];
 
   return (
     <header className="h-[56px] bg-navy flex items-center gap-4 px-4 md:px-5 shrink-0 z-[1200] relative">
@@ -73,12 +81,22 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
 
       {/* 데스크톱 네비게이션 */}
       <nav className="hidden md:flex items-center gap-0.5 ml-1">
-        <Link href="/" className="px-3 py-1.5 text-[13px] font-medium text-white bg-white/15 rounded-lg no-underline transition-colors">
-          지도
-        </Link>
-        <Link href="/community" className="px-3 py-1.5 text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg no-underline transition-colors">
-          커뮤니티
-        </Link>
+        {navItems.map(({ href, label }) => {
+          const isActive = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`px-3 py-1.5 text-[13px] font-medium rounded-lg no-underline transition-colors ${
+                isActive
+                  ? "text-white bg-white/15"
+                  : "text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* 중앙 검색바 (데스크톱) */}
@@ -101,6 +119,12 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
         <Link href="/community" className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors no-underline">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9BA8B7" strokeWidth="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </Link>
+        {/* 모바일 유동인구 분석 */}
+        <Link href="/population" className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors no-underline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9BA8B7" strokeWidth="2">
+            <path d="M18 20V10M12 20V4M6 20v-6"/>
           </svg>
         </Link>
 
