@@ -17,6 +17,20 @@ import {
   Bar,
 } from "recharts";
 
+interface HeatmapCell {
+  district: string;
+  hour: number;
+  population: number;
+}
+
+interface HeatmapData {
+  heatmap: HeatmapCell[];
+  date: string;
+  districts: string[];
+  maxPopulation: number;
+  minPopulation: number;
+}
+
 interface DistrictAnalysis {
   district: string;
   population: { peak_hour: number; peak_pop: number; avg_pop: number; night_pop: number };
@@ -60,15 +74,22 @@ function getQuadrant(
 
 export default function PopulationPage() {
   const [data, setData] = useState<AnalysisData | null>(null);
+  const [heatmap, setHeatmap] = useState<HeatmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState<SortKey>("pop_per_station");
   const [sortAsc, setSortAsc] = useState(false);
   const [fuelType, setFuelType] = useState<FuelType>("gasoline");
+  const [hoveredCell, setHoveredCell] = useState<{ district: string; hour: number; population: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
-    fetch("/api/population-analysis")
-      .then((r) => r.json())
-      .then(setData)
+    Promise.all([
+      fetch("/api/population-analysis").then((r) => r.json()),
+      fetch("/api/population/heatmap").then((r) => r.json()),
+    ])
+      .then(([analysisData, heatmapData]) => {
+        setData(analysisData);
+        setHeatmap(heatmapData);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -127,6 +148,18 @@ export default function PopulationPage() {
     });
     return list;
   }, [data, sortKey, sortAsc, fuelType]);
+
+  const heatmapGrid = useMemo(() => {
+    if (!heatmap) return null;
+    const map = new Map<string, number>();
+    for (const cell of heatmap.heatmap) {
+      map.set(`${cell.district}-${cell.hour}`, cell.population);
+    }
+    const top3 = [...heatmap.heatmap]
+      .sort((a, b) => b.population - a.population)
+      .slice(0, 3);
+    return { map, top3, districts: heatmap.districts, date: heatmap.date, min: heatmap.minPopulation, max: heatmap.maxPopulation };
+  }, [heatmap]);
 
   const insights = useMemo(() => {
     if (!data || withData.length === 0) return [];
@@ -370,7 +403,140 @@ export default function PopulationPage() {
           </div>
         </div>
 
-        {/* 3. 주유소당 인구 랭킹 */}
+        {/* 3. 시간대별 히트맵 */}
+        {heatmapGrid && (
+          <div className="bg-white rounded-xl border border-border p-5">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-[15px] font-bold text-text-primary m-0">시간대별 유동인구 히트맵</h2>
+              <span className="text-[12px] text-text-tertiary">
+                {heatmapGrid.date.replace(/(\d{4})-(\d{2})-(\d{2})/, "$1년 $2월 $3일")} 기준
+              </span>
+            </div>
+            <p className="text-[12px] text-text-tertiary m-0 mb-4">셀 위에 마우스를 올리면 상세 인구를 확인할 수 있습니다</p>
+
+            {/* TOP 3 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {heatmapGrid.top3.map((cell, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                  style={{
+                    backgroundColor: i === 0 ? "#FEF3C7" : i === 1 ? "#F3F4F6" : "#FED7AA",
+                    color: i === 0 ? "#92400E" : i === 1 ? "#374151" : "#9A3412",
+                  }}
+                >
+                  <span>{i === 0 ? "1st" : i === 1 ? "2nd" : "3rd"}</span>
+                  {cell.district} {cell.hour}시 ({(cell.population / 10000).toFixed(1)}만명)
+                </span>
+              ))}
+            </div>
+
+            {/* 히트맵 그리드 */}
+            <div className="overflow-x-auto relative" onMouseLeave={() => setHoveredCell(null)}>
+              <div style={{ minWidth: 700 }}>
+                {/* 시간 헤더 */}
+                <div className="flex">
+                  <div className="w-[72px] shrink-0" />
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <div
+                      key={h}
+                      className="flex-1 text-center text-[10px] text-text-tertiary font-medium pb-1"
+                      style={{ minWidth: 24 }}
+                    >
+                      {h}
+                    </div>
+                  ))}
+                </div>
+
+                {/* 자치구 행 */}
+                {heatmapGrid.districts.map((district) => (
+                  <div key={district} className="flex items-center">
+                    <div className="w-[72px] shrink-0 text-[11px] text-text-secondary font-medium pr-2 text-right truncate">
+                      {district.replace("구", "")}
+                    </div>
+                    {Array.from({ length: 24 }, (_, h) => {
+                      const pop = heatmapGrid.map.get(`${district}-${h}`) || 0;
+                      const ratio = heatmapGrid.max > heatmapGrid.min
+                        ? (pop - heatmapGrid.min) / (heatmapGrid.max - heatmapGrid.min)
+                        : 0;
+                      const isTop = heatmapGrid.top3.some((t) => t.district === district && t.hour === h);
+                      return (
+                        <div
+                          key={h}
+                          className="flex-1 relative"
+                          style={{ minWidth: 24, height: 24 }}
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoveredCell({ district, hour: h, population: pop, x: rect.left + rect.width / 2, y: rect.top });
+                          }}
+                        >
+                          <div
+                            className="absolute inset-[1px] rounded-[3px] transition-colors"
+                            style={{
+                              backgroundColor: ratio < 0.25
+                                ? `rgba(59,130,246,${0.1 + ratio * 1.2})`
+                                : ratio < 0.5
+                                ? `rgba(139,92,246,${0.2 + (ratio - 0.25) * 2})`
+                                : ratio < 0.75
+                                ? `rgba(239,68,68,${0.3 + (ratio - 0.5) * 1.6})`
+                                : `rgba(220,38,38,${0.6 + (ratio - 0.75) * 1.6})`,
+                              outline: isTop ? "2px solid #F59E0B" : "none",
+                              outlineOffset: -1,
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+
+              {/* 툴팁 */}
+              {hoveredCell && (
+                <div
+                  className="fixed z-50 bg-white border border-border rounded-lg px-3 py-2 shadow-lg text-[12px] pointer-events-none"
+                  style={{
+                    left: hoveredCell.x,
+                    top: hoveredCell.y - 8,
+                    transform: "translate(-50%, -100%)",
+                  }}
+                >
+                  <p className="font-bold m-0">{hoveredCell.district} {hoveredCell.hour}시</p>
+                  <p className="m-0 text-text-secondary">{hoveredCell.population.toLocaleString()}명</p>
+                </div>
+              )}
+            </div>
+
+            {/* 범례 */}
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <span className="text-[10px] text-text-tertiary">{(heatmapGrid.min / 10000).toFixed(0)}만</span>
+              <div className="flex h-3 rounded-full overflow-hidden" style={{ width: 160 }}>
+                {[0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((r) => (
+                  <div
+                    key={r}
+                    className="flex-1"
+                    style={{
+                      backgroundColor: r < 0.25
+                        ? `rgba(59,130,246,${0.1 + r * 1.2})`
+                        : r < 0.5
+                        ? `rgba(139,92,246,${0.2 + (r - 0.25) * 2})`
+                        : r < 0.75
+                        ? `rgba(239,68,68,${0.3 + (r - 0.5) * 1.6})`
+                        : `rgba(220,38,38,${0.6 + (r - 0.75) * 1.6})`,
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-text-tertiary">{(heatmapGrid.max / 10000).toFixed(0)}만</span>
+              <span className="ml-2 text-[10px] text-amber-600 flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-sm border-2 border-amber-400 inline-block" />
+                TOP 3
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 4. 주유소당 인구 랭킹 */}
         <div className="bg-white rounded-xl border border-border p-5">
           <h2 className="text-[15px] font-bold text-text-primary m-0 mb-1">주유소 1개당 유동인구 (높을수록 유리한 입지)</h2>
           <p className="text-[12px] text-text-tertiary m-0 mb-4">막대 색상 = 경쟁 강도 (빨강: 경쟁 치열, 초록: 경쟁 낮음)</p>
