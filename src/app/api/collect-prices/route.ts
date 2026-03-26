@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase";
 export const maxDuration = 300;
 import {
   getAroundStations,
+  getStationDetail,
   katecToWgs84,
   wgs84ToKatec,
   PROD_CD,
@@ -85,6 +86,8 @@ export async function GET(request: Request) {
       gasoline_price: number | null;
       diesel_price: number | null;
       premium_price: number | null;
+      old_address: string | null;
+      new_address: string | null;
     }
   >();
 
@@ -124,10 +127,47 @@ export async function GET(request: Request) {
               gasoline_price: fuel.field === "gasoline_price" ? s.PRICE : null,
               diesel_price: fuel.field === "diesel_price" ? s.PRICE : null,
               premium_price: fuel.field === "premium_price" ? s.PRICE : null,
+              old_address: null,
+              new_address: null,
             });
           }
         }
       } catch {
+        errors++;
+      }
+    }
+  }
+
+  // 주소가 없는 주유소만 detailById로 주소 보충
+  // 이미 DB에 주소가 있는 주유소 목록 조회
+  const { data: existingAddrs } = await supabase
+    .from("stations")
+    .select("id")
+    .not("new_address", "is", null);
+  const hasAddress = new Set((existingAddrs ?? []).map((r) => r.id));
+
+  const idsNeedingAddress = Array.from(stationMap.keys()).filter(
+    (id) => !hasAddress.has(id)
+  );
+  let addressFetched = 0;
+
+  // 동시 5개씩 배치로 상세 조회
+  for (let i = 0; i < idsNeedingAddress.length; i += 5) {
+    const batch = idsNeedingAddress.slice(i, i + 5);
+    const results = await Promise.allSettled(
+      batch.map((id) => getStationDetail(id))
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        const detail = result.value;
+        const entry = stationMap.get(detail.UNI_ID);
+        if (entry) {
+          entry.old_address = detail.VAN_ADR || null;
+          entry.new_address = detail.NEW_ADR || null;
+          addressFetched++;
+        }
+        apiCalls++;
+      } else {
         errors++;
       }
     }
@@ -144,17 +184,23 @@ export async function GET(request: Request) {
     collected_at: collectedAt,
   }));
 
-  const stationRows = Array.from(stationMap.entries()).map(([id, s]) => ({
-    id,
-    name: s.name,
-    brand: s.brand,
-    lat: s.lat,
-    lng: s.lng,
-    gasoline_price: s.gasoline_price,
-    diesel_price: s.diesel_price,
-    premium_price: s.premium_price,
-    updated_at: collectedAt,
-  }));
+  const stationRows = Array.from(stationMap.entries()).map(([id, s]) => {
+    const row: Record<string, unknown> = {
+      id,
+      name: s.name,
+      brand: s.brand,
+      lat: s.lat,
+      lng: s.lng,
+      gasoline_price: s.gasoline_price,
+      diesel_price: s.diesel_price,
+      premium_price: s.premium_price,
+      updated_at: collectedAt,
+    };
+    // 주소가 있을 때만 포함 (기존 주소를 null로 덮어쓰지 않음)
+    if (s.old_address) row.old_address = s.old_address;
+    if (s.new_address) row.new_address = s.new_address;
+    return row;
+  });
 
   // 가격 이력 삽입
   let historyInserted = 0;
@@ -194,6 +240,7 @@ export async function GET(request: Request) {
   const result = {
     success: true,
     collected: stationMap.size,
+    addressFetched,
     historyInserted,
     stationsUpserted,
     apiCalls,

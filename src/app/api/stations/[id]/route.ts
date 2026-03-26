@@ -55,18 +55,25 @@ export async function GET(
   if (data.diesel_price) prices.push({ product: "D047", price: data.diesel_price });
   if (data.premium_price) prices.push({ product: "B034", price: data.premium_price });
 
-  return NextResponse.json({
-    id: data.id,
-    name: data.name,
-    brand: data.brand,
-    oldAddress: data.old_address,
-    newAddress: data.new_address,
-    tel: data.tel,
-    lat: data.lat,
-    lng: data.lng,
-    hasLpg: data.lpg_yn === "Y",
-    hasCarWash: data.car_wash_yn === "Y",
-    hasCvs: data.cvs_yn === "Y",
-    prices,
-  });
+  return NextResponse.json(
+    {
+      id: data.id,
+      name: data.name,
+      brand: data.brand,
+      oldAddress: data.old_address,
+      newAddress: data.new_address,
+      tel: data.tel,
+      lat: data.lat,
+      lng: data.lng,
+      hasLpg: data.lpg_yn === "Y",
+      hasCarWash: data.car_wash_yn === "Y",
+      hasCvs: data.cvs_yn === "Y",
+      prices,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+      },
+    }
+  );
 }

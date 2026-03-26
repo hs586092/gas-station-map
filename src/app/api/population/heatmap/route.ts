@@ -64,11 +64,18 @@ export async function GET() {
     .sort((a, b) => b[1] - a[1])
     .map(([name]) => name);
 
-  return NextResponse.json({
-    heatmap,
-    date: targetDate,
-    districts,
-    maxPopulation,
-    minPopulation,
-  });
+  return NextResponse.json(
+    {
+      heatmap,
+      date: targetDate,
+      districts,
+      maxPopulation,
+      minPopulation,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+      },
+    }
+  );
 }

@@ -68,5 +68,12 @@ export async function GET(request: NextRequest) {
     .filter((s) => s.distance <= radius)
     .sort((a, b) => a.price - b.price);
 
-  return NextResponse.json({ stations });
+  return NextResponse.json(
+    { stations },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+      },
+    }
+  );
 }

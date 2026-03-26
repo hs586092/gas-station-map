@@ -1,4 +1,17 @@
 {
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "memory": 512
+    },
+    "src/app/api/collect-prices/route.ts": {
+      "memory": 512,
+      "maxDuration": 300
+    },
+    "src/app/api/match-districts/route.ts": {
+      "memory": 512,
+      "maxDuration": 300
+    }
+  },
   "crons": [
     {
       "path": "/api/collect-prices",

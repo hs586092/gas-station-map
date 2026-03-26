@@ -203,18 +203,25 @@ export async function GET(
   const reliability =
     baseDataPoints < 7 ? "low" : baseDataPoints < 15 ? "medium" : "high";
 
-  return NextResponse.json({
-    baseStation: {
-      id: base.id,
-      name: base.name,
-      brand: base.brand,
+  return NextResponse.json(
+    {
+      baseStation: {
+        id: base.id,
+        name: base.name,
+        brand: base.brand,
+      },
+      dataPoints: baseDataPoints,
+      dateRange: {
+        from: dateFrom,
+        to: dateTo,
+      },
+      correlations,
+      reliability,
     },
-    dataPoints: baseDataPoints,
-    dateRange: {
-      from: dateFrom,
-      to: dateTo,
-    },
-    correlations,
-    reliability,
-  });
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+      },
+    }
+  );
 }

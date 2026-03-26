@@ -187,20 +187,27 @@ export async function GET() {
     pearsonCorrelation(correlationPops, correlationPrices).toFixed(4)
   );
 
-  return NextResponse.json({
-    analysis,
-    summary: {
-      total_districts: allDistricts.size,
-      total_stations: seoulStations.length,
-      avg_gasoline_seoul: avgGasolineSeoul,
-      correlation,
-      correlation_meaning:
-        correlation > 0.3
-          ? "유동인구가 많을수록 주유가격이 높은 경향"
-          : correlation < -0.3
-            ? "유동인구가 많을수록 주유가격이 낮은 경향"
-            : "유동인구와 주유가격 간 뚜렷한 상관관계 없음",
-      date: latestDate.date,
+  return NextResponse.json(
+    {
+      analysis,
+      summary: {
+        total_districts: allDistricts.size,
+        total_stations: seoulStations.length,
+        avg_gasoline_seoul: avgGasolineSeoul,
+        correlation,
+        correlation_meaning:
+          correlation > 0.3
+            ? "유동인구가 많을수록 주유가격이 높은 경향"
+            : correlation < -0.3
+              ? "유동인구가 많을수록 주유가격이 낮은 경향"
+              : "유동인구와 주유가격 간 뚜렷한 상관관계 없음",
+        date: latestDate.date,
+      },
     },
-  });
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+      },
+    }
+  );
 }

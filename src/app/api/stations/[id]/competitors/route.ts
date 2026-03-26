@@ -100,36 +100,43 @@ export async function GET(
     : null;
 
   // 5. 응답 구성
-  return NextResponse.json({
-    baseStation: {
-      id: base.id,
-      name: base.name,
-      brand: base.brand,
-      gasoline_price: base.gasoline_price,
-      diesel_price: base.diesel_price,
+  return NextResponse.json(
+    {
+      baseStation: {
+        id: base.id,
+        name: base.name,
+        brand: base.brand,
+        gasoline_price: base.gasoline_price,
+        diesel_price: base.diesel_price,
+      },
+      competitors: competitors.map((c) => ({
+        id: c.id,
+        name: c.name,
+        brand: c.brand,
+        gasoline_price: c.gasoline_price,
+        diesel_price: c.diesel_price,
+        distance_km: c.distance_km,
+        gasoline_diff:
+          c.gasoline_price && base.gasoline_price
+            ? c.gasoline_price - base.gasoline_price
+            : null,
+        diesel_diff:
+          c.diesel_price && base.diesel_price
+            ? c.diesel_price - base.diesel_price
+            : null,
+      })),
+      stats: {
+        avg_gasoline: avg(gasolinePrices),
+        avg_diesel: avg(dieselPrices),
+        my_gasoline_rank: gasolineRank,
+        my_diesel_rank: dieselRank,
+        total_count: allStations.length,
+      },
     },
-    competitors: competitors.map((c) => ({
-      id: c.id,
-      name: c.name,
-      brand: c.brand,
-      gasoline_price: c.gasoline_price,
-      diesel_price: c.diesel_price,
-      distance_km: c.distance_km,
-      gasoline_diff:
-        c.gasoline_price && base.gasoline_price
-          ? c.gasoline_price - base.gasoline_price
-          : null,
-      diesel_diff:
-        c.diesel_price && base.diesel_price
-          ? c.diesel_price - base.diesel_price
-          : null,
-    })),
-    stats: {
-      avg_gasoline: avg(gasolinePrices),
-      avg_diesel: avg(dieselPrices),
-      my_gasoline_rank: gasolineRank,
-      my_diesel_rank: dieselRank,
-      total_count: allStations.length,
-    },
-  });
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+      },
+    }
+  );
 }
