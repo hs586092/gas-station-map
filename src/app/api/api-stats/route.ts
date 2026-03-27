@@ -1,3 +1,5 @@
+// 관리용 API - 프론트엔드 UI 없음, 직접 URL 호출로 확인용
+// 일일/주간 API 호출 통계 및 stations 캐시 현황 조회
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
