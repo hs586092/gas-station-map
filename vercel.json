@@ -1,14 +1,18 @@
 {
   "functions": {
-    "src/app/api/**/*.ts": {
-      "memory": 512
-    },
     "src/app/api/collect-prices/route.ts": {
-      "memory": 512,
+      "maxDuration": 300
+    },
+    "src/app/api/collect-population/route.ts": {
       "maxDuration": 300
     },
     "src/app/api/match-districts/route.ts": {
-      "memory": 512,
+      "maxDuration": 300
+    },
+    "src/app/api/match-stations-roads/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/upload-road-links/route.ts": {
       "maxDuration": 300
     }
   },
@@ -16,6 +20,10 @@
     {
       "path": "/api/collect-prices",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/collect-population",
+      "schedule": "0 1 * * *"
     }
   ]
 }
