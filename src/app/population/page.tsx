@@ -72,6 +72,33 @@ function getQuadrant(
   return { label: "관망", color: "#6B7280", bg: "#F9FAFB" };
 }
 
+function SortIcon({ active, asc }: { active: boolean; asc: boolean }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" className="inline ml-0.5" style={{ opacity: active ? 1 : 0.3 }}>
+      <path d="M6 2L9 5H3L6 2Z" fill={active && !asc ? "#1B2838" : "#9BA8B7"} />
+      <path d="M6 10L3 7H9L6 10Z" fill={active && asc ? "#1B2838" : "#9BA8B7"} />
+    </svg>
+  );
+}
+
+function FuelToggle({ fuelType, setFuelType }: { fuelType: "gasoline" | "diesel"; setFuelType: (v: "gasoline" | "diesel") => void }) {
+  return (
+    <div className="flex gap-1 bg-surface rounded-lg p-0.5">
+      {(["gasoline", "diesel"] as const).map((ft) => (
+        <button
+          key={ft}
+          onClick={() => setFuelType(ft)}
+          className={`px-3 py-1 text-[12px] font-medium rounded-md border-none cursor-pointer transition-colors ${
+            fuelType === ft ? "bg-navy text-white" : "bg-transparent text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          {ft === "gasoline" ? "휘발유" : "경유"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function PopulationPage() {
   const [data, setData] = useState<AnalysisData | null>(null);
   const [heatmap, setHeatmap] = useState<HeatmapData | null>(null);
@@ -210,30 +237,6 @@ export default function PopulationPage() {
     else { setSortKey(key); setSortAsc(false); }
   }
 
-  function SortIcon({ active, asc }: { active: boolean; asc: boolean }) {
-    return (
-      <svg width="12" height="12" viewBox="0 0 12 12" className="inline ml-0.5" style={{ opacity: active ? 1 : 0.3 }}>
-        <path d="M6 2L9 5H3L6 2Z" fill={active && !asc ? "#1B2838" : "#9BA8B7"} />
-        <path d="M6 10L3 7H9L6 10Z" fill={active && asc ? "#1B2838" : "#9BA8B7"} />
-      </svg>
-    );
-  }
-
-  const FuelToggle = () => (
-    <div className="flex gap-1 bg-surface rounded-lg p-0.5">
-      {(["gasoline", "diesel"] as const).map((ft) => (
-        <button
-          key={ft}
-          onClick={() => setFuelType(ft)}
-          className={`px-3 py-1 text-[12px] font-medium rounded-md border-none cursor-pointer transition-colors ${
-            fuelType === ft ? "bg-navy text-white" : "bg-transparent text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          {ft === "gasoline" ? "휘발유" : "경유"}
-        </button>
-      ))}
-    </div>
-  );
 
   if (loading) {
     return (
@@ -317,7 +320,7 @@ export default function PopulationPage() {
         <div className="bg-white rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-[15px] font-bold text-text-primary m-0">유동인구 vs 주유가격 (4분면 분석)</h2>
-            <FuelToggle />
+            <FuelToggle fuelType={fuelType} setFuelType={setFuelType} />
           </div>
           <p className="text-[12px] text-text-tertiary m-0 mb-4">점 크기 = 주유소 수 | 점선 = 서울 평균</p>
 
@@ -562,7 +565,7 @@ export default function PopulationPage() {
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
             <h2 className="text-[15px] font-bold text-text-primary m-0">자치구별 상세</h2>
-            <FuelToggle />
+            <FuelToggle fuelType={fuelType} setFuelType={setFuelType} />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]" style={{ minWidth: 900 }}>

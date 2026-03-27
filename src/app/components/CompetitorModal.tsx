@@ -149,39 +149,53 @@ export default function CompetitorModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    setLoading(true);
-    setError(null);
-    setData(null);
+    let cancelled = false;
     setTab("price");
     setCorrData(null);
     setCorrFetched(false);
 
-    fetch(`/api/stations/${stationId}/competitors`)
-      .then((res) => {
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setData(null);
+        const res = await fetch(`/api/stations/${stationId}/competitors`);
         if (!res.ok) throw new Error("API 오류");
-        return res.json();
-      })
-      .then((json) => setData(json))
-      .catch(() => setError("경쟁사 데이터를 불러오는데 실패했습니다."))
-      .finally(() => setLoading(false));
+        const json = await res.json();
+        if (!cancelled) setData(json);
+      } catch {
+        if (!cancelled) setError("경쟁사 데이터를 불러오는데 실패했습니다.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [stationId, isOpen]);
 
   // 상관관계 탭 클릭 시 로드 (1회만)
   useEffect(() => {
     if (tab !== "correlation" || corrFetched || !isOpen) return;
 
-    setCorrLoading(true);
-    setCorrError(null);
+    let cancelled = false;
     setCorrFetched(true);
 
-    fetch(`/api/stations/${stationId}/correlation`)
-      .then((res) => {
+    (async () => {
+      try {
+        setCorrLoading(true);
+        setCorrError(null);
+        const res = await fetch(`/api/stations/${stationId}/correlation`);
         if (!res.ok) throw new Error("API 오류");
-        return res.json();
-      })
-      .then((json) => setCorrData(json))
-      .catch(() => setCorrError("연동성 데이터를 불러오는데 실패했습니다."))
-      .finally(() => setCorrLoading(false));
+        const json = await res.json();
+        if (!cancelled) setCorrData(json);
+      } catch {
+        if (!cancelled) setCorrError("연동성 데이터를 불러오는데 실패했습니다.");
+      } finally {
+        if (!cancelled) setCorrLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [tab, corrFetched, stationId, isOpen]);
 
   const sortedCompetitors = useMemo(() => {

@@ -239,10 +239,6 @@ function MapContent() {
     }
   }, [showHeatmap, filteredStations, map]);
 
-  useEffect(() => {
-    requestLocation();
-  }, []);
-
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) return;
 
@@ -259,6 +255,10 @@ function MapContent() {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, []);
+
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   const fetchTopStations = useCallback(async () => {
     if (!myLocation) return;

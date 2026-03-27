@@ -128,7 +128,33 @@ export default function CommunityPage() {
   }, []);
 
   const refreshAll = useCallback(() => { fetchPosts(); fetchTopPosts(); }, [fetchPosts, fetchTopPosts]);
-  useEffect(() => { refreshAll(); }, [refreshAll]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const orderCol = sortBy === "popular" ? "likes_count" : sortBy === "comments" ? "comments_count" : "created_at";
+      let query = supabaseAuth
+        .from("posts")
+        .select("id, author_id, category, title, content, likes_count, comments_count, created_at, author:users_profile!author_id(nickname)")
+        .order(orderCol, { ascending: false })
+        .limit(50);
+      if (category !== "all") query = query.eq("category", category);
+      if (searchQuery.trim()) query = query.or(`title.ilike.%${searchQuery.trim()}%,content.ilike.%${searchQuery.trim()}%`);
+      setLoading(true);
+      const [postsRes, topRes] = await Promise.all([
+        query,
+        supabaseAuth
+          .from("posts")
+          .select("id, author_id, category, title, content, likes_count, comments_count, created_at, author:users_profile!author_id(nickname)")
+          .order("likes_count", { ascending: false })
+          .limit(3),
+      ]);
+      if (cancelled) return;
+      setPosts((postsRes.data as unknown as Post[]) || []);
+      setTopPosts((topRes.data as unknown as Post[]) || []);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [category, sortBy, searchQuery]);
 
   const handleWrite = async () => {
     if (!user || !writeTitle.trim() || !writeContent.trim()) return;

@@ -34,12 +34,15 @@ export default function PriceChart({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
-    fetch(`/api/price-history/${stationId}`)
-      .then((res) => res.json())
-      .then((json) => {
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`/api/price-history/${stationId}`);
+        const json = await res.json();
+        if (cancelled) return;
         if (json.history && json.history.length > 0) {
           setData(
             json.history.map((d: PriceData) => ({
@@ -50,9 +53,14 @@ export default function PriceChart({
         } else {
           setError("가격 추이 데이터가 없습니다.\n수집 후 확인 가능합니다.");
         }
-      })
-      .catch(() => setError("데이터를 불러오는데 실패했습니다."))
-      .finally(() => setLoading(false));
+      } catch {
+        if (!cancelled) setError("데이터를 불러오는데 실패했습니다.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [stationId]);
 
   return (

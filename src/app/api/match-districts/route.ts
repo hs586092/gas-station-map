@@ -82,7 +82,6 @@ export async function GET(request: Request) {
 
   // 1. 전체 district를 null로 초기화 (오매칭 리셋)
   // Supabase update도 기본 1,000개 제한 → 반복 실행
-  let resetCount = 0;
   while (true) {
     const { data: resetData, error: resetError } = await supabase
       .from("stations")
@@ -93,7 +92,6 @@ export async function GET(request: Request) {
     if (resetError) {
       return NextResponse.json({ error: `Reset failed: ${resetError.message}` }, { status: 500 });
     }
-    resetCount += resetData?.length || 0;
     if (!resetData || resetData.length < PAGE_SIZE) break;
   }
 
