@@ -172,29 +172,35 @@ export default function CompetitorModal({
     return () => { cancelled = true; };
   }, [stationId, isOpen]);
 
-  // 상관관계 탭 클릭 시 로드 (corrData가 없을 때만)
+  // 상관관계 탭 클릭 시 로드 (Strict Mode 안전)
   useEffect(() => {
-    if (tab !== "correlation" || corrData || corrLoading || !isOpen) return;
+    if (tab !== "correlation" || corrData || !isOpen) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
+    setCorrLoading(true);
+    setCorrError(null);
 
-    (async () => {
-      try {
-        setCorrLoading(true);
-        setCorrError(null);
-        const res = await fetch(`/api/stations/${stationId}/correlation`);
+    fetch(`/api/stations/${stationId}/correlation`, { signal: controller.signal })
+      .then((res) => {
         if (!res.ok) throw new Error("API 오류");
-        const json = await res.json();
-        if (!cancelled) setCorrData(json);
-      } catch {
-        if (!cancelled) setCorrError("연동성 데이터를 불러오는데 실패했습니다.");
-      } finally {
-        if (!cancelled) setCorrLoading(false);
-      }
-    })();
+        return res.json();
+      })
+      .then((json) => {
+        setCorrData(json);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setCorrError("연동성 데이터를 불러오는데 실패했습니다.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setCorrLoading(false);
+        }
+      });
 
-    return () => { cancelled = true; };
-  }, [tab, corrData, corrLoading, stationId, isOpen]);
+    return () => controller.abort();
+  }, [tab, corrData, stationId, isOpen]);
 
   const sortedCompetitors = useMemo(() => {
     if (!data) return [];
