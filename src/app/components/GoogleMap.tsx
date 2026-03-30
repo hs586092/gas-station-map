@@ -56,6 +56,44 @@ const ALL_BRANDS = new Set([
   "SKE", "GSC", "HDO", "SOL", "RTO", "NHO", "ETC",
 ]);
 
+// 도로 등급별 기본 제한속도 (km/h)
+const DEFAULT_MAX_SPEED: Record<string, number> = {
+  "101": 100, // 고속도로
+  "102": 80,  // 도시고속
+  "103": 60,  // 일반국도
+  "104": 50,  // 특별/광역시도
+  "105": 60,  // 국가지원지방도
+  "106": 50,  // 지방도
+};
+
+const CONGESTION_COLORS = {
+  smooth: "#22c55e",    // 원활 (초록)
+  slow: "#eab308",      // 서행 (노랑)
+  congested: "#ef4444", // 정체 (빨강)
+  noData: "",           // 데이터 없음 (기본 테두리)
+} as const;
+
+type CongestionLevel = keyof typeof CONGESTION_COLORS;
+
+function getCongestionLevel(station: Station): CongestionLevel {
+  if (!station.roadSpeed || !station.roadRank || !station.roadSpeedUpdatedAt) {
+    return "noData";
+  }
+
+  // 2시간 이상 경과한 데이터는 무효
+  const updatedAt = new Date(station.roadSpeedUpdatedAt).getTime();
+  if (Date.now() - updatedAt > 2 * 60 * 60 * 1000) {
+    return "noData";
+  }
+
+  const maxSpeed = DEFAULT_MAX_SPEED[station.roadRank] || 50;
+  const ratio = station.roadSpeed / maxSpeed;
+
+  if (ratio >= 0.7) return "smooth";
+  if (ratio >= 0.3) return "slow";
+  return "congested";
+}
+
 function Header({ onLoginClick }: { onLoginClick: () => void }) {
   const { user, profile, signOut } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -178,6 +216,7 @@ function MapContent() {
     prodCd: "B027",
     brands: new Set(ALL_BRANDS),
     radius: 5000,
+    congestion: "all",
   });
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
@@ -191,10 +230,14 @@ function MapContent() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
-  const filteredStations =
-    filters.brands.size === 0
-      ? stations
-      : stations.filter((s) => filters.brands.has(s.brand));
+  const filteredStations = stations.filter((s) => {
+    if (filters.brands.size > 0 && !filters.brands.has(s.brand)) return false;
+    if (filters.congestion !== "all") {
+      const level = getCongestionLevel(s);
+      if (level !== filters.congestion) return false;
+    }
+    return true;
+  });
 
   // 히트맵 레이어 토글
   useEffect(() => {
@@ -395,6 +438,22 @@ function MapContent() {
         {!showHeatmap && filteredStations.map((station) => {
           const isSelected = selectedStation?.id === station.id;
           const brandColor = BRAND_COLORS[station.brand] || "#6b7280";
+          const congestion = getCongestionLevel(station);
+          const congestionColor = CONGESTION_COLORS[congestion];
+          const hasTraffic = congestion !== "noData";
+
+          // 혼잡도 데이터가 있으면 테두리 색상으로 표현
+          const strokeColor = isSelected
+            ? "none"
+            : hasTraffic
+              ? congestionColor
+              : "rgba(0,0,0,0.08)";
+          const strokeWidth = isSelected ? 0 : hasTraffic ? 2.5 : 1;
+          const rectX = hasTraffic && !isSelected ? 1.25 : 0;
+          const rectY = hasTraffic && !isSelected ? 1.25 : 0;
+          const rectW = hasTraffic && !isSelected ? 57.5 : 60;
+          const rectH = hasTraffic && !isSelected ? 21.5 : 24;
+
           return (
             <Marker
               key={station.id}
@@ -409,8 +468,8 @@ function MapContent() {
               icon={{
                 url: `data:image/svg+xml,${encodeURIComponent(
                   `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="28">` +
-                  `<rect x="0" y="0" width="60" height="24" rx="12" fill="${isSelected ? '#1B2838' : 'white'}" ` +
-                  `stroke="${isSelected ? 'none' : 'rgba(0,0,0,0.08)'}" stroke-width="1"/>` +
+                  `<rect x="${rectX}" y="${rectY}" width="${rectW}" height="${rectH}" rx="12" fill="${isSelected ? '#1B2838' : 'white'}" ` +
+                  `stroke="${strokeColor}" stroke-width="${strokeWidth}"/>` +
                   `<circle cx="10" cy="12" r="4" fill="${brandColor}"/>` +
                   `<polygon points="30,24 26,28 34,28" fill="${isSelected ? '#1B2838' : 'white'}"/>` +
                   `</svg>`
@@ -472,6 +531,50 @@ function MapContent() {
                     )}
                   </div>
                 )}
+
+                {/* 도로 혼잡도 */}
+                {selectedStation.roadSpeed != null && selectedStation.roadRank && selectedStation.roadSpeedUpdatedAt && (() => {
+                  const congestion = getCongestionLevel(selectedStation);
+                  if (congestion === "noData") return null;
+                  const maxSpd = DEFAULT_MAX_SPEED[selectedStation.roadRank!] || 50;
+                  const ratio = Math.min(selectedStation.roadSpeed! / maxSpd, 1);
+                  const label = congestion === "smooth" ? "원활" : congestion === "slow" ? "서행" : "정체";
+                  const color = CONGESTION_COLORS[congestion];
+                  const RANK_LABELS: Record<string, string> = {
+                    "101": "고속도로", "102": "도시고속", "103": "일반국도",
+                    "104": "시도", "105": "지방도", "106": "지방도",
+                  };
+                  return (
+                    <div className="bg-surface rounded-[10px] p-3 mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                          <span className="text-[12px] font-medium text-text-primary">
+                            {selectedStation.roadName || "인근 도로"}
+                          </span>
+                          <span className="text-[10px] text-text-tertiary">
+                            {RANK_LABELS[selectedStation.roadRank!] || ""}
+                          </span>
+                        </div>
+                        <span className="text-[12px] font-bold" style={{ color }}>
+                          {label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${ratio * 100}%`, background: color }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-semibold text-text-secondary shrink-0">
+                          {selectedStation.roadSpeed!.toFixed(0)}
+                          <span className="text-[10px] font-normal text-text-tertiary">/{maxSpd}km/h</span>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* 가격 */}
                 <div className="bg-surface rounded-[10px] p-3 mb-3">
@@ -541,6 +644,31 @@ function MapContent() {
       {!showHeatmap && filteredStations.length > 0 && (
         <div className="fixed bottom-6 left-[calc(var(--sidebar-width)+16px)] z-[1100] bg-white/90 backdrop-blur-sm text-text-secondary text-[11px] font-medium px-3 py-1.5 rounded-full shadow-sm border border-border hidden md:block">
           표시 중: {filteredStations.length}개 주유소
+        </div>
+      )}
+
+      {/* 혼잡도 범례 */}
+      {!showHeatmap && filteredStations.some(s => s.roadSpeed != null) && (
+        <div
+          className="fixed bottom-14 z-[1100] bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 border border-border hidden md:block"
+          style={{
+            left: "calc(var(--sidebar-width) + 16px)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div className="text-[10px] font-semibold text-text-tertiary mb-1.5">도로 혼잡도</div>
+          <div className="flex items-center gap-3">
+            {([
+              ["smooth", "원활", CONGESTION_COLORS.smooth],
+              ["slow", "서행", CONGESTION_COLORS.slow],
+              ["congested", "정체", CONGESTION_COLORS.congested],
+            ] as const).map(([, label, color]) => (
+              <div key={label} className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+                <span className="text-[10px] text-text-secondary">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

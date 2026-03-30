@@ -10,12 +10,19 @@ export interface Station {
   distance: number;
   lat: number;
   lng: number;
+  roadSpeed: number | null;
+  roadName: string | null;
+  roadRank: string | null;
+  roadSpeedUpdatedAt: string | null;
 }
+
+export type CongestionFilter = "all" | "smooth" | "slow" | "congested";
 
 export interface Filters {
   prodCd: string;
   brands: Set<string>;
   radius: number;
+  congestion: CongestionFilter;
 }
 
 const RADIUS_OPTIONS = [
@@ -40,6 +47,28 @@ const PROD_OPTIONS = [
   { code: "D047", label: "경유" },
   { code: "B034", label: "고급휘발유" },
 ] as const;
+
+const CONGESTION_OPTIONS = [
+  { value: "all", label: "전체", color: "" },
+  { value: "smooth", label: "원활", color: "#22c55e" },
+  { value: "slow", label: "서행", color: "#eab308" },
+  { value: "congested", label: "정체", color: "#ef4444" },
+] as const;
+
+const DEFAULT_MAX_SPEED: Record<string, number> = {
+  "101": 100, "102": 80, "103": 60, "104": 50, "105": 60, "106": 50,
+};
+
+function getStationCongestion(s: Station): "smooth" | "slow" | "congested" | "noData" {
+  if (!s.roadSpeed || !s.roadRank || !s.roadSpeedUpdatedAt) return "noData";
+  const updatedAt = new Date(s.roadSpeedUpdatedAt).getTime();
+  if (Date.now() - updatedAt > 2 * 60 * 60 * 1000) return "noData";
+  const maxSpd = DEFAULT_MAX_SPEED[s.roadRank] || 50;
+  const ratio = s.roadSpeed / maxSpd;
+  if (ratio >= 0.7) return "smooth";
+  if (ratio >= 0.3) return "slow";
+  return "congested";
+}
 
 export const BRAND_LABELS: Record<string, string> = {
   SKE: "SK에너지",
@@ -91,10 +120,14 @@ export default function Sidebar({
     onFiltersChange({ ...filters, brands: next });
   };
 
-  const filtered =
-    filters.brands.size === 0
-      ? stations
-      : stations.filter((s) => filters.brands.has(s.brand));
+  const filtered = stations.filter((s) => {
+    if (filters.brands.size > 0 && !filters.brands.has(s.brand)) return false;
+    if (filters.congestion !== "all") {
+      const level = getStationCongestion(s);
+      if (level !== filters.congestion) return false;
+    }
+    return true;
+  });
   const sorted = [...filtered].sort((a, b) => a.price - b.price);
 
   const lowestPrice = topStations.length > 0 ? topStations[0].price : null;
@@ -151,6 +184,23 @@ export default function Sidebar({
           >
             <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: b.color }} />
             {b.label}
+          </button>
+        ))}
+      </div>
+      {/* 혼잡도 */}
+      <div className="flex gap-1.5">
+        {CONGESTION_OPTIONS.map((c) => (
+          <button
+            key={c.value}
+            onClick={() => onFiltersChange({ ...filters, congestion: c.value as CongestionFilter })}
+            className={`h-[30px] px-2.5 text-[11px] font-medium rounded-full border cursor-pointer transition-all flex items-center gap-1 ${
+              filters.congestion === c.value
+                ? "bg-navy text-white border-navy"
+                : "bg-white text-text-secondary border-border hover:border-text-tertiary"
+            }`}
+          >
+            {c.color && <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: c.color }} />}
+            {c.label}
           </button>
         ))}
       </div>

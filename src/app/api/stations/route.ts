@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("stations")
-    .select("id, name, brand, lat, lng, gasoline_price, diesel_price, premium_price")
+    .select("id, name, brand, lat, lng, gasoline_price, diesel_price, premium_price, road_speed, road_name, road_rank, road_speed_updated_at")
     .gte("lat", lat - latDelta)
     .lte("lat", lat + latDelta)
     .gte("lng", lng - lngDelta)
@@ -63,6 +63,10 @@ export async function GET(request: NextRequest) {
         distance: Math.round(distance),
         lat: s.lat,
         lng: s.lng,
+        roadSpeed: s.road_speed,
+        roadName: s.road_name,
+        roadRank: s.road_rank,
+        roadSpeedUpdatedAt: s.road_speed_updated_at,
       };
     })
     .filter((s) => s.distance <= radius)
