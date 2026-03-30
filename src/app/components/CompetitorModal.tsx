@@ -142,7 +142,6 @@ export default function CompetitorModal({
   const [corrData, setCorrData] = useState<CorrelationData | null>(null);
   const [corrLoading, setCorrLoading] = useState(false);
   const [corrError, setCorrError] = useState<string | null>(null);
-  const [corrFetched, setCorrFetched] = useState(false);
   const [corrSortKey, setCorrSortKey] = useState<CorrelationSortKey>("correlation");
 
   // 가격 비교 데이터 로드
@@ -152,7 +151,7 @@ export default function CompetitorModal({
     let cancelled = false;
     setTab("price");
     setCorrData(null);
-    setCorrFetched(false);
+    setCorrLoading(false);
 
     (async () => {
       try {
@@ -173,12 +172,11 @@ export default function CompetitorModal({
     return () => { cancelled = true; };
   }, [stationId, isOpen]);
 
-  // 상관관계 탭 클릭 시 로드 (1회만)
+  // 상관관계 탭 클릭 시 로드 (corrData가 없을 때만)
   useEffect(() => {
-    if (tab !== "correlation" || corrFetched || !isOpen) return;
+    if (tab !== "correlation" || corrData || corrLoading || !isOpen) return;
 
     let cancelled = false;
-    setCorrFetched(true);
 
     (async () => {
       try {
@@ -196,7 +194,7 @@ export default function CompetitorModal({
     })();
 
     return () => { cancelled = true; };
-  }, [tab, corrFetched, stationId, isOpen]);
+  }, [tab, corrData, corrLoading, stationId, isOpen]);
 
   const sortedCompetitors = useMemo(() => {
     if (!data) return [];
