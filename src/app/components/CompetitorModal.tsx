@@ -1,6 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  Cell,
+} from "recharts";
 
 interface CompetitorModalProps {
   stationId: string;
@@ -62,7 +73,47 @@ interface CorrelationData {
   reliability: "low" | "medium" | "high";
 }
 
-type Tab = "price" | "correlation";
+interface BenchmarkGroup {
+  label: string;
+  avg: number;
+  min: number;
+  max: number;
+  count: number;
+  rank: number;
+  percentile: number;
+  q1: number;
+  median: number;
+  q3: number;
+  level?: string;
+  districts?: string[];
+}
+
+interface BenchmarkData {
+  station: {
+    id: string;
+    name: string;
+    brand: string;
+    district: string | null;
+    road_rank: string | null;
+    road_rank_label: string | null;
+    price: number;
+    fuel_type: string;
+  };
+  benchmarks: {
+    district: (BenchmarkGroup & { label: string }) | null;
+    brand: (BenchmarkGroup & { label: string }) | null;
+    road_rank: (BenchmarkGroup & { label: string }) | null;
+    overall: BenchmarkGroup & { label: string };
+    population: (BenchmarkGroup & { label: string }) | null;
+  };
+  distribution: {
+    prices: number[];
+    myPrice: number;
+    source: string;
+  };
+}
+
+type Tab = "price" | "correlation" | "benchmark";
 type SortKey = "distance" | "price";
 type CorrelationSortKey = "distance" | "correlation";
 type FuelType = "gasoline" | "diesel";
@@ -144,6 +195,11 @@ export default function CompetitorModal({
   const [corrError, setCorrError] = useState<string | null>(null);
   const [corrSortKey, setCorrSortKey] = useState<CorrelationSortKey>("correlation");
 
+  // 벤치마크 데이터
+  const [benchData, setBenchData] = useState<BenchmarkData | null>(null);
+  const [benchLoading, setBenchLoading] = useState(false);
+  const [benchError, setBenchError] = useState<string | null>(null);
+
   // 가격 비교 데이터 로드
   useEffect(() => {
     if (!isOpen) return;
@@ -152,6 +208,8 @@ export default function CompetitorModal({
     setTab("price");
     setCorrData(null);
     setCorrLoading(false);
+    setBenchData(null);
+    setBenchLoading(false);
 
     (async () => {
       try {
@@ -201,6 +259,47 @@ export default function CompetitorModal({
 
     return () => controller.abort();
   }, [tab, corrData, stationId, isOpen]);
+
+  // 벤치마크 탭 클릭 시 로드 (Strict Mode 안전)
+  useEffect(() => {
+    if (tab !== "benchmark" || benchData || !isOpen) return;
+
+    const controller = new AbortController();
+    setBenchLoading(true);
+    setBenchError(null);
+
+    fetch(`/api/stations/${stationId}/benchmark?fuel=${fuelType}`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("API 오류");
+        return res.json();
+      })
+      .then((json) => {
+        setBenchData(json);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setBenchError("벤치마크 데이터를 불러오는데 실패했습니다.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setBenchLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [tab, benchData, stationId, isOpen, fuelType]);
+
+  // 벤치마크 탭에서 유종 변경 시 데이터 리셋
+  const prevFuelRef = useRef(fuelType);
+  useEffect(() => {
+    if (prevFuelRef.current !== fuelType && tab === "benchmark") {
+      setBenchData(null);
+    }
+    prevFuelRef.current = fuelType;
+  }, [fuelType, tab]);
 
   const sortedCompetitors = useMemo(() => {
     if (!data) return [];
@@ -309,6 +408,16 @@ export default function CompetitorModal({
             }`}
           >
             🔗 가격 연동성
+          </button>
+          <button
+            onClick={() => setTab("benchmark")}
+            className={`px-4 py-2 text-[13px] font-semibold rounded-[10px] border-none cursor-pointer transition-all ${
+              tab === "benchmark"
+                ? "bg-navy text-white"
+                : "bg-surface text-text-tertiary hover:text-text-secondary"
+            }`}
+          >
+            📊 적정 가격
           </button>
         </div>
 
@@ -563,6 +672,331 @@ export default function CompetitorModal({
                   </div>
                   <p className="text-[11px] text-text-tertiary text-center mt-3 m-0">
                     연동성이 높은 주유소는 가격을 함께 올리고 내리는 경향이 있습니다.
+                  </p>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ===== 적정 가격 벤치마크 탭 ===== */}
+          {tab === "benchmark" && (
+            <>
+              {/* 로딩 */}
+              {benchLoading && (
+                <div className="space-y-4">
+                  <div className="bg-surface rounded-[14px] p-5 animate-pulse">
+                    <div className="h-5 bg-border rounded w-1/2 mb-3" />
+                    <div className="h-8 bg-border rounded w-2/3 mb-2" />
+                    <div className="h-4 bg-border rounded w-3/4" />
+                  </div>
+                  <div className="bg-surface rounded-[14px] p-5 animate-pulse">
+                    <div className="h-[160px] bg-border rounded" />
+                  </div>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex gap-3 animate-pulse">
+                      <div className="h-4 bg-border rounded flex-1" />
+                      <div className="h-4 bg-border rounded w-20" />
+                      <div className="h-4 bg-border rounded w-16" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 에러 */}
+              {benchError && (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.5" className="mb-3">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4M12 16h.01" />
+                  </svg>
+                  <p className="text-[13px] text-text-tertiary text-center m-0">{benchError}</p>
+                </div>
+              )}
+
+              {/* 데이터 */}
+              {!benchLoading && !benchError && benchData && (
+                <>
+                  {/* 서울 외 주유소 안내 */}
+                  {!benchData.station.district && (
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-[12px] px-4 py-3 mb-4">
+                      <span className="text-[13px] leading-relaxed text-amber-800">
+                        ⚠️ 적정 가격 벤치마크는 현재 서울 소재 주유소만 지원합니다. 이 주유소는 서울 외 지역이므로 자치구·유동인구 비교를 제공할 수 없습니다.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 벤치마크 카드 */}
+                  {(() => {
+                    const primary = benchData.benchmarks.district || benchData.benchmarks.overall;
+                    const diff = benchData.station.price - primary.avg;
+                    return (
+                      <div className="bg-surface rounded-[14px] p-5 mb-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[12px] font-medium text-text-tertiary">
+                            {BRAND_LABELS[benchData.station.brand] || benchData.station.brand}
+                            {benchData.station.district && ` · ${benchData.station.district}`}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-3 mb-3">
+                          <span className="text-[22px] font-bold text-text-primary">
+                            {benchData.station.price.toLocaleString()}원
+                          </span>
+                          <span className="text-[12px] text-text-tertiary">
+                            {fuelType === "gasoline" ? "휘발유" : "경유"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[13px] text-text-secondary">
+                            {primary.label}:
+                          </span>
+                          <span className="text-[13px] font-bold text-text-primary">
+                            {primary.avg.toLocaleString()}원
+                          </span>
+                        </div>
+
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] ${
+                          diff > 30 ? "bg-red-50" : diff < -30 ? "bg-blue-50" : "bg-emerald-50"
+                        }`}>
+                          <span className={`text-[15px] font-bold ${
+                            diff > 30 ? "text-[#DC2626]" : diff < -30 ? "text-[#2563EB]" : "text-emerald"
+                          }`}>
+                            {diff > 0 ? "+" : ""}{diff}원
+                          </span>
+                          <span className={`text-[12px] ${
+                            diff > 30 ? "text-red-600" : diff < -30 ? "text-blue-600" : "text-emerald"
+                          }`}>
+                            {diff > 30 ? "평균보다 비쌈" : diff < -30 ? "평균보다 저렴" : "평균 수준"}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <span className="text-[12px] text-text-tertiary">
+                            {primary.label} {primary.count}개 주유소 중{" "}
+                            <span className="font-semibold text-text-secondary">
+                              {primary.rank}위
+                            </span>{" "}
+                            (상위 {primary.percentile > 0 ? `${primary.percentile}%` : "최저가"})
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 포지셔닝 차트 */}
+                  {benchData.distribution.prices.length > 2 && (
+                    <div className="bg-surface rounded-[14px] p-4 mb-4">
+                      <h4 className="text-[13px] font-bold text-text-primary m-0 mb-1">
+                        가격 분포에서 내 위치
+                      </h4>
+                      <p className="text-[11px] text-text-tertiary m-0 mb-3">
+                        {benchData.distribution.source} 기준
+                      </p>
+
+                      <div className="h-[180px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {(() => {
+                            // 히스토그램 생성: 가격을 구간으로 묶기
+                            const prices = benchData.distribution.prices;
+                            const min = prices[0];
+                            const max = prices[prices.length - 1];
+                            const range = max - min;
+                            const binCount = Math.min(Math.max(Math.ceil(prices.length / 3), 5), 15);
+                            const binSize = Math.ceil(range / binCount);
+
+                            const bins: { range: string; count: number; from: number; to: number; hasMe: boolean }[] = [];
+                            for (let i = 0; i < binCount; i++) {
+                              const from = min + i * binSize;
+                              const to = i === binCount - 1 ? max + 1 : min + (i + 1) * binSize;
+                              const count = prices.filter((p) => p >= from && p < to).length;
+                              const hasMe = benchData.distribution.myPrice >= from && benchData.distribution.myPrice < to;
+                              bins.push({
+                                range: `${from}`,
+                                count,
+                                from,
+                                to,
+                                hasMe,
+                              });
+                            }
+
+                            // 마지막 빈에 최대값이 안 들어갔으면 보정
+                            if (bins.length > 0 && bins[bins.length - 1].count === 0) {
+                              const lastBinWithData = bins.findLast((b) => b.count > 0);
+                              if (lastBinWithData) {
+                                lastBinWithData.hasMe = lastBinWithData.hasMe || benchData.distribution.myPrice >= lastBinWithData.from;
+                              }
+                            }
+
+                            const primary = benchData.benchmarks.district || benchData.benchmarks.overall;
+
+                            return (
+                              <BarChart data={bins} margin={{ top: 5, right: 10, left: -15, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #E5E7EB)" vertical={false} />
+                                <XAxis
+                                  dataKey="range"
+                                  tick={{ fontSize: 10, fill: "var(--color-text-tertiary, #9BA8B7)" }}
+                                  tickFormatter={(v) => `${(Number(v) / 1).toLocaleString()}`}
+                                  interval="preserveStartEnd"
+                                />
+                                <YAxis
+                                  tick={{ fontSize: 10, fill: "var(--color-text-tertiary, #9BA8B7)" }}
+                                  allowDecimals={false}
+                                />
+                                <Tooltip
+                                  contentStyle={{
+                                    background: "white",
+                                    border: "1px solid #E5E7EB",
+                                    borderRadius: "8px",
+                                    fontSize: "12px",
+                                    padding: "8px 12px",
+                                  }}
+                                  formatter={(value) => [`${value}개`, "주유소 수"]}
+                                  labelFormatter={(label) => `${Number(label).toLocaleString()}원대`}
+                                />
+                                <ReferenceLine
+                                  x={bins.find((b) => b.hasMe)?.range}
+                                  stroke="#FF5252"
+                                  strokeWidth={2}
+                                  strokeDasharray="4 4"
+                                  label={{
+                                    value: `내 가격`,
+                                    position: "top",
+                                    fill: "#FF5252",
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                  }}
+                                />
+                                <ReferenceLine
+                                  x={bins.find((b) => primary.avg >= b.from && primary.avg < b.to)?.range}
+                                  stroke="#2563EB"
+                                  strokeWidth={1.5}
+                                  strokeDasharray="3 3"
+                                  label={{
+                                    value: "평균",
+                                    position: "top",
+                                    fill: "#2563EB",
+                                    fontSize: 10,
+                                  }}
+                                />
+                                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                  {bins.map((entry, index) => (
+                                    <Cell
+                                      key={index}
+                                      fill={entry.hasMe ? "#FF5252" : "var(--color-navy, #1B2838)"}
+                                      fillOpacity={entry.hasMe ? 0.8 : 0.3}
+                                    />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            );
+                          })()}
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Q1 / 중앙값 / Q3 레전드 */}
+                      {(() => {
+                        const primary = benchData.benchmarks.district || benchData.benchmarks.overall;
+                        return (
+                          <div className="flex justify-between mt-2 px-1">
+                            <span className="text-[10px] text-text-tertiary">
+                              하위 25%: {primary.q1.toLocaleString()}원
+                            </span>
+                            <span className="text-[10px] text-text-tertiary">
+                              중앙값: {primary.median.toLocaleString()}원
+                            </span>
+                            <span className="text-[10px] text-text-tertiary">
+                              상위 25%: {primary.q3.toLocaleString()}원
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* 조건별 비교 테이블 */}
+                  <div className="bg-surface rounded-[14px] p-4 mb-4">
+                    <h4 className="text-[13px] font-bold text-text-primary m-0 mb-3">
+                      조건별 비교
+                    </h4>
+                    <div className="space-y-0">
+                      {[
+                        benchData.benchmarks.district,
+                        benchData.benchmarks.brand,
+                        benchData.benchmarks.road_rank,
+                        benchData.benchmarks.overall,
+                        benchData.benchmarks.population,
+                      ]
+                        .filter((b): b is BenchmarkGroup & { label: string } => b != null)
+                        .map((b) => {
+                          const diff = benchData.station.price - b.avg;
+                          return (
+                            <div
+                              key={b.label}
+                              className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-b-0"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <span className="text-[12px] text-text-secondary block truncate">
+                                  {b.label}
+                                </span>
+                                <span className="text-[10px] text-text-tertiary">
+                                  {b.count}개 주유소
+                                </span>
+                              </div>
+                              <div className="text-right ml-3">
+                                <span className="text-[13px] font-semibold text-text-primary block">
+                                  {b.avg.toLocaleString()}원
+                                </span>
+                              </div>
+                              <div className="text-right ml-3 min-w-[72px]">
+                                <span
+                                  className={`text-[13px] font-bold ${
+                                    diff > 30
+                                      ? "text-[#DC2626]"
+                                      : diff < -30
+                                        ? "text-[#2563EB]"
+                                        : "text-emerald"
+                                  }`}
+                                >
+                                  {diff > 0 ? "+" : ""}
+                                  {diff}원
+                                </span>
+                              </div>
+                              <div className="text-right ml-2 min-w-[48px]">
+                                <span className="text-[11px] text-text-tertiary">
+                                  {b.rank}/{b.count}위
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* 유종 토글 */}
+                  <div className="flex items-center justify-center gap-1 mt-2 bg-surface rounded-[10px] p-1 w-fit mx-auto">
+                    <button
+                      onClick={() => setFuelType("gasoline")}
+                      className={`px-4 py-1.5 text-[12px] font-semibold rounded-[8px] border-none cursor-pointer transition-all ${
+                        fuelType === "gasoline"
+                          ? "bg-white text-text-primary shadow-sm"
+                          : "bg-transparent text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      휘발유
+                    </button>
+                    <button
+                      onClick={() => setFuelType("diesel")}
+                      className={`px-4 py-1.5 text-[12px] font-semibold rounded-[8px] border-none cursor-pointer transition-all ${
+                        fuelType === "diesel"
+                          ? "bg-white text-text-primary shadow-sm"
+                          : "bg-transparent text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      경유
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-text-tertiary text-center mt-3 m-0">
+                    서울 전체 주유소 대비 조건별 가격 적정성을 분석합니다.
                   </p>
                 </>
               )}
