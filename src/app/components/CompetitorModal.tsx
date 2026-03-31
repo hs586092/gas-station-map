@@ -716,11 +716,20 @@ export default function CompetitorModal({
               {/* 데이터 */}
               {!benchLoading && !benchError && benchData && (
                 <>
-                  {/* 서울 외 주유소 안내 */}
+                  {/* 지역 매칭 안 된 주유소 안내 */}
                   {!benchData.station.district && (
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-[12px] px-4 py-3 mb-4">
                       <span className="text-[13px] leading-relaxed text-amber-800">
-                        ⚠️ 적정 가격 벤치마크는 현재 서울 소재 주유소만 지원합니다. 이 주유소는 서울 외 지역이므로 자치구·유동인구 비교를 제공할 수 없습니다.
+                        ⚠️ 이 주유소는 지역 매칭이 되지 않아 지역별·유동인구 비교를 제공할 수 없습니다. 브랜드·도로등급·전체 평균 비교는 가능합니다.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 표본 부족 경고 */}
+                  {benchData.benchmarks.district && benchData.benchmarks.district.count <= 5 && (
+                    <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-[12px] px-4 py-3 mb-4">
+                      <span className="text-[13px] leading-relaxed text-blue-800">
+                        ℹ️ {benchData.benchmarks.district.label} 주유소가 {benchData.benchmarks.district.count}개로 적어 통계 정확도가 낮을 수 있습니다.
                       </span>
                     </div>
                   )}
@@ -996,7 +1005,7 @@ export default function CompetitorModal({
                     </button>
                   </div>
                   <p className="text-[11px] text-text-tertiary text-center mt-3 m-0">
-                    서울 전체 주유소 대비 조건별 가격 적정성을 분석합니다.
+                    비슷한 조건의 주유소 대비 가격 적정성을 분석합니다.
                   </p>
                 </>
               )}

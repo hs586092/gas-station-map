@@ -89,20 +89,20 @@ export async function GET(
     );
   }
 
-  // 2. 서울 전체 주유소 조회 (district가 있는 = 서울)
-  const { data: seoulStations, error: seoulError } = await supabase
+  // 2. district가 있는 전체 주유소 조회 (서울 + 경기)
+  const { data: allDistrictStations, error: districtError } = await supabase
     .from("stations")
     .select("id, district, brand, road_rank, gasoline_price, diesel_price")
     .not("district", "is", null);
 
-  if (seoulError || !seoulStations) {
+  if (districtError || !allDistrictStations) {
     return NextResponse.json(
-      { error: "서울 주유소 데이터 조회 실패" },
+      { error: "주유소 데이터 조회 실패" },
       { status: 500 }
     );
   }
 
-  const stations = seoulStations as StationRow[];
+  const stations = allDistrictStations as StationRow[];
 
   // 가격이 유효한 주유소만 필터
   const validStations = stations.filter((s) => {
@@ -279,7 +279,7 @@ export async function GET(
             }
           : null,
         overall: {
-          label: "서울 전체 평균",
+          label: "전체 평균",
           ...overallBenchmark,
         },
         population: populationBenchmark
