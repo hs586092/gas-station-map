@@ -138,10 +138,12 @@ export async function GET(request: Request) {
 
   if (!dateStr) {
     // 어제부터 14일 전까지 사용 가능한 날짜 탐색 (서울 OpenData는 ~5일 지연)
+    // 서울 OpenData는 한국 날짜(KST) 기준이므로 UTC+9로 계산
     for (let d = 1; d <= 14; d++) {
-      const date = new Date();
-      date.setDate(date.getDate() - d);
-      const candidate = date.toISOString().slice(0, 10).replace(/-/g, "");
+      const now = new Date();
+      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      kst.setDate(kst.getDate() - d);
+      const candidate = kst.toISOString().slice(0, 10).replace(/-/g, "");
       const testUrl = `${BASE_URL}/${API_KEY}/json/${SERVICE}/1/1/${candidate}`;
       const testRes = await fetch(testUrl);
       const testData = await testRes.json();
