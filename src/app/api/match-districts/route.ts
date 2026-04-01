@@ -80,13 +80,13 @@ export async function GET(request: Request) {
   const supabase = createServiceClient();
   const PAGE_SIZE = 1000;
 
-  // 1. 전체 district를 null로 초기화 (오매칭 리셋)
-  // Supabase update도 기본 1,000개 제한 → 반복 실행
+  // 1. 서울 25개 구 district만 null로 초기화 (경기도 district는 보존)
+  const seoulDistrictNames = SEOUL_DISTRICTS.map((d) => d.name);
   while (true) {
     const { data: resetData, error: resetError } = await supabase
       .from("stations")
       .update({ district: null })
-      .not("district", "is", null)
+      .in("district", seoulDistrictNames)
       .select("id");
 
     if (resetError) {
