@@ -137,8 +137,8 @@ export async function GET(request: Request) {
   let dateStr = searchParams.get("date");
 
   if (!dateStr) {
-    // 어제부터 7일 전까지 사용 가능한 날짜 탐색
-    for (let d = 1; d <= 7; d++) {
+    // 어제부터 14일 전까지 사용 가능한 날짜 탐색 (서울 OpenData는 ~5일 지연)
+    for (let d = 1; d <= 14; d++) {
       const date = new Date();
       date.setDate(date.getDate() - d);
       const candidate = date.toISOString().slice(0, 10).replace(/-/g, "");
@@ -154,7 +154,7 @@ export async function GET(request: Request) {
 
   if (!dateStr) {
     return NextResponse.json(
-      { error: "사용 가능한 생활인구 데이터를 찾을 수 없습니다 (최근 7일)" },
+      { error: "사용 가능한 생활인구 데이터를 찾을 수 없습니다 (최근 14일)" },
       { status: 404 }
     );
   }
@@ -222,8 +222,15 @@ export async function GET(request: Request) {
       sampleRecord: records[0],
     });
   } catch (error) {
+    const msg = (error as Error).message;
+    const isXml = msg.includes("Unexpected token '<'");
     return NextResponse.json(
-      { error: `수집 실패: ${(error as Error).message}` },
+      {
+        error: `수집 실패: ${msg}`,
+        hint: isXml
+          ? "서울 OpenData API가 XML 에러를 반환했습니다. SEOUL_OPENDATA_API_KEY 환경변수를 확인하세요."
+          : undefined,
+      },
       { status: 500 }
     );
   }
