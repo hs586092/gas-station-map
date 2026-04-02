@@ -606,7 +606,7 @@ function MapContent() {
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={threat.color}>
                             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                           </svg>
-                          <span className="text-[11px] font-semibold text-text-secondary">EV 충전 경쟁 환경</span>
+                          <span className="text-[11px] font-semibold text-gray-700">EV 충전 경쟁 환경</span>
                         </div>
                         <span className={`text-[10px] font-bold ${threat.color}`}>{threat.label}</span>
                       </div>
@@ -616,12 +616,12 @@ function MapContent() {
                       </div>
                       {/* 급속 메인 */}
                       <div className="flex items-baseline gap-1.5 mb-1">
-                        <span className="text-[20px] font-bold text-text-primary">{fs}</span>
-                        <span className="text-[11px] text-text-secondary">급속 충전소</span>
-                        <span className="text-[11px] text-text-tertiary">(충전기 {stationDetail.evNearby!.fast}대)</span>
+                        <span className="text-[20px] font-bold text-gray-900">{fs}</span>
+                        <span className="text-[12px] font-medium text-gray-700">급속 충전소</span>
+                        <span className="text-[11px] text-gray-500">(충전기 {stationDetail.evNearby!.fast}대)</span>
                       </div>
                       {/* 완속 부가정보 */}
-                      <div className="text-[10px] text-text-tertiary">
+                      <div className="text-[11px] text-gray-500">
                         완속 {stationDetail.evNearby!.stations - fs}개소 (아파트·주거용)
                       </div>
                     </div>
