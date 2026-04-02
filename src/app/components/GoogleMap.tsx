@@ -35,6 +35,13 @@ interface StationDetail {
   hasCarWash?: boolean;
   hasCvs?: boolean;
   evNearby?: { fast: number; slow: number; stations: number; fastStations: number } | null;
+  oilReflection?: {
+    brentChange: number;
+    priceChange: number | null;
+    status: string;
+    message: string;
+    direction: "up" | "down" | "flat";
+  } | null;
 }
 
 const PROD_LABELS: Record<string, string> = {
@@ -247,30 +254,7 @@ function MapContent() {
   }[]>([]);
   const [selectedEvCharger, setSelectedEvCharger] = useState<string | null>(null);
 
-  // 유가 2주 시차 인사이트
-  const [oilInsight, setOilInsight] = useState<{
-    brentChange: number;
-    direction: "up" | "down" | "flat";
-    message: string;
-  } | null>(null);
 
-  useEffect(() => {
-    fetch("/api/oil-prices?days=30")
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.summary?.brentChange) return;
-        const ch = d.summary.brentChange;
-        const abs = Math.abs(ch).toFixed(1);
-        if (ch >= 2) {
-          setOilInsight({ brentChange: ch, direction: "up", message: `2주 전 유가 +$${abs} → 소매가 인상 가능성` });
-        } else if (ch <= -2) {
-          setOilInsight({ brentChange: ch, direction: "down", message: `2주 전 유가 -$${abs} → 소매가 인하 가능성` });
-        } else {
-          setOilInsight({ brentChange: ch, direction: "flat", message: `2주 전 유가 변동 적음 → 소매가 유지 예상` });
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   const filteredStations = stations.filter((s) => {
     if (filters.brands.size > 0 && !filters.brands.has(s.brand)) return false;
@@ -705,23 +689,34 @@ function MapContent() {
                   ))}
                 </div>
 
-                {/* 유가 시차 인사이트 */}
-                {oilInsight && (
+                {/* 유가 반영 인사이트 (주유소별 맞춤) */}
+                {stationDetail.oilReflection && (
                   <div className={`rounded-[10px] px-3 py-2 mb-3 ${
-                    oilInsight.direction === "up" ? "bg-red-50" : oilInsight.direction === "down" ? "bg-blue-50" : "bg-slate-50"
+                    stationDetail.oilReflection.direction === "up" ? "bg-red-50"
+                      : stationDetail.oilReflection.direction === "down" ? "bg-blue-50"
+                      : "bg-slate-50"
                   }`}>
                     <div className="flex items-center gap-1.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" stroke={
-                        oilInsight.direction === "up" ? "#ef4444" : oilInsight.direction === "down" ? "#3b82f6" : "#64748b"
+                        stationDetail.oilReflection.direction === "up" ? "#ef4444"
+                          : stationDetail.oilReflection.direction === "down" ? "#3b82f6"
+                          : "#64748b"
                       }>
                         <path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/>
                       </svg>
                       <span className={`text-[11px] font-medium ${
-                        oilInsight.direction === "up" ? "text-red-700" : oilInsight.direction === "down" ? "text-blue-700" : "text-slate-600"
+                        stationDetail.oilReflection.direction === "up" ? "text-red-700"
+                          : stationDetail.oilReflection.direction === "down" ? "text-blue-700"
+                          : "text-slate-600"
                       }`}>
-                        {oilInsight.message}
+                        {stationDetail.oilReflection.message}
                       </span>
                     </div>
+                    {stationDetail.oilReflection.priceChange !== null && (
+                      <div className="text-[10px] text-gray-500 mt-1 ml-[18px]">
+                        소매가 2주간 {stationDetail.oilReflection.priceChange >= 0 ? "+" : ""}{stationDetail.oilReflection.priceChange}원
+                      </div>
+                    )}
                   </div>
                 )}
 

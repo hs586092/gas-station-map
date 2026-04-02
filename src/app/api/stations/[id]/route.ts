@@ -88,6 +88,87 @@ export async function GET(
     }
   }
 
+  // 유가-소매가 반영 분석
+  let oilReflection: {
+    brentChange: number;
+    priceChange: number | null;
+    status: string;
+    message: string;
+    direction: "up" | "down" | "flat";
+  } | null = null;
+
+  {
+    // 최신 Brent + 14일 전 Brent
+    const { data: oilRecent } = await supabase
+      .from("oil_prices")
+      .select("date, brent")
+      .not("brent", "is", null)
+      .order("date", { ascending: false })
+      .limit(1);
+
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 16);
+    const twelveAgo = new Date();
+    twelveAgo.setDate(twelveAgo.getDate() - 12);
+
+    const { data: oilOld } = await supabase
+      .from("oil_prices")
+      .select("date, brent")
+      .not("brent", "is", null)
+      .gte("date", fourteenDaysAgo.toISOString().split("T")[0])
+      .lte("date", twelveAgo.toISOString().split("T")[0])
+      .order("date", { ascending: false })
+      .limit(1);
+
+    if (oilRecent?.[0]?.brent && oilOld?.[0]?.brent) {
+      const brentChange = +(oilRecent[0].brent - oilOld[0].brent).toFixed(2);
+      const abs = Math.abs(brentChange).toFixed(1);
+
+      // 주유소 가격 변동 (14일 전 vs 현재)
+      let priceChange: number | null = null;
+      const histCutoff = new Date();
+      histCutoff.setDate(histCutoff.getDate() - 16);
+
+      const { data: histData } = await supabase
+        .from("price_history")
+        .select("gasoline_price, collected_at")
+        .eq("station_id", id)
+        .gte("collected_at", histCutoff.toISOString())
+        .not("gasoline_price", "is", null)
+        .order("collected_at", { ascending: true });
+
+      if (histData && histData.length >= 2) {
+        const oldest = histData[0].gasoline_price;
+        const newest = histData[histData.length - 1].gasoline_price;
+        if (oldest && newest) priceChange = newest - oldest;
+      }
+
+      if (brentChange >= 2) {
+        if (priceChange !== null) {
+          if (priceChange >= 10) {
+            oilReflection = { brentChange, priceChange, status: "oil_up_reflected", message: `유가 상승(+$${abs}) 반영 완료`, direction: "flat" };
+          } else {
+            oilReflection = { brentChange, priceChange, status: "oil_up_not_reflected", message: `유가 상승(+$${abs}) 중이나 아직 미반영`, direction: "up" };
+          }
+        } else {
+          oilReflection = { brentChange, priceChange, status: "oil_up_no_data", message: `2주 전 유가 +$${abs} → 소매가 인상 가능성`, direction: "up" };
+        }
+      } else if (brentChange <= -2) {
+        if (priceChange !== null) {
+          if (priceChange <= -10) {
+            oilReflection = { brentChange, priceChange, status: "oil_down_reflected", message: `유가 하락(-$${abs}) 반영 완료`, direction: "flat" };
+          } else {
+            oilReflection = { brentChange, priceChange, status: "oil_down_not_reflected", message: `유가 하락(-$${abs}) 중이나 아직 미반영`, direction: "down" };
+          }
+        } else {
+          oilReflection = { brentChange, priceChange, status: "oil_down_no_data", message: `2주 전 유가 -$${abs} → 소매가 인하 가능성`, direction: "down" };
+        }
+      } else {
+        oilReflection = { brentChange, priceChange, status: "flat", message: "유가 변동 적음 · 소매가 유지 예상", direction: "flat" };
+      }
+    }
+  }
+
   return NextResponse.json(
     {
       id: data.id,
@@ -103,6 +184,7 @@ export async function GET(
       hasCvs: data.cvs_yn === "Y",
       prices,
       evNearby,
+      oilReflection,
     },
     {
       headers: {
