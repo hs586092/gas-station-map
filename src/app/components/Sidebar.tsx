@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export interface Station {
   id: string;
@@ -91,6 +91,7 @@ interface SidebarProps {
   selectedStationId: string | null;
   topStations: Station[];
   myLocation: { lat: number; lng: number } | null;
+  onOilChartClick?: () => void;
 }
 
 export default function Sidebar({
@@ -101,6 +102,7 @@ export default function Sidebar({
   selectedStationId,
   topStations,
   myLocation,
+  onOilChartClick,
 }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -207,6 +209,62 @@ export default function Sidebar({
     </div>
   );
 
+  // ── 유가 티커 데이터 ──
+  const [oilSummary, setOilSummary] = useState<{
+    wti: number; brent: number;
+    wtiChange: number | null; brentChange: number | null;
+    twoWeeksAgoDate: string;
+  } | null>(null);
+
+  const fetchOilPrices = useCallback(() => {
+    fetch("/api/oil-prices?days=30")
+      .then((r) => r.json())
+      .then((d) => { if (d.summary) setOilSummary(d.summary); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchOilPrices();
+  }, [fetchOilPrices]);
+
+  // ── 유가 티커 UI ──
+  const oilTicker = oilSummary && (
+    <div className="mx-4 mb-2">
+      <div className="bg-slate-50 rounded-[10px] px-3 py-2 cursor-pointer hover:bg-slate-100 transition-colors" onClick={onOilChartClick}>
+        <div className="flex items-center gap-1 mb-1.5">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>
+          <span className="text-[10px] font-semibold text-slate-500">국제유가</span>
+          <span className="text-[9px] text-slate-400 ml-auto">2주 전 대비</span>
+        </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <div className="text-[10px] text-slate-400 mb-0.5">WTI</div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[13px] font-bold text-slate-700">${oilSummary.wti.toFixed(1)}</span>
+              {oilSummary.wtiChange != null && (
+                <span className={`text-[10px] font-semibold ${oilSummary.wtiChange >= 0 ? "text-red-500" : "text-blue-500"}`}>
+                  {oilSummary.wtiChange >= 0 ? "▲" : "▼"}{Math.abs(oilSummary.wtiChange).toFixed(1)}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="w-px bg-slate-200" />
+          <div className="flex-1">
+            <div className="text-[10px] text-slate-400 mb-0.5">Brent <span className="text-[8px]">(Dubai유 참고)</span></div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[13px] font-bold text-slate-700">${oilSummary.brent.toFixed(1)}</span>
+              {oilSummary.brentChange != null && (
+                <span className={`text-[10px] font-semibold ${oilSummary.brentChange >= 0 ? "text-red-500" : "text-blue-500"}`}>
+                  {oilSummary.brentChange >= 0 ? "▲" : "▼"}{Math.abs(oilSummary.brentChange).toFixed(1)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // ── TOP 5 ──
   const topSection = topStations.length > 0 && myLocation && (
     <div className="mx-4 mb-3">
@@ -299,6 +357,11 @@ export default function Sidebar({
               {filterChips}
             </div>
 
+            {/* 유가 티커 (모바일) */}
+            <div className="shrink-0 pt-1">
+              {oilTicker}
+            </div>
+
             {/* 목록 */}
             <div className="overflow-y-auto flex-1">
               {topSection}
@@ -362,8 +425,13 @@ export default function Sidebar({
           {filterChips}
         </div>
 
-        {/* TOP 5 */}
+        {/* 유가 티커 */}
         <div className="pt-3 shrink-0">
+          {oilTicker}
+        </div>
+
+        {/* TOP 5 */}
+        <div className="shrink-0">
           {topSection}
         </div>
 

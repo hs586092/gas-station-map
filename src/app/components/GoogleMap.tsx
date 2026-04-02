@@ -14,6 +14,7 @@ import Sidebar, {
   BRAND_LABELS,
 } from "./Sidebar";
 import PriceChart from "./PriceChart";
+import OilPriceChart from "./OilPriceChart";
 import CompetitorModal from "./CompetitorModal";
 import AuthModal from "./AuthModal";
 import { useAuth } from "@/lib/auth";
@@ -224,6 +225,7 @@ function MapContent() {
 
   const [showChart, setShowChart] = useState<{ id: string; name: string } | null>(null);
   const [showCompetitor, setShowCompetitor] = useState<{ id: string; name: string } | null>(null);
+  const [showOilChart, setShowOilChart] = useState(false);
 
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [topStations, setTopStations] = useState<Station[]>([]);
@@ -244,6 +246,31 @@ function MapContent() {
     operator: string;
   }[]>([]);
   const [selectedEvCharger, setSelectedEvCharger] = useState<string | null>(null);
+
+  // 유가 2주 시차 인사이트
+  const [oilInsight, setOilInsight] = useState<{
+    brentChange: number;
+    direction: "up" | "down" | "flat";
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/oil-prices?days=30")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.summary?.brentChange) return;
+        const ch = d.summary.brentChange;
+        const abs = Math.abs(ch).toFixed(1);
+        if (ch >= 2) {
+          setOilInsight({ brentChange: ch, direction: "up", message: `2주 전 유가 +$${abs} → 소매가 인상 가능성` });
+        } else if (ch <= -2) {
+          setOilInsight({ brentChange: ch, direction: "down", message: `2주 전 유가 -$${abs} → 소매가 인하 가능성` });
+        } else {
+          setOilInsight({ brentChange: ch, direction: "flat", message: `2주 전 유가 변동 적음 → 소매가 유지 예상` });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const filteredStations = stations.filter((s) => {
     if (filters.brands.size > 0 && !filters.brands.has(s.brand)) return false;
@@ -449,6 +476,7 @@ function MapContent() {
         selectedStationId={selectedStation?.id || null}
         topStations={topStations}
         myLocation={myLocation}
+        onOilChartClick={() => setShowOilChart(true)}
       />
 
       <Map
@@ -676,6 +704,26 @@ function MapContent() {
                     </div>
                   ))}
                 </div>
+
+                {/* 유가 시차 인사이트 */}
+                {oilInsight && (
+                  <div className={`rounded-[10px] px-3 py-2 mb-3 ${
+                    oilInsight.direction === "up" ? "bg-red-50" : oilInsight.direction === "down" ? "bg-blue-50" : "bg-slate-50"
+                  }`}>
+                    <div className="flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" stroke={
+                        oilInsight.direction === "up" ? "#ef4444" : oilInsight.direction === "down" ? "#3b82f6" : "#64748b"
+                      }>
+                        <path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/>
+                      </svg>
+                      <span className={`text-[11px] font-medium ${
+                        oilInsight.direction === "up" ? "text-red-700" : oilInsight.direction === "down" ? "text-blue-700" : "text-slate-600"
+                      }`}>
+                        {oilInsight.message}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* EV 충전 경쟁 환경 */}
                 {stationDetail.evNearby && stationDetail.evNearby.stations > 0 && (() => {
@@ -929,6 +977,11 @@ function MapContent() {
         isOpen={!!showCompetitor}
         onClose={() => setShowCompetitor(null)}
       />
+
+      {/* 국제유가 차트 */}
+      {showOilChart && (
+        <OilPriceChart onClose={() => setShowOilChart(false)} />
+      )}
 
       {loading && (
         <div className="fixed top-[72px] left-1/2 -translate-x-1/2 bg-white text-text-secondary px-4 py-2 rounded-full text-[12px] font-medium z-[1100] border border-border flex items-center gap-2" style={{ boxShadow: "var(--shadow-md)" }}>
