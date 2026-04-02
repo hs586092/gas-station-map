@@ -33,6 +33,7 @@ interface StationDetail {
   hasLpg?: boolean;
   hasCarWash?: boolean;
   hasCvs?: boolean;
+  evNearby?: { fast: number; slow: number; stations: number; fastStations: number } | null;
 }
 
 const PROD_LABELS: Record<string, string> = {
@@ -588,6 +589,44 @@ function MapContent() {
                     </div>
                   ))}
                 </div>
+
+                {/* EV 충전 경쟁 환경 */}
+                {stationDetail.evNearby && stationDetail.evNearby.stations > 0 && (() => {
+                  const fs = stationDetail.evNearby!.fastStations;
+                  const threat = fs <= 5
+                    ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-500", bar: "bg-emerald-100" }
+                    : fs <= 20
+                      ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-400", bar: "bg-amber-100" }
+                      : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-500", bar: "bg-red-100" };
+                  const barPct = Math.min(fs / 30 * 100, 100);
+                  return (
+                    <div className="bg-surface rounded-[10px] p-3 mb-3">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={threat.color}>
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                          </svg>
+                          <span className="text-[11px] font-semibold text-text-secondary">EV 충전 경쟁 환경</span>
+                        </div>
+                        <span className={`text-[10px] font-bold ${threat.color}`}>{threat.label}</span>
+                      </div>
+                      {/* 위협도 게이지 */}
+                      <div className={`h-1.5 rounded-full ${threat.bar} mb-3`}>
+                        <div className={`h-full rounded-full ${threat.bg} transition-all`} style={{ width: `${barPct}%` }} />
+                      </div>
+                      {/* 급속 메인 */}
+                      <div className="flex items-baseline gap-1.5 mb-1">
+                        <span className="text-[20px] font-bold text-text-primary">{fs}</span>
+                        <span className="text-[11px] text-text-secondary">급속 충전소</span>
+                        <span className="text-[11px] text-text-tertiary">(충전기 {stationDetail.evNearby!.fast}대)</span>
+                      </div>
+                      {/* 완속 부가정보 */}
+                      <div className="text-[10px] text-text-tertiary">
+                        완속 {stationDetail.evNearby!.stations - fs}개소 (아파트·주거용)
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {stationDetail.tel && (
                   <p className="text-[11px] text-text-tertiary mb-3 m-0">{stationDetail.tel}</p>

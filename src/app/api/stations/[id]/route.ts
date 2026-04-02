@@ -55,6 +55,39 @@ export async function GET(
   if (data.diesel_price) prices.push({ product: "D047", price: data.diesel_price });
   if (data.premium_price) prices.push({ product: "B034", price: data.premium_price });
 
+  // EV 충전소 반경 3km 검색
+  let evNearby: { fast: number; slow: number; stations: number; fastStations: number } | null = null;
+  if (data.lat && data.lng) {
+    const EV_RADIUS_KM = 3;
+    const degPerKm = 1 / 111;
+    const latDelta = EV_RADIUS_KM * degPerKm;
+    const lngDelta = EV_RADIUS_KM * degPerKm / Math.cos(data.lat * (Math.PI / 180));
+
+    const { data: evData } = await supabase
+      .from("ev_charger_stations")
+      .select("lat, lng, fast_count, slow_count")
+      .gte("lat", data.lat - latDelta)
+      .lte("lat", data.lat + latDelta)
+      .gte("lng", data.lng - lngDelta)
+      .lte("lng", data.lng + lngDelta);
+
+    if (evData) {
+      let fast = 0, slow = 0, stationCount = 0, fastStations = 0;
+      for (const ev of evData) {
+        const dLat = (ev.lat - data.lat) * 111000;
+        const dLng = (ev.lng - data.lng) * 111000 * Math.cos(data.lat * (Math.PI / 180));
+        const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+        if (dist <= EV_RADIUS_KM * 1000) {
+          fast += ev.fast_count;
+          slow += ev.slow_count;
+          stationCount++;
+          if (ev.fast_count > 0) fastStations++;
+        }
+      }
+      evNearby = { fast, slow, stations: stationCount, fastStations };
+    }
+  }
+
   return NextResponse.json(
     {
       id: data.id,
@@ -69,6 +102,7 @@ export async function GET(
       hasCarWash: data.car_wash_yn === "Y",
       hasCvs: data.cvs_yn === "Y",
       prices,
+      evNearby,
     },
     {
       headers: {
