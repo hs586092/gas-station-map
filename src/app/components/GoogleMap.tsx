@@ -231,6 +231,20 @@ function MapContent() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
+  // EV 충전소 레이어
+  const [showEvChargers, setShowEvChargers] = useState(false);
+  const [evChargers, setEvChargers] = useState<{
+    station_id: string;
+    station_name: string;
+    lat: number;
+    lng: number;
+    fast_count: number;
+    slow_count: number;
+    total_count: number;
+    operator: string;
+  }[]>([]);
+  const [selectedEvCharger, setSelectedEvCharger] = useState<string | null>(null);
+
   const filteredStations = stations.filter((s) => {
     if (filters.brands.size > 0 && !filters.brands.has(s.brand)) return false;
     if (filters.congestion !== "all") {
@@ -282,6 +296,33 @@ function MapContent() {
       heatmapLayerRef.current = null;
     }
   }, [showHeatmap, filteredStations, map]);
+
+  // EV 충전소 뷰포트 로드
+  const fetchEvChargers = useCallback(() => {
+    if (!map || !showEvChargers) return;
+    const zoom = map.getZoom();
+    if (!zoom || zoom < 13) {
+      setEvChargers([]);
+      return;
+    }
+    const bounds = map.getBounds();
+    if (!bounds) return;
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    fetch(`/api/ev-chargers?minLat=${sw.lat()}&maxLat=${ne.lat()}&minLng=${sw.lng()}&maxLng=${ne.lng()}`)
+      .then((r) => r.json())
+      .then((d) => setEvChargers(d.chargers || []))
+      .catch(() => {});
+  }, [map, showEvChargers]);
+
+  useEffect(() => {
+    if (!showEvChargers) {
+      setEvChargers([]);
+      setSelectedEvCharger(null);
+      return;
+    }
+    fetchEvChargers();
+  }, [showEvChargers, fetchEvChargers]);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -416,6 +457,7 @@ function MapContent() {
         style={{ width: "100%", height: "100%" }}
         onIdle={() => {
           fetchStations();
+          if (showEvChargers) fetchEvChargers();
         }}
         onClick={() => setSelectedStation(null)}
       >
@@ -482,6 +524,51 @@ function MapContent() {
             />
           );
         })}
+
+        {/* EV 충전소 마커 */}
+        {showEvChargers && evChargers.map((ev) => (
+          <Marker
+            key={ev.station_id}
+            position={{ lat: ev.lat, lng: ev.lng }}
+            onClick={() => setSelectedEvCharger(ev.station_id === selectedEvCharger ? null : ev.station_id)}
+            icon={{
+              url: `data:image/svg+xml,${encodeURIComponent(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">` +
+                `<circle cx="12" cy="12" r="11" fill="#ef4444" stroke="white" stroke-width="2"/>` +
+                `<path d="M13 5L7 13h5l-1 6 6-8h-5l1-6z" fill="white"/>` +
+                `</svg>`
+              )}`,
+              scaledSize: new google.maps.Size(24, 24),
+              anchor: new google.maps.Point(12, 12),
+            }}
+            zIndex={10}
+          />
+        ))}
+
+        {/* EV 충전소 InfoWindow */}
+        {showEvChargers && selectedEvCharger && (() => {
+          const ev = evChargers.find((e) => e.station_id === selectedEvCharger);
+          if (!ev) return null;
+          return (
+            <InfoWindow
+              position={{ lat: ev.lat, lng: ev.lng }}
+              onCloseClick={() => setSelectedEvCharger(null)}
+            >
+              <div style={{ minWidth: 180, padding: 0 }}>
+                <div className="font-semibold text-[13px] text-gray-900 mb-1">{ev.station_name}</div>
+                <div className="flex gap-3 mb-1">
+                  <span className="text-[12px] text-orange-600 font-medium">급속 {ev.fast_count}대</span>
+                  {ev.slow_count > 0 && (
+                    <span className="text-[12px] text-gray-500">완속 {ev.slow_count}대</span>
+                  )}
+                </div>
+                {ev.operator && (
+                  <div className="text-[11px] text-gray-400">{ev.operator}</div>
+                )}
+              </div>
+            </InfoWindow>
+          );
+        })()}
 
         {!showHeatmap && selectedStation && stationDetail && (
           <InfoWindow
@@ -708,6 +795,32 @@ function MapContent() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* EV 충전소 토글 */}
+      <button
+        onClick={() => setShowEvChargers((v) => !v)}
+        className="fixed bottom-[152px] right-6 z-[1100] w-10 h-10 border rounded-xl cursor-pointer flex items-center justify-center transition-colors"
+        style={{
+          background: showEvChargers ? "#1B2838" : "white",
+          borderColor: showEvChargers ? "#1B2838" : "var(--color-border)",
+          boxShadow: "var(--shadow-md)",
+        }}
+        title={showEvChargers ? "EV 충전소 숨기기" : "EV 충전소 보기"}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={showEvChargers ? "#ef4444" : "#9BA8B7"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </button>
+
+      {/* EV 충전소 줌 안내 */}
+      {showEvChargers && map && (map.getZoom() || 0) < 13 && (
+        <div
+          className="fixed bottom-[196px] right-4 z-[1100] bg-white/95 backdrop-blur-sm text-[11px] text-text-secondary font-medium px-3 py-2 rounded-lg border border-border"
+          style={{ boxShadow: "var(--shadow-sm)" }}
+        >
+          줌 인하면 EV 충전소가 표시됩니다
         </div>
       )}
 
