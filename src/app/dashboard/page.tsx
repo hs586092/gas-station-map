@@ -46,6 +46,7 @@ interface CompetitorChange {
   id: string; name: string; brand: string; distance_km: number;
   gasoline_price: number | null; diesel_price: number | null;
   gasoline_diff: number | null; diesel_diff: number | null;
+  gap_vs_me: number | null; gap_vs_me_yesterday: number | null;
 }
 
 interface BenchmarkData {
@@ -92,10 +93,15 @@ interface Insights {
     fastestResponder: { name: string; changeCount: number } | null;
   };
   oilWeekTrend: { trend: string; message: string; brentWeekChange: number };
+  weeklyTrend: {
+    action: string; message: string;
+    risingCount: number; fallingCount: number; stableCount: number;
+  };
   oilStory: string;
   benchmarkInsight: string;
   myPosition: "cheap" | "average" | "expensive";
-  recommendation: { message: string; type: "hold" | "raise" | "lower" | "watch" };
+  avgPrice: number | null;
+  recommendation: { message: string; type: "hold" | "raise" | "lower" | "watch"; suggestedRange: { min: number; max: number } | null };
 }
 
 // ─── 스켈레톤 ───
@@ -245,6 +251,11 @@ export default function DashboardPage() {
                 {insights.oilStory}
               </p>
             )}
+            {insights.weeklyTrend.message && (
+              <p className="text-[11px] text-text-tertiary m-0 mt-1.5">
+                📊 {insights.weeklyTrend.message}
+              </p>
+            )}
             <p className="text-[10px] text-text-tertiary m-0 mt-3">
               * 본 분석은 데이터 기반 참고 정보이며, 최종 가격 결정은 사장님의 판단에 따릅니다.
             </p>
@@ -321,25 +332,38 @@ export default function DashboardPage() {
                   오늘 경쟁사 가격 변동 없음
                 </div>
               ) : (
-                <div className="space-y-2.5 max-h-[160px] overflow-y-auto">
+                <div className="space-y-2 max-h-[220px] overflow-y-auto">
                   {changes.changes.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
-                        <span className="text-[12px] text-text-primary truncate">{c.name}</span>
+                    <div key={c.id} className="rounded-lg bg-surface px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
+                          <span className="text-[12px] text-text-primary truncate">{c.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          {c.gasoline_diff != null && c.gasoline_diff !== 0 && (
+                            <span className={`text-[12px] font-bold ${c.gasoline_diff > 0 ? "text-coral" : "text-blue-600"}`}>
+                              휘 {c.gasoline_diff > 0 ? "▲" : "▼"}{Math.abs(c.gasoline_diff)}
+                            </span>
+                          )}
+                          {c.diesel_diff != null && c.diesel_diff !== 0 && (
+                            <span className={`text-[12px] font-bold ${c.diesel_diff > 0 ? "text-coral" : "text-blue-600"}`}>
+                              경 {c.diesel_diff > 0 ? "▲" : "▼"}{Math.abs(c.diesel_diff)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        {c.gasoline_diff != null && c.gasoline_diff !== 0 && (
-                          <span className={`text-[12px] font-bold ${c.gasoline_diff > 0 ? "text-coral" : "text-blue-600"}`}>
-                            휘 {c.gasoline_diff > 0 ? "▲" : "▼"}{Math.abs(c.gasoline_diff)}
-                          </span>
-                        )}
-                        {c.diesel_diff != null && c.diesel_diff !== 0 && (
-                          <span className={`text-[12px] font-bold ${c.diesel_diff > 0 ? "text-coral" : "text-blue-600"}`}>
-                            경 {c.diesel_diff > 0 ? "▲" : "▼"}{Math.abs(c.diesel_diff)}
-                          </span>
-                        )}
-                      </div>
+                      {/* 나와의 가격 차이 변화 */}
+                      {c.gap_vs_me != null && (
+                        <div className="text-[10px] text-text-secondary mt-1">
+                          현재 나보다 {c.gap_vs_me > 0 ? `+${c.gap_vs_me}원 비쌈` : c.gap_vs_me < 0 ? `${c.gap_vs_me}원 저렴` : "동일"}
+                          {c.gap_vs_me_yesterday != null && c.gap_vs_me !== c.gap_vs_me_yesterday && (
+                            <span className="text-text-tertiary">
+                              {" "}(어제 {c.gap_vs_me_yesterday > 0 ? `+${c.gap_vs_me_yesterday}` : c.gap_vs_me_yesterday}원)
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

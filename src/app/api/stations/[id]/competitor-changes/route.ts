@@ -65,14 +65,15 @@ export async function GET(
     return NextResponse.json({ changes: [], noChangeCount: 0 });
   }
 
-  // 경쟁사 ID 목록으로 최근 2일 price_history 조회
+  // 경쟁사+내 주유소 최근 2일 price_history 조회
   const competitorIds = competitors.map((c) => c.id);
+  const allIds = [id, ...competitorIds];
   const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
 
   const { data: history } = await supabase
     .from("price_history")
     .select("station_id, gasoline_price, diesel_price, collected_at")
-    .in("station_id", competitorIds)
+    .in("station_id", allIds)
     .gte("collected_at", twoDaysAgo)
     .order("collected_at", { ascending: false });
 
@@ -83,7 +84,7 @@ export async function GET(
     });
   }
 
-  // 각 경쟁사별 최근 2일 가격 추출
+  // 각 주유소별 최근 2일 가격 추출
   const stationHistory = new Map<
     string,
     { today: (typeof history)[0] | null; yesterday: (typeof history)[0] | null }
@@ -102,6 +103,11 @@ export async function GET(
     }
   }
 
+  // 내 주유소 오늘/어제 가격
+  const myH = stationHistory.get(id);
+  const myTodayGas = myH?.today?.gasoline_price ?? base.gasoline_price;
+  const myYdayGas = myH?.yesterday?.gasoline_price ?? base.gasoline_price;
+
   // 변동 감지
   const changes: Array<{
     id: string;
@@ -112,6 +118,8 @@ export async function GET(
     diesel_price: number | null;
     gasoline_diff: number | null;
     diesel_diff: number | null;
+    gap_vs_me: number | null;
+    gap_vs_me_yesterday: number | null;
   }> = [];
 
   let noChangeCount = 0;
@@ -132,6 +140,12 @@ export async function GET(
         ? h.today.diesel_price - h.yesterday.diesel_price
         : null;
 
+    // 나와의 가격 차이 (오늘 vs 어제)
+    const gapToday = (h.today.gasoline_price != null && myTodayGas != null)
+      ? h.today.gasoline_price - myTodayGas : null;
+    const gapYday = (h.yesterday.gasoline_price != null && myYdayGas != null)
+      ? h.yesterday.gasoline_price - myYdayGas : null;
+
     if ((gDiff != null && gDiff !== 0) || (dDiff != null && dDiff !== 0)) {
       changes.push({
         id: comp.id,
@@ -142,6 +156,8 @@ export async function GET(
         diesel_price: h.today.diesel_price,
         gasoline_diff: gDiff,
         diesel_diff: dDiff,
+        gap_vs_me: gapToday,
+        gap_vs_me_yesterday: gapYday,
       });
     } else {
       noChangeCount++;

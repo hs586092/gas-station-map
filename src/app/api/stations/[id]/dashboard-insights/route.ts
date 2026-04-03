@@ -187,7 +187,7 @@ export async function GET(
     }
   }
 
-  // ── 6. 가장 먼저/늦게 반영한 경쟁사 (최근 18일 기준) ──
+  // ── 6. 7일 + 18일 가격 변동 이력 분석 ──
   const eighteenDaysAgo = new Date(Date.now() - 18 * 86400000).toISOString();
   const { data: fullHistory } = await supabase
     .from("price_history")
@@ -198,6 +198,12 @@ export async function GET(
     .order("collected_at", { ascending: true });
 
   const compChangeMap = new Map<string, { firstChangeDate: string | null; changeCount: number }>();
+  // 7일 추세용 데이터
+  const sevenDaysAgoStr = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  let weekRisingCount = 0;
+  let weekFallingCount = 0;
+  let weekStableCount = 0;
+
   if (fullHistory) {
     const byStation = new Map<string, Array<{ price: number; date: string }>>();
     for (const r of fullHistory) {
@@ -207,14 +213,42 @@ export async function GET(
     for (const [sid, rows] of byStation) {
       let firstChange: string | null = null;
       let count = 0;
+      // 7일 내 변동 집계
+      let weekUp = 0, weekDown = 0;
       for (let i = 1; i < rows.length; i++) {
         if (rows[i].price !== rows[i - 1].price) {
           count++;
           if (!firstChange) firstChange = rows[i].date;
+          if (rows[i].date >= sevenDaysAgoStr) {
+            if (rows[i].price > rows[i - 1].price) weekUp++;
+            else weekDown++;
+          }
         }
       }
       compChangeMap.set(sid, { firstChangeDate: firstChange, changeCount: count });
+      if (weekUp > weekDown) weekRisingCount++;
+      else if (weekDown > weekUp) weekFallingCount++;
+      else if (weekUp === 0 && weekDown === 0) weekStableCount++;
+      else weekStableCount++; // equal up/down = net stable
     }
+  }
+
+  // 7일 추세 메시지
+  let weeklyTrendMessage = "";
+  let weeklyTrendAction: "rising" | "falling" | "mixed" | "stable" = "stable";
+  const weekChanged = weekRisingCount + weekFallingCount;
+  if (weekChanged === 0) {
+    weeklyTrendAction = "stable";
+    weeklyTrendMessage = "이번 주 경쟁사 가격 변동 없음. 시장 안정.";
+  } else if (weekRisingCount > 0 && weekFallingCount === 0) {
+    weeklyTrendAction = "rising";
+    weeklyTrendMessage = `이번 주 경쟁사 ${weekRisingCount}곳 인상 (인하 0건) → 시장 전체 인상 흐름`;
+  } else if (weekFallingCount > 0 && weekRisingCount === 0) {
+    weeklyTrendAction = "falling";
+    weeklyTrendMessage = `이번 주 경쟁사 ${weekFallingCount}곳 인하 (인상 0건) → 인하 압력`;
+  } else {
+    weeklyTrendAction = "mixed";
+    weeklyTrendMessage = `이번 주 인상 ${weekRisingCount}곳, 인하 ${weekFallingCount}곳 — 방향성 탐색 중`;
   }
 
   // 가장 많이 변경한 경쟁사 = "빠르게 반응하는 경쟁사"
@@ -324,45 +358,82 @@ export async function GET(
     else if (diff >= 20) myPosition = "expensive";
   }
 
-  // ── 10. 종합 추천 생성 ──
+  // ── 10. 종합 추천 생성 (구체적 금액 포함) ──
   let recommendation = "";
   let recommendationType: "hold" | "raise" | "lower" | "watch" = "hold";
+  let suggestedRange: { min: number; max: number } | null = null;
+
+  // 금액 범위 계산 보조
+  const priceDiffFromAvg = (base.gasoline_price && avgGas) ? base.gasoline_price - avgGas : 0;
+  const absAvgDiff = Math.abs(priceDiffFromAvg);
 
   if (oilDirection === "up" && competitorAction === "rising" && reflectionStatus === "not_reflected") {
-    recommendation = "유가 상승 + 경쟁사 인상 추세입니다. 인상 검토 시점입니다.";
+    const lo = Math.max(10, Math.round(absAvgDiff * 0.5));
+    const hi = Math.max(lo + 10, Math.round(absAvgDiff * 0.8));
+    suggestedRange = { min: lo, max: hi };
+    recommendation = `유가 상승 + 경쟁사 ${risingCount}곳 인상. ${lo}~${hi}원 인상 검토 시점입니다 (경쟁사 평균 ${avgGas?.toLocaleString()}원).`;
     recommendationType = "raise";
   } else if (oilDirection === "up" && competitorAction === "rising" && reflectionStatus === "reflected") {
-    recommendation = "이미 유가 상승분을 반영했습니다. 현 가격 유지가 적절합니다.";
+    recommendation = `이미 유가 상승분 +${myPriceChange}원 반영 완료. 현 가격 유지가 적절합니다.`;
     recommendationType = "hold";
-  } else if (oilDirection === "up" && competitorAction === "stable" && myPosition === "cheap") {
-    recommendation = "유가 상승 중이나 경쟁사는 관망 중. 가격 유지로 경쟁력 확보 중입니다.";
+  } else if (oilDirection === "up" && (competitorAction === "mixed" || competitorAction === "stable") && myPosition === "cheap") {
+    suggestedRange = { min: 10, max: Math.min(absAvgDiff, 30) };
+    recommendation = `유가 상승 중, 평균보다 ${absAvgDiff}원 저렴. 10~${Math.min(absAvgDiff, 30)}원 소폭 인상 여지 있음.`;
     recommendationType = "watch";
   } else if (oilDirection === "up" && competitorAction === "stable") {
-    recommendation = "유가 상승 중, 경쟁사 아직 미반영. 시장 동향 주시 후 대응 권장합니다.";
+    recommendation = `유가 상승 중이나 경쟁사 관망. 이번 주 추세(인상 ${weekRisingCount}건)를 감안하면 시장 동향 주시 권장.`;
     recommendationType = "watch";
   } else if (oilDirection === "down" && competitorAction === "falling" && reflectionStatus === "not_reflected") {
-    recommendation = "유가 하락 + 경쟁사 인하 시작. 선제 인하로 고객 확보 기회입니다.";
+    const lo = 10;
+    const hi = Math.max(20, Math.round(absAvgDiff * 0.5));
+    suggestedRange = { min: lo, max: hi };
+    recommendation = `유가 하락 + 경쟁사 ${fallingCount}곳 인하 시작. ${lo}~${hi}원 선제 인하로 고객 확보 기회.`;
     recommendationType = "lower";
   } else if (oilDirection === "down" && competitorAction === "falling" && reflectionStatus === "reflected") {
-    recommendation = "유가 하락분 이미 반영. 현 가격 유지가 적절합니다.";
+    recommendation = `유가 하락분 이미 반영. 현 가격 유지가 적절합니다.`;
     recommendationType = "hold";
   } else if (oilDirection === "down" && competitorAction === "stable" && myPosition === "expensive") {
-    recommendation = "유가 하락 중, 가격이 높은 편입니다. 인하 검토를 권장합니다.";
+    suggestedRange = { min: 10, max: Math.min(absAvgDiff, 40) };
+    recommendation = `유가 하락 중, 평균보다 ${absAvgDiff}원 비쌈. ${suggestedRange.min}~${suggestedRange.max}원 인하 검토 권장.`;
     recommendationType = "lower";
   } else if (oilDirection === "down" && competitorAction === "stable" && myPosition === "cheap") {
-    recommendation = "유가 하락 중이나 이미 저렴한 편. 현 가격 유지가 적절합니다.";
+    recommendation = `유가 하락 중이나 이미 저렴한 편. 현 가격 유지가 적절합니다.`;
     recommendationType = "hold";
-  } else if (oilDirection === "flat" && competitorAction === "rising" && myPosition === "cheap") {
-    recommendation = "유가 보합 중 경쟁사 인상. 소폭 인상 여지가 있습니다.";
-    recommendationType = "raise";
+  } else if (oilDirection === "flat" && competitorAction === "rising") {
+    if (myPosition === "cheap" || myPosition === "average") {
+      suggestedRange = { min: 10, max: Math.min(30, absAvgDiff + 20) };
+      recommendation = `유가 보합이나 경쟁사 ${risingCount}곳 인상. ${suggestedRange.min}~${suggestedRange.max}원 인상 여지 (평균 ${avgGas?.toLocaleString()}원).`;
+      recommendationType = "raise";
+    } else {
+      recommendation = `유가 보합, 경쟁사 인상 중. 이미 평균 이상이므로 현 가격 유지 적절.`;
+      recommendationType = "hold";
+    }
   } else if (oilDirection === "flat" && competitorAction === "stable") {
-    recommendation = "유가 보합, 경쟁사 안정. 현 상태 유지를 권장합니다.";
+    recommendation = `유가 보합, 경쟁사 안정. 현 상태 유지 권장.`;
     recommendationType = "hold";
   } else if (competitorAction === "mixed") {
-    recommendation = "경쟁사 가격이 혼조세입니다. 시장 동향을 1~2일 더 관찰 후 대응 권장합니다.";
-    recommendationType = "watch";
+    // 혼조세이지만 7일 추세로 방향성 판단
+    if (weeklyTrendAction === "rising" && risingCount > fallingCount) {
+      if (myPosition === "cheap" || myPosition === "average") {
+        suggestedRange = { min: 10, max: Math.min(30, absAvgDiff + 20) };
+        recommendation = `오늘 혼조세이나 이번 주 ${weekRisingCount}곳 인상 → 시장 인상 흐름. ${suggestedRange.min}~${suggestedRange.max}원 인상 검토 가능 (평균 ${avgGas?.toLocaleString()}원).`;
+        recommendationType = "raise";
+      } else {
+        recommendation = `오늘 혼조세이나 이번 주 인상 흐름. 이미 평균 이상이므로 현 가격 유지 적절.`;
+        recommendationType = "hold";
+      }
+    } else if (weeklyTrendAction === "falling" && fallingCount > risingCount) {
+      suggestedRange = { min: 10, max: 20 };
+      recommendation = `오늘 혼조세이나 이번 주 ${weekFallingCount}곳 인하 → 인하 추세. ${suggestedRange.min}~${suggestedRange.max}원 인하 검토 가능.`;
+      recommendationType = "lower";
+    } else {
+      const majorDir = risingCount > fallingCount ? "인상" : "인하";
+      const majorCount = Math.max(risingCount, fallingCount);
+      recommendation = `경쟁사 혼조세(인상 ${risingCount}, 인하 ${fallingCount}). ${majorDir} ${majorCount}곳이 우세 — 1~2일 추이 확인 후 대응 권장.`;
+      recommendationType = "watch";
+    }
   } else {
-    recommendation = "현 가격 유지를 권장합니다. 시장 상황에 큰 변화가 없습니다.";
+    recommendation = `시장 큰 변화 없음. 현 가격 유지 권장.`;
     recommendationType = "hold";
   }
 
@@ -389,24 +460,41 @@ export async function GET(
     oilStory = "최근 2주 유가 변동 적음. 소매가 큰 변동 없을 전망.";
   }
 
-  // ── 12. 적정가 인사이트 메시지 ──
+  // ── 12. 적정가 인사이트 (경쟁사 동향 교차 분석) ──
   let benchmarkInsight = "";
   if (avgGas && base.gasoline_price) {
     const diff = base.gasoline_price - avgGas;
+    const absDiff = Math.abs(diff);
+
     if (diff <= -20) {
-      if (competitorAction === "rising") {
-        benchmarkInsight = `평균보다 ${Math.abs(diff)}원 저렴. 경쟁사 인상 추세를 감안하면 ${Math.min(Math.abs(diff), 30)}~${Math.min(Math.abs(diff) + 10, 50)}원 인상 여지 있음.`;
+      // 저렴한 편
+      if (competitorAction === "rising" || weeklyTrendAction === "rising") {
+        benchmarkInsight = `평균보다 ${absDiff}원 저렴한데, 경쟁사가 인상 중이므로 현재 가격이 상대적으로 더 저렴해지는 중. ${Math.min(absDiff, 30)}~${Math.min(absDiff + 10, 50)}원 인상 여지.`;
+      } else if (competitorAction === "falling") {
+        benchmarkInsight = `평균보다 ${absDiff}원 저렴. 경쟁사도 인하 중이라 가격 우위가 줄어들 수 있음. 현 가격 유지로 차별화 권장.`;
       } else {
-        benchmarkInsight = `평균보다 ${Math.abs(diff)}원 저렴. 현 가격으로 경쟁력 유지 중.`;
+        benchmarkInsight = `평균보다 ${absDiff}원 저렴. 가격 경쟁력 확보 중.`;
       }
     } else if (diff >= 20) {
-      if (competitorAction === "falling") {
-        benchmarkInsight = `평균보다 ${diff}원 비싼 편. 경쟁사 인하 추세를 감안하면 인하 검토 필요.`;
+      // 비싼 편
+      if (competitorAction === "rising") {
+        benchmarkInsight = `평균보다 ${diff}원 비싸지만, 경쟁사도 인상 중이라 격차 줄어드는 중. 현 가격 유지 가능.`;
+      } else if (competitorAction === "falling" || weeklyTrendAction === "falling") {
+        benchmarkInsight = `평균보다 ${diff}원 비싼데, 경쟁사 인하 추세로 격차 더 벌어지는 중. ${Math.min(diff, 30)}~${Math.min(diff + 10, 50)}원 인하 검토 필요.`;
       } else {
-        benchmarkInsight = `평균보다 ${diff}원 비싼 편. 서비스 차별화로 가격 프리미엄 유지 가능.`;
+        benchmarkInsight = `평균보다 ${diff}원 비싼 편. 시장 안정기이므로 서비스 차별화로 프리미엄 유지 가능.`;
       }
     } else {
-      benchmarkInsight = `평균 수준 가격 유지 중. 안정적인 포지션.`;
+      // 평균 수준
+      if (competitorAction === "rising" || weeklyTrendAction === "rising") {
+        const weekNote = weeklyTrendAction === "rising" ? ` (이번 주 ${weekRisingCount}곳 인상)` : "";
+        benchmarkInsight = `평균 수준이지만, 경쟁사 인상으로 현재 가격이 상대적으로 저렴해지는 중${weekNote}. 소폭 인상 여지 있음.`;
+      } else if (competitorAction === "falling" || weeklyTrendAction === "falling") {
+        const weekNote = weeklyTrendAction === "falling" ? ` (이번 주 ${weekFallingCount}곳 인하)` : "";
+        benchmarkInsight = `평균 수준이지만, 경쟁사 인하로 현재 가격이 상대적으로 비싸지는 중${weekNote}. 인하 압력 감안 필요.`;
+      } else {
+        benchmarkInsight = `평균 수준 유지 중. 시장 안정기 — 가격 포지션 양호.`;
+      }
     }
   }
 
@@ -443,15 +531,25 @@ export async function GET(
         message: oilWeekMessage,
         brentWeekChange,
       },
+      // 7일 추세
+      weeklyTrend: {
+        action: weeklyTrendAction,
+        message: weeklyTrendMessage,
+        risingCount: weekRisingCount,
+        fallingCount: weekFallingCount,
+        stableCount: weekStableCount,
+      },
       // 유가→경쟁사→내 가격 스토리
       oilStory,
       // 적정가 인사이트
       benchmarkInsight,
       myPosition,
+      avgPrice: avgGas,
       // 종합 추천
       recommendation: {
         message: recommendation,
         type: recommendationType,
+        suggestedRange,
       },
     },
     { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" } }
