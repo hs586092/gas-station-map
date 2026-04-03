@@ -199,7 +199,7 @@ export default function DashboardPage() {
   const twoWeeksDate = oilPrices?.prices?.[twoWeeksFromNowIdx]?.date?.slice(5) || "";
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
       {/* 헤더 */}
       <header className="bg-navy text-white h-14 flex items-center px-5 sticky top-0 z-50">
         <Link href="/" className="flex items-center gap-2 no-underline">
