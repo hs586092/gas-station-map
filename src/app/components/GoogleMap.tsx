@@ -680,7 +680,7 @@ function MapContent() {
                 <div className="bg-surface rounded-[10px] p-3 mb-3">
                   {stationDetail.prices.map((p) => (
                     <div key={p.product} className="flex justify-between items-center py-1.5 first:pt-0 last:pb-0">
-                      <span className="text-[12px] text-text-secondary">{PROD_LABELS[p.product] || p.product}</span>
+                      <span className="text-[12px] font-medium text-gray-800">{PROD_LABELS[p.product] || p.product}</span>
                       <span className="text-[15px] font-bold text-text-primary">
                         {p.price.toLocaleString()}
                         <span className="text-[11px] font-normal text-text-tertiary ml-0.5">원</span>
@@ -713,7 +713,7 @@ function MapContent() {
                       </span>
                     </div>
                     {stationDetail.oilReflection.priceChange !== null && (
-                      <div className="text-[10px] text-gray-600 mt-1 ml-[18px]">
+                      <div className="text-[10px] font-medium text-gray-800 mt-1 ml-[18px]">
                         소매가 2주간 {stationDetail.oilReflection.priceChange >= 0 ? "+" : ""}{stationDetail.oilReflection.priceChange}원
                       </div>
                     )}
@@ -748,10 +748,10 @@ function MapContent() {
                       <div className="flex items-baseline gap-1.5 mb-1">
                         <span className="text-[20px] font-extrabold text-gray-900">{fs}</span>
                         <span className="text-[12px] font-semibold text-gray-700">급속 충전소</span>
-                        <span className="text-[11px] font-medium text-gray-600">(충전기 {stationDetail.evNearby!.fast}대)</span>
+                        <span className="text-[11px] font-semibold text-gray-700">(충전기 {stationDetail.evNearby!.fast}대)</span>
                       </div>
                       {/* 완속 부가정보 */}
-                      <div className="text-[11px] text-gray-600">
+                      <div className="text-[11px] font-medium text-gray-700">
                         완속 {stationDetail.evNearby!.stations - fs}개소 (아파트·주거용)
                       </div>
                     </div>
