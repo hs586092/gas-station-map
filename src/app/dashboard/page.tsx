@@ -101,6 +101,16 @@ interface Insights {
   benchmarkInsight: string;
   myPosition: "cheap" | "average" | "expensive";
   avgPrice: number | null;
+  competitorProfiles: Array<{
+    id: string; name: string; brand: string; distance_km: number;
+    type: "leader" | "follower" | "steady" | "unknown";
+    typeLabel: string; changeCount: number; avgChangeSize: number;
+    currentPrice: number | null;
+  }>;
+  correlationInsights: Array<{
+    id: string; name: string; brand: string;
+    correlation: number; label: string; insight: string;
+  }>;
   recommendation: { message: string; type: "hold" | "raise" | "lower" | "watch"; suggestedRange: { min: number; max: number } | null };
 }
 
@@ -554,6 +564,124 @@ export default function DashboardPage() {
                   <div className="text-[11px] text-text-secondary mt-1">
                     완속 {detail.evNearby.stations - fs}개소 · 반경 3km
                   </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ⑧ 경쟁사 프로파일링 */}
+          {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
+            <div className="md:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <div className="text-[12px] font-semibold text-text-secondary mb-3">경쟁사 프로파일</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {insights.competitorProfiles.slice(0, 6).map((p) => {
+                  const typeColors = {
+                    leader: { bg: "bg-red-50", text: "text-red-700", badge: "bg-red-100 text-red-700" },
+                    follower: { bg: "bg-amber-50", text: "text-amber-700", badge: "bg-amber-100 text-amber-700" },
+                    steady: { bg: "bg-slate-50", text: "text-slate-600", badge: "bg-slate-100 text-slate-600" },
+                    unknown: { bg: "bg-gray-50", text: "text-gray-500", badge: "bg-gray-100 text-gray-500" },
+                  };
+                  const tc = typeColors[p.type];
+                  return (
+                    <div key={p.id} className={`rounded-lg px-3 py-2.5 ${tc.bg}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[p.brand] || "#9BA8B7" }} />
+                          <span className="text-[12px] font-medium text-text-primary truncate">{p.name}</span>
+                        </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tc.badge}`}>
+                          {p.type === "leader" ? "선제형" : p.type === "follower" ? "추종형" : "안정형"}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-text-secondary">
+                        {p.changeCount}회 변경 · 평균 {p.avgChangeSize}원폭
+                        {p.currentPrice && <span className="ml-1">· 현재 {p.currentPrice.toLocaleString()}원</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 text-[10px] text-text-tertiary">
+                * 최근 18일 가격 변경 빈도 기반 분류 (5회 이상: 선제형, 3~4회: 추종형, 2회 이하: 안정형)
+              </div>
+            </div>
+          )}
+
+          {/* ⑨ 가격 연동성 인사이트 */}
+          {!loading.insights && insights && insights.correlationInsights.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <div className="text-[12px] font-semibold text-text-secondary mb-3">가격 연동성</div>
+              <div className="space-y-2.5">
+                {insights.correlationInsights.slice(0, 4).map((c) => {
+                  const absCorr = Math.abs(c.correlation);
+                  const barColor = c.correlation >= 0.7 ? "bg-emerald-500"
+                    : c.correlation >= 0.3 ? "bg-amber-400"
+                    : c.correlation >= -0.3 ? "bg-gray-300"
+                    : "bg-red-400";
+                  return (
+                    <div key={c.id}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
+                          <span className="text-[11px] text-text-primary truncate">{c.name}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-text-primary shrink-0 ml-2">{c.correlation.toFixed(2)}</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-1">
+                        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(absCorr * 100, 8)}%` }} />
+                      </div>
+                      <div className="text-[10px] text-text-secondary">{c.label} — {c.insight}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 text-[10px] text-text-tertiary">
+                * 18일간 일별 가격 변동 방향의 상관계수 (1.0 = 완전 동조, -1.0 = 완전 역방향)
+              </div>
+            </div>
+          )}
+
+          {/* ⑩ 가격 시뮬레이터 */}
+          {!loading.competitors && competitors && competitors.competitors.length > 0 && (() => {
+            const myGas = competitors.baseStation.gasoline_price;
+            if (!myGas) return null;
+            const allPrices = [myGas, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
+            const currentRank = allPrices.indexOf(myGas) + 1;
+
+            const simulations = [10, 20, 30, -10, -20].map((delta) => {
+              const simPrice = myGas + delta;
+              const simPrices = [simPrice, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
+              const simRank = simPrices.indexOf(simPrice) + 1;
+              return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank };
+            });
+
+            return (
+              <div className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-border">
+                <div className="text-[12px] font-semibold text-text-secondary mb-1">가격 시뮬레이터</div>
+                <div className="text-[10px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위 변화 예측</div>
+                <div className="grid grid-cols-5 gap-2">
+                  {simulations.map(({ delta, simPrice, simRank, total, rankChange }) => {
+                    const isUp = delta > 0;
+                    return (
+                      <div key={delta} className={`rounded-xl p-3 text-center ${isUp ? "bg-red-50" : "bg-blue-50"}`}>
+                        <div className={`text-[12px] font-bold ${isUp ? "text-coral" : "text-blue-600"}`}>
+                          {delta > 0 ? "+" : ""}{delta}원
+                        </div>
+                        <div className="text-[14px] font-extrabold text-text-primary mt-1">{simPrice.toLocaleString()}</div>
+                        <div className="text-[11px] text-text-secondary mt-1">
+                          {total}개 중 <span className="font-bold">{simRank}위</span>
+                        </div>
+                        {rankChange !== 0 && (
+                          <div className={`text-[10px] font-medium mt-0.5 ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
+                            {rankChange > 0 ? `▼${rankChange}단계` : `▲${Math.abs(rankChange)}단계`}
+                          </div>
+                        )}
+                        {rankChange === 0 && (
+                          <div className="text-[10px] text-text-tertiary mt-0.5">변동 없음</div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

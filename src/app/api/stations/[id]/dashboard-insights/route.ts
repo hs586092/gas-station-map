@@ -498,6 +498,167 @@ export async function GET(
     }
   }
 
+  // ── 13. 경쟁사 프로파일링 (18일 price_history 기반) ──
+  type CompProfile = {
+    id: string; name: string; brand: string; distance_km: number;
+    type: "leader" | "follower" | "steady" | "unknown";
+    typeLabel: string;
+    changeCount: number;
+    avgChangeSize: number;
+    currentPrice: number | null;
+  };
+
+  const competitorProfiles: CompProfile[] = [];
+  if (fullHistory) {
+    const byStation = new Map<string, Array<{ price: number; date: string }>>();
+    for (const r of fullHistory) {
+      if (!byStation.has(r.station_id)) byStation.set(r.station_id, []);
+      const arr = byStation.get(r.station_id)!;
+      if (arr.length === 0 || arr[arr.length - 1].date !== r.collected_at.slice(0, 10)) {
+        arr.push({ price: r.gasoline_price!, date: r.collected_at.slice(0, 10) });
+      }
+    }
+
+    for (const comp of competitors) {
+      const rows = byStation.get(comp.id);
+      if (!rows || rows.length < 3) {
+        competitorProfiles.push({
+          id: comp.id, name: comp.name, brand: comp.brand, distance_km: comp.distance_km,
+          type: "unknown", typeLabel: "데이터 부족", changeCount: 0, avgChangeSize: 0,
+          currentPrice: comp.gasoline_price,
+        });
+        continue;
+      }
+
+      let changes = 0;
+      let totalChangeSize = 0;
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i].price !== rows[i - 1].price) {
+          changes++;
+          totalChangeSize += Math.abs(rows[i].price - rows[i - 1].price);
+        }
+      }
+      const avgSize = changes > 0 ? Math.round(totalChangeSize / changes) : 0;
+
+      let type: CompProfile["type"] = "steady";
+      let typeLabel = "안정형 — 가격 변동 적음";
+      if (changes >= 5) {
+        type = "leader";
+        typeLabel = "선제 반응형 — 시장 변화에 빠르게 대응";
+      } else if (changes >= 3) {
+        type = "follower";
+        typeLabel = "추종형 — 주변 변화 후 따라감";
+      }
+
+      competitorProfiles.push({
+        id: comp.id, name: comp.name, brand: comp.brand, distance_km: comp.distance_km,
+        type, typeLabel, changeCount: changes, avgChangeSize: avgSize,
+        currentPrice: comp.gasoline_price,
+      });
+    }
+  }
+
+  // ── 14. 상관관계 기반 인사이트 (correlation API 로직 내장) ──
+  // 내 가격 히스토리 delta
+  const myFullHistory = fullHistory
+    ? fullHistory.filter((r) => false) // fullHistory는 경쟁사만이므로 별도 조회
+    : [];
+
+  const { data: myHistFull } = await supabase
+    .from("price_history")
+    .select("gasoline_price, collected_at")
+    .eq("station_id", id)
+    .gte("collected_at", eighteenDaysAgo)
+    .not("gasoline_price", "is", null)
+    .order("collected_at", { ascending: true });
+
+  type DayPrice = { date: string; price: number };
+  const myDailyPrices: DayPrice[] = [];
+  if (myHistFull) {
+    for (const r of myHistFull) {
+      const date = r.collected_at.slice(0, 10);
+      if (myDailyPrices.length === 0 || myDailyPrices[myDailyPrices.length - 1].date !== date) {
+        myDailyPrices.push({ date, price: r.gasoline_price! });
+      }
+    }
+  }
+
+  // delta 계산
+  const myDeltas = new Map<string, number>();
+  for (let i = 1; i < myDailyPrices.length; i++) {
+    myDeltas.set(myDailyPrices[i].date, myDailyPrices[i].price - myDailyPrices[i - 1].price);
+  }
+
+  // 경쟁사별 상관계수 (상위 5개만)
+  type CorrInsight = {
+    id: string; name: string; brand: string; correlation: number;
+    label: string; insight: string;
+  };
+  const correlationInsights: CorrInsight[] = [];
+
+  if (fullHistory && myDeltas.size >= 3) {
+    const byStation = new Map<string, DayPrice[]>();
+    for (const r of fullHistory) {
+      if (!byStation.has(r.station_id)) byStation.set(r.station_id, []);
+      const arr = byStation.get(r.station_id)!;
+      const date = r.collected_at.slice(0, 10);
+      if (arr.length === 0 || arr[arr.length - 1].date !== date) {
+        arr.push({ date, price: r.gasoline_price! });
+      }
+    }
+
+    for (const comp of competitors.slice(0, 15)) {
+      const compPrices = byStation.get(comp.id);
+      if (!compPrices || compPrices.length < 3) continue;
+
+      const compDeltas = new Map<string, number>();
+      for (let i = 1; i < compPrices.length; i++) {
+        compDeltas.set(compPrices[i].date, compPrices[i].price - compPrices[i - 1].price);
+      }
+
+      // 공통 날짜 delta
+      const commonDates: string[] = [];
+      for (const d of myDeltas.keys()) {
+        if (compDeltas.has(d)) commonDates.push(d);
+      }
+      if (commonDates.length < 3) continue;
+
+      const xs = commonDates.map((d) => myDeltas.get(d)!);
+      const ys = commonDates.map((d) => compDeltas.get(d)!);
+
+      // Pearson
+      const n = xs.length;
+      const sumX = xs.reduce((a, b) => a + b, 0);
+      const sumY = ys.reduce((a, b) => a + b, 0);
+      const sumXY = xs.reduce((a, b, i) => a + b * ys[i], 0);
+      const sumX2 = xs.reduce((a, b) => a + b * b, 0);
+      const sumY2 = ys.reduce((a, b) => a + b * b, 0);
+      const denom = Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2));
+      if (denom === 0) continue;
+      const r = Math.round(((n * sumXY - sumX * sumY) / denom) * 100) / 100;
+
+      let label = "";
+      let insight = "";
+      if (r >= 0.7) {
+        label = "높은 연동";
+        insight = "당신이 가격을 바꾸면 함께 움직이는 경향. 인상 시 따라올 가능성 높음.";
+      } else if (r >= 0.3) {
+        label = "보통 연동";
+        insight = "부분적으로 연동. 가격 변경 시 일부 반응할 수 있음.";
+      } else if (r >= -0.3) {
+        label = "독립적";
+        insight = "독자적 가격 정책. 당신의 가격 변경에 영향받지 않는 편.";
+      } else {
+        label = "역방향";
+        insight = "당신과 반대로 움직이는 경향. 당신이 올리면 내릴 수 있음.";
+      }
+
+      correlationInsights.push({ id: comp.id, name: comp.name, brand: comp.brand, correlation: r, label, insight });
+    }
+
+    correlationInsights.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
+  }
+
   return NextResponse.json(
     {
       // 순위 변동
@@ -545,6 +706,13 @@ export async function GET(
       benchmarkInsight,
       myPosition,
       avgPrice: avgGas,
+      // 경쟁사 프로파일링
+      competitorProfiles: competitorProfiles
+        .filter((p) => p.type !== "unknown")
+        .sort((a, b) => b.changeCount - a.changeCount)
+        .slice(0, 8),
+      // 상관관계 인사이트
+      correlationInsights: correlationInsights.slice(0, 5),
       // 종합 추천
       recommendation: {
         message: recommendation,
