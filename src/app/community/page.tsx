@@ -70,6 +70,7 @@ function PageHeader({ rightSlot }: { rightSlot: React.ReactNode }) {
           <span className="text-white text-[16px] font-bold tracking-tight hidden md:block">주유소맵</span>
         </Link>
         <nav className="flex items-center gap-0.5 ml-1">
+          <Link href="/dashboard" className="px-3 py-1.5 text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg no-underline transition-colors">대시보드</Link>
           <Link href="/" className="px-3 py-1.5 text-[13px] font-medium text-gray-400 hover:text-white hover:bg-white/10 rounded-lg no-underline transition-colors">지도</Link>
           <Link href="/community" className="px-3 py-1.5 text-[13px] font-medium text-white bg-white/15 rounded-lg no-underline">커뮤니티</Link>
         </nav>

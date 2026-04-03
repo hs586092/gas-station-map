@@ -109,6 +109,7 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
   const pathname = usePathname();
 
   const navItems = [
+    { href: "/dashboard", label: "대시보드" },
     { href: "/", label: "지도" },
     { href: "/community", label: "커뮤니티" },
     { href: "/population", label: "유동인구 분석" },
