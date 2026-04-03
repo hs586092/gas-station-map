@@ -571,11 +571,11 @@ function MapContent() {
                 <div className="flex gap-3 mb-1">
                   <span className="text-[12px] text-orange-600 font-medium">급속 {ev.fast_count}대</span>
                   {ev.slow_count > 0 && (
-                    <span className="text-[12px] text-gray-500">완속 {ev.slow_count}대</span>
+                    <span className="text-[12px] text-gray-600">완속 {ev.slow_count}대</span>
                   )}
                 </div>
                 {ev.operator && (
-                  <div className="text-[11px] text-gray-400">{ev.operator}</div>
+                  <div className="text-[11px] text-gray-600">{ev.operator}</div>
                 )}
               </div>
             </InfoWindow>
@@ -667,9 +667,9 @@ function MapContent() {
                             style={{ width: `${ratio * 100}%`, background: color }}
                           />
                         </div>
-                        <span className="text-[11px] font-semibold text-text-secondary shrink-0">
+                        <span className="text-[11px] font-bold text-text-primary shrink-0">
                           {selectedStation.roadSpeed!.toFixed(0)}
-                          <span className="text-[10px] font-normal text-text-tertiary">/{maxSpd}km/h</span>
+                          <span className="text-[10px] font-medium text-text-secondary">/{maxSpd}km/h</span>
                         </span>
                       </div>
                     </div>
@@ -713,7 +713,7 @@ function MapContent() {
                       </span>
                     </div>
                     {stationDetail.oilReflection.priceChange !== null && (
-                      <div className="text-[10px] text-gray-500 mt-1 ml-[18px]">
+                      <div className="text-[10px] text-gray-600 mt-1 ml-[18px]">
                         소매가 2주간 {stationDetail.oilReflection.priceChange >= 0 ? "+" : ""}{stationDetail.oilReflection.priceChange}원
                       </div>
                     )}
@@ -736,7 +736,7 @@ function MapContent() {
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={threat.color}>
                             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                           </svg>
-                          <span className="text-[11px] font-semibold text-gray-700">EV 충전 경쟁 환경</span>
+                          <span className="text-[11px] font-bold text-gray-800">EV 충전 경쟁 환경</span>
                         </div>
                         <span className={`text-[10px] font-bold ${threat.color}`}>{threat.label}</span>
                       </div>
@@ -746,12 +746,12 @@ function MapContent() {
                       </div>
                       {/* 급속 메인 */}
                       <div className="flex items-baseline gap-1.5 mb-1">
-                        <span className="text-[20px] font-bold text-gray-900">{fs}</span>
-                        <span className="text-[12px] font-medium text-gray-700">급속 충전소</span>
-                        <span className="text-[11px] text-gray-500">(충전기 {stationDetail.evNearby!.fast}대)</span>
+                        <span className="text-[20px] font-extrabold text-gray-900">{fs}</span>
+                        <span className="text-[12px] font-semibold text-gray-700">급속 충전소</span>
+                        <span className="text-[11px] font-medium text-gray-600">(충전기 {stationDetail.evNearby!.fast}대)</span>
                       </div>
                       {/* 완속 부가정보 */}
-                      <div className="text-[11px] text-gray-500">
+                      <div className="text-[11px] text-gray-600">
                         완속 {stationDetail.evNearby!.stations - fs}개소 (아파트·주거용)
                       </div>
                     </div>
@@ -759,7 +759,7 @@ function MapContent() {
                 })()}
 
                 {stationDetail.tel && (
-                  <p className="text-[11px] text-text-tertiary mb-3 m-0">{stationDetail.tel}</p>
+                  <p className="text-[11px] font-medium text-text-secondary mb-3 m-0">{stationDetail.tel}</p>
                 )}
 
                 {/* 버튼 */}
