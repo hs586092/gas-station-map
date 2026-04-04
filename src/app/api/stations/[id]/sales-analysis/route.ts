@@ -62,6 +62,9 @@ export async function GET(
 
   const days: DayData[] = [];
   for (const s of salesRaw) {
+    // 판매 데이터가 전부 null인 행(미래 날짜 등) 건너뛰기
+    if (s.gasoline_volume == null && s.diesel_volume == null) continue;
+
     const gVol = Number(s.gasoline_volume) || 0;
     const dVol = Number(s.diesel_volume) || 0;
     const gAmt = Number(s.gasoline_amount) || 0;
