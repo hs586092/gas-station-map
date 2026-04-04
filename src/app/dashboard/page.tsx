@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts";
 
 const STATION_ID = "A0003453";
@@ -187,6 +190,112 @@ function ClickableCard({ href, children, className = "" }: { href: string; child
   );
 }
 
+// ─── 순위 게이지 바 ───
+function RankGauge({ rank, total, label }: { rank: number; total: number; label: string }) {
+  const pct = total > 1 ? ((rank - 1) / (total - 1)) * 100 : 50;
+  const color = pct <= 33 ? "#10b981" : pct <= 66 ? "#f59e0b" : "#ef4444";
+  return (
+    <div className="mt-1">
+      <div className="flex items-center justify-between text-[11px] text-text-tertiary mb-0.5">
+        <span>1위 (저렴)</span>
+        <span>{total}위 (비쌈)</span>
+      </div>
+      <div className="relative h-2 rounded-full bg-gradient-to-r from-emerald-200 via-amber-200 to-red-200">
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-md"
+          style={{ left: `calc(${pct}% - 7px)`, background: color }}
+        />
+      </div>
+      <div className="text-center mt-1">
+        <span className="text-[12px] font-bold" style={{ color }}>{label} {rank}위</span>
+        <span className="text-[11px] text-text-tertiary">/{total}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── 가격 범위 바 (벤치마크용) ───
+function PriceRangeBar({ myPrice, avg, label, rank, count }: { myPrice: number; avg: number; label: string; rank: number; count: number }) {
+  const diff = myPrice - avg;
+  // 범위: avg ± 100원으로 설정
+  const rangeMin = avg - 100;
+  const rangeMax = avg + 100;
+  const myPct = Math.max(0, Math.min(100, ((myPrice - rangeMin) / (rangeMax - rangeMin)) * 100));
+  const avgPct = 50; // avg는 항상 중앙
+  const diffColor = diff <= -30 ? "#3b82f6" : diff >= 30 ? "#ef4444" : "#10b981";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[13px] text-text-secondary">{label}</span>
+        <span className="text-[12px] text-text-tertiary">{count}개 중 {rank}위</span>
+      </div>
+      <div className="relative h-3 rounded-full bg-gray-100">
+        {/* 평균선 */}
+        <div className="absolute top-0 bottom-0 w-0.5 bg-gray-400 z-10" style={{ left: `${avgPct}%` }} />
+        <div className="absolute -top-4 text-[9px] text-text-tertiary whitespace-nowrap" style={{ left: `${avgPct}%`, transform: "translateX(-50%)" }}>
+          평균
+        </div>
+        {/* 내 위치 마커 */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-md z-20"
+          style={{ left: `calc(${myPct}% - 8px)`, background: diffColor }}
+        />
+      </div>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[10px] text-text-tertiary">저렴</span>
+        <span className="text-[14px] font-bold" style={{ color: diffColor }}>
+          {diff > 0 ? "+" : ""}{diff}원
+        </span>
+        <span className="text-[10px] text-text-tertiary">비쌈</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── 3단계 프로그레스 (유가 반영) ───
+function OilReflectionProgress({ direction, brentChange, priceChange, competitorAction }: {
+  direction: "up" | "down" | "flat";
+  brentChange: number;
+  priceChange: number | null;
+  competitorAction: string;
+}) {
+  const isUp = direction === "up";
+  const isDown = direction === "down";
+  const step1Done = true; // 유가 변동은 항상 있음
+  const step2Done = competitorAction !== "stable"; // 경쟁사가 반응했는지
+  const step3Done = priceChange !== null && priceChange !== 0; // 내 가격이 변했는지
+
+  const steps = [
+    { label: "국제유가", sub: `${brentChange >= 0 ? "+" : ""}$${brentChange.toFixed(1)}`, done: step1Done },
+    { label: "경쟁사 반영", sub: step2Done ? (competitorAction === "rising" ? "인상 중" : "인하 중") : "대기", done: step2Done },
+    { label: "내 반영", sub: step3Done ? `${priceChange! >= 0 ? "+" : ""}${priceChange}원` : "미반영", done: step3Done },
+  ];
+
+  const activeColor = isUp ? "#ef4444" : isDown ? "#3b82f6" : "#64748b";
+
+  return (
+    <div className="flex items-start justify-between gap-1">
+      {steps.map((s, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center text-center">
+          <div className="flex items-center w-full">
+            {i > 0 && <div className="flex-1 h-0.5" style={{ background: steps[i - 1].done ? activeColor : "#e5e7eb" }} />}
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-[12px] font-bold"
+              style={{ background: s.done ? activeColor : "#d1d5db" }}
+            >
+              {s.done ? "✓" : i + 1}
+            </div>
+            {i < steps.length - 1 && <div className="flex-1 h-0.5" style={{ background: s.done ? activeColor : "#e5e7eb" }} />}
+          </div>
+          <div className="text-[11px] font-semibold text-text-primary mt-1">{s.label}</div>
+          <div className="text-[10px] text-text-tertiary">{s.sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── 메인 ───
 export default function DashboardPage() {
   const router = useRouter();
@@ -327,9 +436,16 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : insights && (
-          <div className={`mb-5 rounded-2xl p-5 border-2 ${recColor[insights.recommendation.type]} shadow-sm`}>
+          <div className={`mb-5 rounded-2xl p-5 pl-7 border-2 ${recColor[insights.recommendation.type]} shadow-sm relative overflow-hidden`}>
+            {/* 왼쪽 상태 색상 바 */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+              insights.recommendation.type === "hold" ? "bg-emerald-500"
+              : insights.recommendation.type === "raise" ? "bg-red-500"
+              : insights.recommendation.type === "lower" ? "bg-blue-500"
+              : "bg-amber-500"
+            }`} />
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-[20px]">{recIcon[insights.recommendation.type]}</span>
+              <span className="text-[24px]">{recIcon[insights.recommendation.type]}</span>
               <span className="text-[14px] font-bold text-text-primary">오늘의 경영 브리핑</span>
               {aiBriefing?.aiBriefing && !aiBriefing.fallback && (
                 <span className="text-[12px] font-bold bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">AI 분석</span>
@@ -415,52 +531,57 @@ export default function DashboardPage() {
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
               </div>
               <div className="space-y-3">
-                {competitors.baseStation.gasoline_price && (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[12px] text-text-secondary">휘발유</span>
-                      <div className="text-[22px] font-extrabold text-text-primary">
-                        {competitors.baseStation.gasoline_price.toLocaleString()}
-                        <span className="text-[14px] font-normal text-text-secondary ml-0.5">원</span>
+                {competitors.baseStation.gasoline_price && competitors.stats.my_gasoline_rank && (
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[12px] text-text-secondary">휘발유</span>
+                        <div className="text-[22px] font-extrabold text-text-primary">
+                          {competitors.baseStation.gasoline_price.toLocaleString()}
+                          <span className="text-[14px] font-normal text-text-secondary ml-0.5">원</span>
+                        </div>
                       </div>
+                      {insights && insights.rankChange.gasoline.diff != null && insights.rankChange.gasoline.diff !== 0 && (
+                        <div className={`text-[20px] font-extrabold ${insights.rankChange.gasoline.diff < 0 ? "text-emerald-500" : "text-red-500"}`}>
+                          {insights.rankChange.gasoline.diff < 0 ? "▲" : "▼"}{Math.abs(insights.rankChange.gasoline.diff)}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center px-2.5 py-1 bg-emerald-light text-emerald text-[14px] font-bold rounded-full">
-                        {competitors.stats.total_count}개 중 {competitors.stats.my_gasoline_rank}위
-                      </span>
-                    </div>
+                    <RankGauge rank={competitors.stats.my_gasoline_rank} total={competitors.stats.total_count} label="휘발유" />
                   </div>
                 )}
-                {competitors.baseStation.diesel_price && (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[12px] text-text-secondary">경유</span>
-                      <div className="text-[22px] font-extrabold text-text-primary">
-                        {competitors.baseStation.diesel_price.toLocaleString()}
-                        <span className="text-[14px] font-normal text-text-secondary ml-0.5">원</span>
+                {competitors.baseStation.diesel_price && competitors.stats.my_diesel_rank && (
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[12px] text-text-secondary">경유</span>
+                        <div className="text-[22px] font-extrabold text-text-primary">
+                          {competitors.baseStation.diesel_price.toLocaleString()}
+                          <span className="text-[14px] font-normal text-text-secondary ml-0.5">원</span>
+                        </div>
                       </div>
+                      {insights && insights.rankChange.diesel.diff != null && insights.rankChange.diesel.diff !== 0 && (
+                        <div className={`text-[20px] font-extrabold ${insights.rankChange.diesel.diff < 0 ? "text-emerald-500" : "text-red-500"}`}>
+                          {insights.rankChange.diesel.diff < 0 ? "▲" : "▼"}{Math.abs(insights.rankChange.diesel.diff)}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center px-2.5 py-1 bg-emerald-light text-emerald text-[14px] font-bold rounded-full">
-                        {competitors.stats.total_count}개 중 {competitors.stats.my_diesel_rank}위
-                      </span>
-                    </div>
+                    <RankGauge rank={competitors.stats.my_diesel_rank} total={competitors.stats.total_count} label="경유" />
                   </div>
                 )}
               </div>
               {/* 순위 변동 인사이트 */}
-              {insights && insights.rankChange.gasoline.diff !== null && insights.rankChange.gasoline.diff !== 0 && (
-                <InsightBadge color={insights.rankChange.gasoline.diff < 0 ? "emerald" : "red"}>
-                  어제 {insights.rankChange.gasoline.yesterday?.rank}위 → 오늘 {insights.rankChange.gasoline.today?.rank}위
-                  {insights.rankChange.gasoline.diff < 0 ? " 📈 상승" : " 📉 하락"}
-                  {insights.rankChange.reason && <><br />{insights.rankChange.reason}</>}
+              {insights && insights.rankChange.reason && (
+                <InsightBadge color={
+                  insights.rankChange.gasoline.diff != null && insights.rankChange.gasoline.diff < 0 ? "emerald"
+                  : insights.rankChange.gasoline.diff != null && insights.rankChange.gasoline.diff > 0 ? "red"
+                  : "slate"
+                }>
+                  {insights.rankChange.gasoline.diff != null && insights.rankChange.gasoline.diff !== 0
+                    ? `어제 ${insights.rankChange.gasoline.yesterday?.rank}위 → 오늘 ${insights.rankChange.gasoline.today?.rank}위 · `
+                    : ""}
+                  {insights.rankChange.reason || `반경 5km 평균: 휘발유 ${competitors.stats.avg_gasoline?.toLocaleString()}원`}
                 </InsightBadge>
-              )}
-              {insights && (insights.rankChange.gasoline.diff === null || insights.rankChange.gasoline.diff === 0) && (
-                <div className="mt-3 pt-3 border-t border-border text-[14px] text-text-secondary">
-                  반경 5km 평균: 휘발유 {competitors.stats.avg_gasoline?.toLocaleString()}원
-                  {competitors.stats.avg_diesel && ` · 경유 ${competitors.stats.avg_diesel.toLocaleString()}원`}
-                </div>
               )}
             </ClickableCard>
           )}
@@ -479,43 +600,71 @@ export default function DashboardPage() {
                 <div className="text-[14px] text-text-tertiary py-4 text-center">
                   오늘 경쟁사 가격 변동 없음
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-[220px] overflow-y-auto">
-                  {changes.changes.map((c) => (
-                    <div key={c.id} className="rounded-lg bg-surface px-3 py-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
-                          <span className="text-[12px] text-text-primary truncate">{c.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 ml-2">
-                          {c.gasoline_diff != null && c.gasoline_diff !== 0 && (
-                            <span className={`text-[12px] font-bold ${c.gasoline_diff > 0 ? "text-coral" : "text-blue-600"}`}>
-                              휘 {c.gasoline_diff > 0 ? "▲" : "▼"}{Math.abs(c.gasoline_diff)}
-                            </span>
+              ) : (() => {
+                const rising = changes.changes.filter(c => (c.gasoline_diff ?? 0) > 0).length;
+                const falling = changes.changes.filter(c => (c.gasoline_diff ?? 0) < 0).length;
+                const total = changes.changes.length;
+                const maxDiff = Math.max(...changes.changes.map(c => Math.abs(c.gasoline_diff ?? 0)), 1);
+                return (
+                  <>
+                    {/* 인상/인하 비율 바 */}
+                    {(rising > 0 || falling > 0) && (
+                      <div className="mb-3">
+                        <div className="flex rounded-full overflow-hidden h-5">
+                          {rising > 0 && (
+                            <div className="bg-red-400 flex items-center justify-center text-white text-[11px] font-bold" style={{ width: `${(rising / total) * 100}%` }}>
+                              인상 {rising}
+                            </div>
                           )}
-                          {c.diesel_diff != null && c.diesel_diff !== 0 && (
-                            <span className={`text-[12px] font-bold ${c.diesel_diff > 0 ? "text-coral" : "text-blue-600"}`}>
-                              경 {c.diesel_diff > 0 ? "▲" : "▼"}{Math.abs(c.diesel_diff)}
-                            </span>
+                          {falling > 0 && (
+                            <div className="bg-blue-400 flex items-center justify-center text-white text-[11px] font-bold" style={{ width: `${(falling / total) * 100}%` }}>
+                              인하 {falling}
+                            </div>
+                          )}
+                          {total - rising - falling > 0 && (
+                            <div className="bg-gray-200 flex items-center justify-center text-text-tertiary text-[11px] font-bold" style={{ width: `${((total - rising - falling) / total) * 100}%` }}>
+                              유지 {total - rising - falling}
+                            </div>
                           )}
                         </div>
                       </div>
-                      {/* 나와의 가격 차이 변화 */}
-                      {c.gap_vs_me != null && (
-                        <div className="text-[12px] text-text-secondary mt-1">
-                          현재 나보다 {c.gap_vs_me > 0 ? `+${c.gap_vs_me}원 비쌈` : c.gap_vs_me < 0 ? `${c.gap_vs_me}원 저렴` : "동일"}
-                          {c.gap_vs_me_yesterday != null && c.gap_vs_me !== c.gap_vs_me_yesterday && (
-                            <span className="text-text-tertiary">
-                              {" "}(어제 {c.gap_vs_me_yesterday > 0 ? `+${c.gap_vs_me_yesterday}` : c.gap_vs_me_yesterday}원)
+                    )}
+                    {/* 수평 바 차트 */}
+                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                      {changes.changes.map((c) => {
+                        const diff = c.gasoline_diff ?? 0;
+                        const barWidth = Math.max(Math.abs(diff) / maxDiff * 45, 2);
+                        return (
+                          <div key={c.id} className="flex items-center gap-2 h-6">
+                            <div className="flex items-center gap-1 w-[80px] shrink-0 min-w-0">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
+                              <span className="text-[11px] text-text-primary truncate">{c.name}</span>
+                            </div>
+                            <div className="flex-1 flex items-center">
+                              {/* 0 기준선 중앙 배치 */}
+                              <div className="flex-1 flex items-center relative h-4">
+                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-300" />
+                                {diff !== 0 && (
+                                  <div
+                                    className={`absolute h-3 rounded-sm ${diff > 0 ? "bg-red-400" : "bg-blue-400"}`}
+                                    style={{
+                                      left: diff > 0 ? "50%" : `${50 - barWidth}%`,
+                                      width: `${barWidth}%`,
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                            <span className={`text-[11px] font-bold w-[40px] text-right shrink-0 ${diff > 0 ? "text-coral" : diff < 0 ? "text-blue-600" : "text-text-tertiary"}`}>
+                              {diff > 0 ? "+" : ""}{diff}
                             </span>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              )}
+                  </>
+                );
+              })()}
               {/* 경쟁사 패턴 인사이트 */}
               {insights && (
                 <InsightBadge color={
@@ -540,42 +689,25 @@ export default function DashboardPage() {
                 <div className="text-[15px] font-semibold text-text-secondary">적정가 벤치마크</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
               </div>
-              <div className="space-y-3">
-                {benchmark.benchmarks.district && (() => {
-                  const diff = benchmark.station.price - benchmark.benchmarks.district.avg;
-                  return (
-                    <div>
-                      <div className="text-[14px] text-text-secondary mb-1">{benchmark.benchmarks.district.label}</div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[18px] font-bold ${diff <= -30 ? "text-blue-600" : diff >= 30 ? "text-coral" : "text-emerald"}`}>
-                          {diff > 0 ? "+" : ""}{diff}원
-                        </span>
-                        <span className="text-[12px] text-text-secondary">
-                          {diff <= -30 ? "저렴한 편" : diff >= 30 ? "비싼 편" : "평균 수준"}
-                        </span>
-                      </div>
-                      <div className="text-[12px] text-text-tertiary mt-0.5">
-                        {benchmark.benchmarks.district.count}개 중 {benchmark.benchmarks.district.rank}위
-                      </div>
-                    </div>
-                  );
-                })()}
-                {(() => {
-                  const diff = benchmark.station.price - benchmark.benchmarks.overall.avg;
-                  return (
-                    <div className="pt-2 border-t border-border">
-                      <div className="text-[14px] text-text-secondary mb-1">{benchmark.benchmarks.overall.label}</div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[18px] font-bold ${diff <= -30 ? "text-blue-600" : diff >= 30 ? "text-coral" : "text-emerald"}`}>
-                          {diff > 0 ? "+" : ""}{diff}원
-                        </span>
-                        <span className="text-[12px] text-text-secondary">
-                          {diff <= -30 ? "저렴한 편" : diff >= 30 ? "비싼 편" : "평균 수준"}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
+              <div className="space-y-4">
+                {benchmark.benchmarks.district && (
+                  <PriceRangeBar
+                    myPrice={benchmark.station.price}
+                    avg={benchmark.benchmarks.district.avg}
+                    label={benchmark.benchmarks.district.label}
+                    rank={benchmark.benchmarks.district.rank}
+                    count={benchmark.benchmarks.district.count}
+                  />
+                )}
+                <div className="border-t border-border pt-3">
+                  <PriceRangeBar
+                    myPrice={benchmark.station.price}
+                    avg={benchmark.benchmarks.overall.avg}
+                    label={benchmark.benchmarks.overall.label}
+                    rank={benchmark.benchmarks.overall.rank}
+                    count={benchmark.benchmarks.overall.count}
+                  />
+                </div>
               </div>
               {/* 벤치마크 인사이트 */}
               {insights?.benchmarkInsight && (
@@ -595,32 +727,26 @@ export default function DashboardPage() {
                 <div className="text-[15px] font-semibold text-text-secondary">유가 반영 분석</div>
                 <DataFreshness date={oilPrices?.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="유가 데이터" />
               </div>
-              <div className={`rounded-xl px-4 py-3 ${
+              {/* 3단계 프로그레스 */}
+              <OilReflectionProgress
+                direction={detail.oilReflection.direction}
+                brentChange={detail.oilReflection.brentChange}
+                priceChange={detail.oilReflection.priceChange}
+                competitorAction={insights?.competitorPattern.action ?? "stable"}
+              />
+              {/* 상태 메시지 */}
+              <div className={`rounded-xl px-4 py-2.5 mt-3 ${
                 detail.oilReflection.direction === "up" ? "bg-red-50"
                   : detail.oilReflection.direction === "down" ? "bg-blue-50"
                   : "bg-slate-50"
               }`}>
-                <div className="flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" stroke={
-                    detail.oilReflection.direction === "up" ? "#ef4444"
-                      : detail.oilReflection.direction === "down" ? "#3b82f6"
-                      : "#64748b"
-                  }>
-                    <path d="M3 3v18h18" /><path d="m7 14 4-4 4 4 5-5" />
-                  </svg>
-                  <span className={`text-[16px] font-semibold ${
-                    detail.oilReflection.direction === "up" ? "text-red-700"
-                      : detail.oilReflection.direction === "down" ? "text-blue-700"
-                      : "text-slate-700"
-                  }`}>
-                    {detail.oilReflection.message}
-                  </span>
-                </div>
-                {detail.oilReflection.priceChange !== null && (
-                  <div className="text-[12px] text-text-secondary mt-1.5 ml-[24px]">
-                    소매가 2주간 {detail.oilReflection.priceChange >= 0 ? "+" : ""}{detail.oilReflection.priceChange}원
-                  </div>
-                )}
+                <span className={`text-[14px] font-semibold ${
+                  detail.oilReflection.direction === "up" ? "text-red-700"
+                    : detail.oilReflection.direction === "down" ? "text-blue-700"
+                    : "text-slate-700"
+                }`}>
+                  {detail.oilReflection.message}
+                </span>
               </div>
               {/* 유가→경쟁사→내 가격 연결 스토리 */}
               {insights?.oilStory && (
@@ -633,10 +759,27 @@ export default function DashboardPage() {
           )}
 
           {/* ⑤ 국제유가 + 향후 전망 */}
-          {loading.oilPrices ? <CardSkeleton /> : oilPrices && (
-            <ClickableCard href="/dashboard/oil-prices" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+          {loading.oilPrices ? <CardSkeleton /> : oilPrices && (() => {
+            const oilTrend = oilPrices.summary?.brentChange;
+            const isOilUp = (oilTrend ?? 0) > 0;
+            const isOilDown = (oilTrend ?? 0) < 0;
+            const oilChartData = oilPrices.prices.map((p) => ({ ...p, date: p.date.slice(5) }));
+            // 2주 전~현재 구간의 날짜
+            const refStartDate = oilChartData[twoWeeksFromNowIdx]?.date;
+            const refEndDate = oilChartData[oilChartData.length - 1]?.date;
+            return (
+            <ClickableCard href="/dashboard/oil-prices" className={`rounded-2xl p-5 shadow-sm border border-border ${
+              isOilUp ? "bg-gradient-to-b from-red-50 to-white" : isOilDown ? "bg-gradient-to-b from-blue-50 to-white" : "bg-white"
+            }`}>
               <div className="flex items-center justify-between mb-1">
-                <div className="text-[15px] font-semibold text-text-secondary">국제유가 · 전망</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-[15px] font-semibold text-text-secondary">국제유가 · 전망</div>
+                  {oilTrend != null && oilTrend !== 0 && (
+                    <span className={`text-[18px] font-extrabold ${isOilUp ? "text-red-500" : "text-blue-500"}`}>
+                      {isOilUp ? "↗" : "↘"}
+                    </span>
+                  )}
+                </div>
                 <DataFreshness date={oilPrices.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="최종 데이터" />
               </div>
               {oilPrices.summary && (
@@ -660,13 +803,13 @@ export default function DashboardPage() {
                 </div>
               )}
               <ResponsiveContainer width="100%" height={130}>
-                <LineChart data={oilPrices.prices.map((p) => ({ ...p, date: p.date.slice(5) }))}>
+                <LineChart data={oilChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                   <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9 }} tickFormatter={(v) => `$${v}`} width={40} />
                   <Tooltip formatter={(value, name) => [`$${value}`, name]} />
-                  {twoWeeksDate && (
-                    <ReferenceLine x={twoWeeksDate} stroke="#fca5a5" strokeDasharray="4 4" label={{ value: "2주 전", position: "top", fontSize: 9 }} />
+                  {refStartDate && refEndDate && (
+                    <ReferenceArea x1={refStartDate} x2={refEndDate} fill={isOilUp ? "#fecaca" : isOilDown ? "#bfdbfe" : "#e2e8f0"} fillOpacity={0.3} label={{ value: "반영 중", position: "insideTop", fontSize: 9, fill: "#94a3b8" }} />
                   )}
                   <Line type="monotone" dataKey="wti" stroke="#f97316" strokeWidth={1.5} dot={false} name="WTI" connectNulls />
                   <Line type="monotone" dataKey="brent" stroke="#3b82f6" strokeWidth={1.5} dot={false} name="Brent" connectNulls />
@@ -683,31 +826,31 @@ export default function DashboardPage() {
                 </InsightBadge>
               )}
             </ClickableCard>
-          )}
+            );
+          })()}
 
           {/* ⑥ EV 충전소 요약 */}
           {loading.detail ? <CardSkeleton /> : detail?.evNearby && detail.evNearby.stations > 0 && (() => {
             const fs = detail.evNearby.fastStations;
             const threat = fs <= 5
-              ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-50" }
+              ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-50", signal: "🟢", barColor: "bg-emerald-500" }
               : fs <= 20
-                ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50" }
-                : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50" };
+                ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50", signal: "🟡", barColor: "bg-amber-500" }
+                : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50", signal: "🔴", barColor: "bg-red-500" };
             return (
-              <ClickableCard href="/dashboard/ev-threat" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <ClickableCard href="/dashboard/ev-threat" className="bg-white rounded-2xl p-5 shadow-sm border border-border relative overflow-hidden">
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${threat.barColor}`} />
                 <div className="flex items-center justify-between mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">EV 충전소 현황</div>
-                <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
-              </div>
-                <div className={`rounded-xl px-4 py-3 ${threat.bg}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={threat.color}>
-                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                    </svg>
-                    <span className={`text-[14px] font-bold ${threat.color}`}>{threat.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[18px]">{threat.signal}</span>
+                    <div className="text-[15px] font-semibold text-text-secondary">EV 충전소 현황</div>
                   </div>
+                  <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
+                </div>
+                <div className={`rounded-xl px-4 py-3 ${threat.bg}`}>
+                  <div className={`text-[14px] font-bold ${threat.color} mb-2`}>{threat.label}</div>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-[20px] font-extrabold text-text-primary">{fs}</span>
+                    <span className="text-[22px] font-extrabold text-text-primary">{fs}</span>
                     <span className="text-[12px] font-semibold text-text-secondary">급속 충전소</span>
                     <span className="text-[14px] text-text-secondary">(충전기 {detail.evNearby.fast}대)</span>
                   </div>
@@ -880,11 +1023,19 @@ export default function DashboardPage() {
             <ClickableCard href="/dashboard/sales-analysis" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="text-[15px] font-semibold text-text-secondary mb-3">판매량 · 가격 분석</div>
               <div className="space-y-2">
+                {/* 일 평균 판매량 + 변동 화살표 */}
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
-                  <span className="text-[16px] font-bold text-text-primary">
-                    {salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[18px] font-extrabold text-text-primary">
+                      {salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L
+                    </span>
+                    {salesAnalysis.events.length > 0 && (
+                      <span className={`text-[16px] font-extrabold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-500"}`}>
+                        {salesAnalysis.events[0].volumeChangeRate >= 0 ? "↗" : "↘"}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {salesAnalysis.events.length > 0 ? (
                   <>
@@ -896,18 +1047,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] text-text-secondary">판매량 영향</span>
-                      <span className={`text-[12px] font-bold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                      <span className={`text-[14px] font-bold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
                         {salesAnalysis.events[0].volumeChangeRate > 0 ? "+" : ""}{salesAnalysis.events[0].volumeChangeRate}%
                       </span>
                     </div>
-                    {salesAnalysis.events[0].recoveryRate != null && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-[12px] text-text-secondary">1주 후 회복</span>
-                        <span className={`text-[12px] font-semibold ${salesAnalysis.events[0].recoveryRate! < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                          {salesAnalysis.events[0].recoveryRate! > 0 ? "+" : ""}{salesAnalysis.events[0].recoveryRate}%
-                        </span>
-                      </div>
-                    )}
                   </>
                 ) : (
                   <p className="text-[14px] text-text-tertiary m-0">가격 변경 이벤트 감지 대기 중</p>
@@ -915,7 +1058,7 @@ export default function DashboardPage() {
                 <div className="pt-2 border-t border-border flex items-center justify-between">
                   <span className="text-[14px] text-text-secondary">가격 탄력성</span>
                   {salesAnalysis.summary.elasticity != null ? (
-                    <span className={`text-[12px] font-bold ${
+                    <span className={`text-[14px] font-bold ${
                       salesAnalysis.summary.elasticityLabel === "민감" ? "text-red-500" :
                       salesAnalysis.summary.elasticityLabel === "둔감" ? "text-emerald-600" : "text-amber-500"
                     }`}>
