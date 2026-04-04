@@ -197,9 +197,15 @@ export default function DashboardPage() {
   const [priceHistory, setPriceHistory] = useState<PriceHistoryData | null>(null);
   const [insights, setInsights] = useState<Insights | null>(null);
 
+  const [salesAnalysis, setSalesAnalysis] = useState<{
+    summary: { avg30d: { gasoline: number; diesel: number }; totalEvents: number; elasticity: number | null; elasticityLabel: string };
+    events: Array<{ date: string; priceChange: number; volumeChangeRate: number; recoveryRate: number | null }>;
+  } | null>(null);
+
   const [loading, setLoading] = useState({
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
+    salesAnalysis: true,
   });
 
   useEffect(() => {
@@ -232,6 +238,14 @@ export default function DashboardPage() {
     fetch(`${base}/dashboard-insights`)
       .then((r) => r.json())
       .then((d) => { setInsights(d); setLoading((p) => ({ ...p, insights: false })); });
+
+    fetch(`${base}/sales-analysis`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.error) setSalesAnalysis(d);
+        setLoading((p) => ({ ...p, salesAnalysis: false }));
+      })
+      .catch(() => setLoading((p) => ({ ...p, salesAnalysis: false })));
   }, []);
 
   const recIcon = {
@@ -788,6 +802,60 @@ export default function DashboardPage() {
                   <Line type="monotone" dataKey="diesel" stroke="#1B2838" strokeWidth={2} dot={false} name="경유" connectNulls />
                 </LineChart>
               </ResponsiveContainer>
+            </ClickableCard>
+          )}
+
+          {/* ⑧ 판매량·가격 분석 */}
+          {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (
+            <ClickableCard href="/dashboard/sales-analysis" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <div className="text-[12px] font-semibold text-text-secondary mb-3">판매량 · 가격 분석</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
+                  <span className="text-[14px] font-bold text-text-primary">
+                    {salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L
+                  </span>
+                </div>
+                {salesAnalysis.events.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-text-secondary">최근 가격 변경</span>
+                      <span className="text-[12px] font-semibold text-text-primary">
+                        {salesAnalysis.events[0].date.slice(5)} {salesAnalysis.events[0].priceChange > 0 ? "+" : ""}{salesAnalysis.events[0].priceChange}원
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-text-secondary">판매량 영향</span>
+                      <span className={`text-[12px] font-bold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                        {salesAnalysis.events[0].volumeChangeRate > 0 ? "+" : ""}{salesAnalysis.events[0].volumeChangeRate}%
+                      </span>
+                    </div>
+                    {salesAnalysis.events[0].recoveryRate != null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] text-text-secondary">1주 후 회복</span>
+                        <span className={`text-[12px] font-semibold ${salesAnalysis.events[0].recoveryRate! < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                          {salesAnalysis.events[0].recoveryRate! > 0 ? "+" : ""}{salesAnalysis.events[0].recoveryRate}%
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[11px] text-text-tertiary m-0">가격 변경 이벤트 감지 대기 중</p>
+                )}
+                <div className="pt-2 border-t border-border flex items-center justify-between">
+                  <span className="text-[11px] text-text-secondary">가격 탄력성</span>
+                  {salesAnalysis.summary.elasticity != null ? (
+                    <span className={`text-[12px] font-bold ${
+                      salesAnalysis.summary.elasticityLabel === "민감" ? "text-red-500" :
+                      salesAnalysis.summary.elasticityLabel === "둔감" ? "text-emerald-600" : "text-amber-500"
+                    }`}>
+                      {salesAnalysis.summary.elasticity} ({salesAnalysis.summary.elasticityLabel})
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-text-tertiary">데이터 축적 중</span>
+                  )}
+                </div>
+              </div>
             </ClickableCard>
           )}
         </div>
