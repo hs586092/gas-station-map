@@ -373,6 +373,153 @@ export async function GET(
     }
   }
 
+  // ── 9. 주요 경쟁사 4곳 개별 가격 차이 vs 판매량 분석 ──
+  const KEY_COMP_NAMES = ["덕풍주유소", "풍산주유소", "만남의광장주유소", "베스트원주유소"];
+
+  const { data: keyCompStations } = await supabase
+    .from("stations")
+    .select("id, name")
+    .in("name", KEY_COMP_NAMES);
+
+  interface KeyCompPoint {
+    date: string;
+    gap: number;
+    gasoline_volume: number;
+  }
+
+  interface KeyCompAnalysis {
+    stationId: string;
+    name: string;
+    points: KeyCompPoint[];
+    buckets: Array<{ range: string; avgVolume: number; count: number }>;
+    correlation: number | null;
+    totalDays: number;
+  }
+
+  const keyCompetitorAnalysis: {
+    competitors: KeyCompAnalysis[];
+    insight: string;
+    totalDays: number;
+  } = { competitors: [], insight: "", totalDays: 0 };
+
+  if (keyCompStations && keyCompStations.length > 0) {
+    const keyCompIds = keyCompStations.map((s) => s.id);
+
+    // 주요 경쟁사 price_history
+    const { data: keyCompPriceRaw } = await supabase
+      .from("price_history")
+      .select("station_id, gasoline_price, collected_at")
+      .in("station_id", keyCompIds)
+      .not("gasoline_price", "is", null)
+      .order("collected_at", { ascending: true });
+
+    // 경쟁사별 날짜→가격 맵 (마지막 값)
+    const compPriceByDateStation = new Map<string, Map<string, number>>();
+    if (keyCompPriceRaw) {
+      for (const r of keyCompPriceRaw) {
+        const date = r.collected_at.slice(0, 10);
+        if (!compPriceByDateStation.has(r.station_id)) compPriceByDateStation.set(r.station_id, new Map());
+        compPriceByDateStation.get(r.station_id)!.set(date, r.gasoline_price!);
+      }
+    }
+
+    const salesByDate = new Map(days.map((d) => [d.date, d]));
+
+    const bucketDefs2 = [
+      { range: "-30원 이하", min: -Infinity, max: -30 },
+      { range: "-30~-10원", min: -30, max: -10 },
+      { range: "-10~+10원", min: -10, max: 10 },
+      { range: "+10~+30원", min: 10, max: 30 },
+      { range: "+30원 이상", min: 30, max: Infinity },
+    ];
+
+    for (const comp of keyCompStations) {
+      const compPriceMap = compPriceByDateStation.get(comp.id);
+      if (!compPriceMap) continue;
+
+      const points: KeyCompPoint[] = [];
+
+      for (const [date, compPrice] of compPriceMap) {
+        const myDay = salesByDate.get(date);
+        const myPh = priceByDate.get(date);
+        if (!myDay || !myPh) continue;
+
+        points.push({
+          date,
+          gap: myPh.gasoline - compPrice,
+          gasoline_volume: myDay.gasoline_volume,
+        });
+      }
+
+      points.sort((a, b) => a.date.localeCompare(b.date));
+
+      // 구간별 평균 판매량
+      const buckets = bucketDefs2.map((def) => {
+        const matching = def.min === -Infinity
+          ? points.filter((p) => p.gap <= def.max)
+          : def.max === Infinity
+            ? points.filter((p) => p.gap > def.min)
+            : points.filter((p) => p.gap > def.min && p.gap <= def.max);
+        return {
+          range: def.range,
+          avgVolume: matching.length > 0
+            ? Math.round(matching.reduce((s, p) => s + p.gasoline_volume, 0) / matching.length)
+            : 0,
+          count: matching.length,
+        };
+      });
+
+      // 피어슨 상관계수: 가격 차이 vs 판매량
+      let correlation: number | null = null;
+      if (points.length >= 5) {
+        const xs = points.map((p) => p.gap);
+        const ys = points.map((p) => p.gasoline_volume);
+        const n = xs.length;
+        const sumX = xs.reduce((a, b) => a + b, 0);
+        const sumY = ys.reduce((a, b) => a + b, 0);
+        const sumXY = xs.reduce((a, b, i) => a + b * ys[i], 0);
+        const sumX2 = xs.reduce((a, b) => a + b * b, 0);
+        const sumY2 = ys.reduce((a, b) => a + b * b, 0);
+        const denom = Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2));
+        if (denom > 0) {
+          correlation = Math.round(((n * sumXY - sumX * sumY) / denom) * 100) / 100;
+        }
+      }
+
+      keyCompetitorAnalysis.competitors.push({
+        stationId: comp.id,
+        name: comp.name,
+        points,
+        buckets,
+        correlation,
+        totalDays: points.length,
+      });
+    }
+
+    // 상관계수 기준 정렬 (음수가 클수록 = 가격 차이 커지면 판매량 줄어드는 경쟁사)
+    keyCompetitorAnalysis.competitors.sort((a, b) => (a.correlation ?? 0) - (b.correlation ?? 0));
+
+    // 인사이트 생성
+    const withCorr = keyCompetitorAnalysis.competitors.filter((c) => c.correlation != null);
+    if (withCorr.length > 0) {
+      const mostImpact = withCorr[0]; // 가장 음의 상관관계
+      if (mostImpact.correlation != null && mostImpact.correlation < -0.1) {
+        keyCompetitorAnalysis.insight =
+          `${mostImpact.name}와의 가격 차이가 판매량에 가장 큰 영향 (상관계수 ${mostImpact.correlation}). ` +
+          `이 경쟁사가 가격을 내리면 우리 판매량에 가장 큰 타격이 예상됩니다.`;
+      } else if (withCorr.every((c) => Math.abs(c.correlation!) < 0.1)) {
+        keyCompetitorAnalysis.insight =
+          "현재 데이터에서는 특정 경쟁사와의 가격 차이가 판매량에 뚜렷한 영향을 미치지 않습니다. 데이터가 더 쌓이면 패턴이 나타날 수 있습니다.";
+      } else {
+        const strongest = withCorr.reduce((a, b) => Math.abs(a.correlation!) > Math.abs(b.correlation!) ? a : b);
+        keyCompetitorAnalysis.insight =
+          `${strongest.name}와의 가격 차이가 판매량과 가장 높은 상관관계 (${strongest.correlation}).`;
+      }
+    }
+
+    keyCompetitorAnalysis.totalDays = Math.max(...keyCompetitorAnalysis.competitors.map((c) => c.totalDays), 0);
+  }
+
   return NextResponse.json(
     {
       summary: {
@@ -391,6 +538,7 @@ export async function GET(
       eventDates,
       weekdayPattern,
       competitorGap,
+      keyCompetitorAnalysis,
     },
     { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600" } }
   );

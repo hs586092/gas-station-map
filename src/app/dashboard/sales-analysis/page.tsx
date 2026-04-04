@@ -76,6 +76,18 @@ interface SalesAnalysis {
     totalDays: number;
     insight: string;
   };
+  keyCompetitorAnalysis: {
+    competitors: Array<{
+      stationId: string;
+      name: string;
+      points: Array<{ date: string; gap: number; gasoline_volume: number }>;
+      buckets: Array<{ range: string; avgVolume: number; count: number }>;
+      correlation: number | null;
+      totalDays: number;
+    }>;
+    insight: string;
+    totalDays: number;
+  };
 }
 
 // ─── 헬퍼 ───
@@ -110,7 +122,7 @@ export default function SalesAnalysisPage() {
     );
   }
 
-  const { summary, events, dailySales, eventDates, weekdayPattern, competitorGap } = data;
+  const { summary, events, dailySales, eventDates, weekdayPattern, competitorGap, keyCompetitorAnalysis } = data;
   const chartData = chartRange === 30 ? dailySales.slice(-30) : dailySales;
 
   // 요일 패턴: 월~일 순서로 재배열
@@ -493,7 +505,182 @@ export default function SalesAnalysisPage() {
           )}
         </section>
 
-        {/* ── 7. 데이터 안내 ── */}
+        {/* ── 7. 주요 경쟁사 개별 분석 ── */}
+        {keyCompetitorAnalysis.competitors.length > 0 && (
+          <section className="bg-white rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[14px] font-bold text-text-primary m-0">주요 경쟁사별 가격 차이 vs 판매량</h2>
+              <span className="text-[10px] text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
+                데이터 {keyCompetitorAnalysis.totalDays}일
+              </span>
+            </div>
+
+            {keyCompetitorAnalysis.totalDays < 7 ? (
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <p className="text-[13px] text-text-tertiary m-0">
+                  데이터 축적 중 ({keyCompetitorAnalysis.totalDays}일)
+                </p>
+                <p className="text-[11px] text-text-tertiary m-0 mt-1">
+                  price_history 기반 (3/15 이후). 최소 7일 이상의 데이터가 필요합니다.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* 상관계수 비교 바 */}
+                <div className="mb-4">
+                  <p className="text-[11px] text-text-secondary m-0 mb-2">상관계수 (가격 차이↑ → 판매량 변화)</p>
+                  <div className="space-y-2">
+                    {keyCompetitorAnalysis.competitors.map((c, i) => {
+                      const corr = c.correlation ?? 0;
+                      const absPct = Math.min(Math.abs(corr) * 100, 100);
+                      const isNeg = corr < 0;
+                      return (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="text-[11px] text-text-primary font-medium w-[100px] shrink-0 truncate">{c.name}</span>
+                          <div className="flex-1 h-4 bg-gray-50 rounded-full overflow-hidden relative flex">
+                            {/* 중앙 기준 바 */}
+                            <div className="w-1/2 flex justify-end">
+                              {isNeg && (
+                                <div className="bg-red-400 h-full rounded-l-full" style={{ width: `${absPct}%` }} />
+                              )}
+                            </div>
+                            <div className="w-px bg-gray-300 shrink-0" />
+                            <div className="w-1/2">
+                              {!isNeg && corr > 0 && (
+                                <div className="bg-emerald-400 h-full rounded-r-full" style={{ width: `${absPct}%` }} />
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-[11px] font-bold w-[45px] shrink-0 text-right ${
+                            corr < -0.3 ? "text-red-500" : corr > 0.3 ? "text-emerald-600" : "text-gray-400"
+                          }`}>
+                            {c.correlation != null ? c.correlation.toFixed(2) : "—"}
+                          </span>
+                          <span className="text-[9px] text-text-tertiary w-[25px] shrink-0">{c.totalDays}일</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[9px] text-text-tertiary m-0 mt-1.5">
+                    음수(빨강): 가격 차이가 벌어지면 판매량 감소 / 양수(녹색): 가격 차이와 판매량 동시 증가
+                  </p>
+                </div>
+
+                {/* 산점도 (4색 통합) */}
+                {(() => {
+                  const COMP_COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#8B5CF6"];
+                  const allScatterData = keyCompetitorAnalysis.competitors.flatMap((c, ci) =>
+                    c.points.map((p) => ({ ...p, compName: c.name, colorIdx: ci }))
+                  );
+                  if (allScatterData.length < 7) return null;
+                  return (
+                    <div className="mb-4">
+                      <p className="text-[11px] text-text-secondary m-0 mb-2">경쟁사별 가격 차이 vs 일 판매량</p>
+                      <div style={{ height: 240 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ScatterChart margin={{ top: 5, right: 10, left: -10, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis
+                              type="number"
+                              dataKey="gap"
+                              name="가격 차이"
+                              tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                              tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}`}
+                              label={{ value: "내 가격 - 경쟁사 가격(원)", position: "bottom", offset: 0, style: { fontSize: 10, fill: "#9BA8B7" } }}
+                            />
+                            <YAxis
+                              type="number"
+                              dataKey="gasoline_volume"
+                              name="판매량"
+                              tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                              tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
+                              width={40}
+                            />
+                            <ZAxis range={[25, 25]} />
+                            <Tooltip
+                              contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                              formatter={(value, name) => {
+                                if (name === "가격 차이") return [`${Number(value) > 0 ? "+" : ""}${value}원`, name];
+                                if (name === "판매량") return [`${formatNum(Number(value))}L`, name];
+                                return [value, String(name)];
+                              }}
+                              labelFormatter={() => ""}
+                            />
+                            <ReferenceLine x={0} stroke="#666" strokeDasharray="3 3" />
+                            {keyCompetitorAnalysis.competitors.map((c, ci) => (
+                              <Scatter
+                                key={c.stationId}
+                                name={c.name}
+                                data={c.points}
+                                fill={COMP_COLORS[ci % COMP_COLORS.length]}
+                                opacity={0.7}
+                              />
+                            ))}
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-1">
+                        {keyCompetitorAnalysis.competitors.map((c, ci) => (
+                          <span key={ci} className="flex items-center gap-1 text-[10px] text-text-secondary">
+                            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: COMP_COLORS[ci % COMP_COLORS.length] }} />
+                            {c.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 경쟁사별 구간 테이블 */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-text-secondary">
+                        <th className="text-left px-2 py-1.5 font-semibold border-b border-border">경쟁사</th>
+                        {["-30↓", "-30~-10", "±10", "+10~+30", "+30↑"].map((r) => (
+                          <th key={r} className="text-right px-2 py-1.5 font-semibold border-b border-border whitespace-nowrap">{r}</th>
+                        ))}
+                        <th className="text-right px-2 py-1.5 font-semibold border-b border-border">상관계수</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {keyCompetitorAnalysis.competitors.map((c, ci) => (
+                        <tr key={ci} className="border-b border-border last:border-0">
+                          <td className="px-2 py-2 font-medium text-text-primary">{c.name}</td>
+                          {c.buckets.map((b, bi) => (
+                            <td key={bi} className="text-right px-2 py-2 text-text-secondary">
+                              {b.count > 0 ? (
+                                <span>
+                                  {formatNum(b.avgVolume)}<span className="text-[9px] text-text-tertiary">L</span>
+                                  <span className="text-[9px] text-text-tertiary ml-0.5">({b.count})</span>
+                                </span>
+                              ) : "—"}
+                            </td>
+                          ))}
+                          <td className={`text-right px-2 py-2 font-bold ${
+                            (c.correlation ?? 0) < -0.3 ? "text-red-500" :
+                            (c.correlation ?? 0) > 0.3 ? "text-emerald-600" : "text-gray-400"
+                          }`}>
+                            {c.correlation != null ? c.correlation.toFixed(2) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 인사이트 */}
+                {keyCompetitorAnalysis.insight && (
+                  <div className="bg-gray-50 rounded-lg p-3 mt-3 text-[12px] text-text-secondary">
+                    <p className="m-0">💡 {keyCompetitorAnalysis.insight}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
+        {/* ── 8. 데이터 안내 ── */}
         <p className="text-[11px] text-text-tertiary m-0 leading-relaxed pb-6">
           * 데이터 기간: {summary.dataRange.from ? formatDate(summary.dataRange.from) : "—"} ~ {summary.dataRange.to ? formatDate(summary.dataRange.to) : "—"} ({summary.dataRange.totalDays}일)
           <br />
