@@ -115,6 +115,25 @@ interface Insights {
   recommendation: { message: string; type: "hold" | "raise" | "lower" | "watch"; suggestedRange: { min: number; max: number } | null };
 }
 
+// ─── 데이터 신선도 배지 ───
+function DataFreshness({ date, label }: { date: string | null; label?: string }) {
+  if (!date) return null;
+  const dataDate = new Date(date + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - dataDate.getTime()) / 86400000);
+  const displayDate = `${dataDate.getMonth() + 1}/${dataDate.getDate()}`;
+  const isStale = diffDays >= 3;
+
+  return (
+    <span className={`text-[9px] ${isStale ? "text-amber-600" : "text-text-tertiary"}`}>
+      {isStale && "⚠️ "}
+      {label || "최종"} {displayDate}
+      {isStale && ` (${diffDays}일 전)`}
+    </span>
+  );
+}
+
 // ─── 스켈레톤 ───
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />;
@@ -301,7 +320,10 @@ export default function DashboardPage() {
           {/* ① 가격 포지션 변화 */}
           {loading.competitors ? <CardSkeleton /> : competitors && (
             <ClickableCard href="/dashboard/price-position" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[12px] font-semibold text-text-secondary mb-3">내 가격 · 포지션</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">내 가격 · 포지션</div>
+                <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
+              </div>
               <div className="space-y-3">
                 {competitors.baseStation.gasoline_price && (
                   <div className="flex items-center justify-between">
@@ -356,9 +378,12 @@ export default function DashboardPage() {
           {/* ② 경쟁사 행동 패턴 */}
           {loading.changes ? <CardSkeleton /> : changes && (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[12px] font-semibold text-text-secondary mb-3">
-                경쟁사 가격 변동
-                <span className="text-[10px] font-normal text-text-tertiary ml-1">오늘</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">
+                  경쟁사 가격 변동
+                  <span className="text-[10px] font-normal text-text-tertiary ml-1">오늘</span>
+                </div>
+                <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
               </div>
               {changes.changes.length === 0 ? (
                 <div className="text-[13px] text-text-tertiary py-4 text-center">
@@ -421,7 +446,10 @@ export default function DashboardPage() {
           {/* ③ 적정가 벤치마크 */}
           {loading.benchmark ? <CardSkeleton /> : benchmark && (
             <ClickableCard href="/dashboard/benchmark" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[12px] font-semibold text-text-secondary mb-3">적정가 벤치마크</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">적정가 벤치마크</div>
+                <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
+              </div>
               <div className="space-y-3">
                 {benchmark.benchmarks.district && (() => {
                   const diff = benchmark.station.price - benchmark.benchmarks.district.avg;
@@ -473,7 +501,10 @@ export default function DashboardPage() {
             <div className="md:col-span-2"><CardSkeleton /></div>
           ) : detail?.oilReflection && (
             <div className="md:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[12px] font-semibold text-text-secondary mb-3">유가 반영 분석</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">유가 반영 분석</div>
+                <DataFreshness date={oilPrices?.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="유가 데이터" />
+              </div>
               <div className={`rounded-xl px-4 py-3 ${
                 detail.oilReflection.direction === "up" ? "bg-red-50"
                   : detail.oilReflection.direction === "down" ? "bg-blue-50"
@@ -514,7 +545,10 @@ export default function DashboardPage() {
           {/* ⑤ 국제유가 + 향후 전망 */}
           {loading.oilPrices ? <CardSkeleton /> : oilPrices && (
             <ClickableCard href="/dashboard/oil-prices" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[12px] font-semibold text-text-secondary mb-1">국제유가 · 전망</div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[12px] font-semibold text-text-secondary">국제유가 · 전망</div>
+                <DataFreshness date={oilPrices.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="최종 데이터" />
+              </div>
               {oilPrices.summary && (
                 <div className="flex gap-3 mb-3 text-[11px]">
                   <span className="text-text-primary font-medium">
@@ -571,7 +605,10 @@ export default function DashboardPage() {
                 : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50" };
             return (
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-                <div className="text-[12px] font-semibold text-text-secondary mb-3">EV 충전소 현황</div>
+                <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">EV 충전소 현황</div>
+                <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
+              </div>
                 <div className={`rounded-xl px-4 py-3 ${threat.bg}`}>
                   <div className="flex items-center gap-2 mb-2">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={threat.color}>
@@ -595,7 +632,10 @@ export default function DashboardPage() {
           {/* ⑧ 경쟁사 프로파일링 */}
           {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
             <div className="md:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[12px] font-semibold text-text-secondary mb-3">경쟁사 프로파일</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">경쟁사 프로파일</div>
+                <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {insights.competitorProfiles.slice(0, 6).map((p) => {
                   const typeColors = {
@@ -633,7 +673,10 @@ export default function DashboardPage() {
           {/* ⑨ 가격 연동성 인사이트 */}
           {!loading.insights && insights && insights.correlationInsights.length > 0 && (
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[12px] font-semibold text-text-secondary mb-3">가격 연동성</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">가격 연동성</div>
+                <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
+              </div>
               <div className="space-y-2.5">
                 {insights.correlationInsights.slice(0, 4).map((c) => {
                   const absCorr = Math.abs(c.correlation);
@@ -716,7 +759,10 @@ export default function DashboardPage() {
           ) : priceHistory && priceHistory.history.length > 0 && (
             <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[12px] font-semibold text-text-secondary">내 가격 추이 (30일)</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-[12px] font-semibold text-text-secondary">내 가격 추이 (30일)</div>
+                  <DataFreshness date={priceHistory.history[priceHistory.history.length - 1]?.date ?? null} label="최종" />
+                </div>
                 <div className="flex gap-3 text-[10px]">
                   <span className="flex items-center gap-1">
                     <span className="w-2.5 h-0.5 rounded bg-coral inline-block" /> 휘발유
