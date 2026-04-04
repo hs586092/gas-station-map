@@ -374,12 +374,27 @@ export async function GET(
   }
 
   // ── 9. 주요 경쟁사 4곳 개별 가격 차이 vs 판매량 분석 ──
-  const KEY_COMP_NAMES = ["덕풍주유소", "풍산주유소", "만남의광장주유소", "베스트원주유소"];
+  // DB에 법인명 접두사가 붙어있을 수 있으므로 (유)풍산주유소 등 ilike으로 매칭
+  const KEY_COMP_KEYWORDS = ["덕풍주유소", "풍산주유소", "만남의광장주유소", "베스트원주유소"];
 
   const { data: keyCompStations } = await supabase
     .from("stations")
     .select("id, name")
-    .in("name", KEY_COMP_NAMES);
+    .or(KEY_COMP_KEYWORDS.map((kw) => `name.ilike.%${kw}%`).join(","));
+
+  // ilike 결과에서 키워드별 가장 정확한 매칭 1개만 선택
+  // 정확 일치 우선, 그다음 이름이 짧은 것 (접두사만 다른 경우)
+  const filteredKeyComp: Array<{ id: string; name: string }> = [];
+  if (keyCompStations) {
+    for (const kw of KEY_COMP_KEYWORDS) {
+      const candidates = keyCompStations.filter((s) => s.name.includes(kw));
+      if (candidates.length > 0) {
+        // 정확 일치 우선, 아니면 이름이 가장 짧은 것
+        const exact = candidates.find((s) => s.name === kw);
+        filteredKeyComp.push(exact || candidates.sort((a, b) => a.name.length - b.name.length)[0]);
+      }
+    }
+  }
 
   interface KeyCompPoint {
     date: string;
@@ -402,8 +417,8 @@ export async function GET(
     totalDays: number;
   } = { competitors: [], insight: "", totalDays: 0 };
 
-  if (keyCompStations && keyCompStations.length > 0) {
-    const keyCompIds = keyCompStations.map((s) => s.id);
+  if (filteredKeyComp.length > 0) {
+    const keyCompIds = filteredKeyComp.map((s) => s.id);
 
     // 주요 경쟁사 price_history
     const { data: keyCompPriceRaw } = await supabase
@@ -433,7 +448,7 @@ export async function GET(
       { range: "+30원 이상", min: 30, max: Infinity },
     ];
 
-    for (const comp of keyCompStations) {
+    for (const comp of filteredKeyComp) {
       const compPriceMap = compPriceByDateStation.get(comp.id);
       if (!compPriceMap) continue;
 
