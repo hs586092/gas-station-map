@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -206,6 +218,161 @@ export async function GET(
   // 이벤트 날짜 셋 (차트에 세로선 표시용)
   const eventDates = events.map((e) => e.date);
 
+  // ── 8. 경쟁사 가격 차이 vs 판매량 분석 ──
+  // 기준 주유소 좌표로 경쟁사 목록 확보
+  const { data: base } = await supabase
+    .from("stations")
+    .select("lat, lng")
+    .eq("id", id)
+    .single();
+
+  interface CompGapPoint {
+    date: string;
+    myPrice: number;
+    compAvg: number;
+    gap: number;             // 내 가격 - 경쟁사 평균
+    gasoline_volume: number;
+  }
+
+  interface GapBucket {
+    label: string;
+    range: string;
+    avgVolume: number;
+    count: number;
+  }
+
+  let competitorGap: {
+    points: CompGapPoint[];
+    buckets: GapBucket[];
+    totalDays: number;
+    insight: string;
+  } = { points: [], buckets: [], totalDays: 0, insight: "" };
+
+  if (base?.lat && base?.lng) {
+    const RADIUS_KM = 5;
+    const latD = RADIUS_KM / 111;
+    const lngD = RADIUS_KM / 88;
+
+    const { data: candidates } = await supabase
+      .from("stations")
+      .select("id, lat, lng")
+      .gte("lat", base.lat - latD)
+      .lte("lat", base.lat + latD)
+      .gte("lng", base.lng - lngD)
+      .lte("lng", base.lng + lngD)
+      .neq("id", id);
+
+    const compIds = (candidates || [])
+      .filter((s) => s.lat && s.lng && haversineKm(base.lat, base.lng, s.lat, s.lng) <= RADIUS_KM)
+      .map((s) => s.id);
+
+    if (compIds.length > 0) {
+      // 경쟁사 price_history (price_history가 있는 기간만)
+      const { data: compPriceRaw } = await supabase
+        .from("price_history")
+        .select("station_id, gasoline_price, collected_at")
+        .in("station_id", compIds)
+        .not("gasoline_price", "is", null)
+        .order("collected_at", { ascending: true });
+
+      // 경쟁사 일별 평균 가격 맵
+      const compDayPrices = new Map<string, number[]>();
+      if (compPriceRaw) {
+        for (const r of compPriceRaw) {
+          const date = r.collected_at.slice(0, 10);
+          if (!compDayPrices.has(date)) compDayPrices.set(date, []);
+          // 같은 station_id의 같은 날짜 중복 방지 (마지막 값)
+          const arr = compDayPrices.get(date)!;
+          arr.push(r.gasoline_price!);
+        }
+      }
+
+      // 경쟁사 날짜별로 station 중복 제거 후 평균
+      const compAvgByDate = new Map<string, number>();
+      if (compPriceRaw) {
+        const byDateStation = new Map<string, Map<string, number>>();
+        for (const r of compPriceRaw) {
+          const date = r.collected_at.slice(0, 10);
+          if (!byDateStation.has(date)) byDateStation.set(date, new Map());
+          byDateStation.get(date)!.set(r.station_id, r.gasoline_price!);
+        }
+        for (const [date, stationMap] of byDateStation) {
+          const prices = [...stationMap.values()];
+          if (prices.length >= 2) { // 최소 2곳 이상
+            compAvgByDate.set(date, Math.round(prices.reduce((a, b) => a + b, 0) / prices.length));
+          }
+        }
+      }
+
+      // 내 가격 + 경쟁사 평균 + 판매량 결합
+      const points: CompGapPoint[] = [];
+      const salesByDate = new Map(days.map((d) => [d.date, d]));
+
+      for (const [date, compAvg] of compAvgByDate) {
+        const myDay = salesByDate.get(date);
+        const myPh = priceByDate.get(date);
+        if (!myDay || !myPh) continue;
+
+        const myPrice = myPh.gasoline;
+        const gap = myPrice - compAvg;
+
+        points.push({
+          date,
+          myPrice,
+          compAvg,
+          gap,
+          gasoline_volume: myDay.gasoline_volume,
+        });
+      }
+
+      points.sort((a, b) => a.date.localeCompare(b.date));
+
+      // 가격 차이 구간별 평균 판매량
+      const bucketDefs = [
+        { label: "내가 많이 쌈", range: "-30원 이하", min: -Infinity, max: -30 },
+        { label: "내가 약간 쌈", range: "-30 ~ -10원", min: -30, max: -10 },
+        { label: "비슷한 수준", range: "-10 ~ +10원", min: -10, max: 10 },
+        { label: "내가 약간 비쌈", range: "+10 ~ +30원", min: 10, max: 30 },
+        { label: "내가 많이 비쌈", range: "+30원 이상", min: 30, max: Infinity },
+      ];
+
+      const buckets: GapBucket[] = bucketDefs.map((def) => {
+        const matching = points.filter((p) => p.gap > def.min && p.gap <= def.max);
+        // 첫 구간: gap <= -30 (min: -Infinity)
+        const adjusted = def.min === -Infinity
+          ? points.filter((p) => p.gap <= def.max)
+          : matching;
+        return {
+          label: def.label,
+          range: def.range,
+          avgVolume: adjusted.length > 0
+            ? Math.round(adjusted.reduce((s, p) => s + p.gasoline_volume, 0) / adjusted.length)
+            : 0,
+          count: adjusted.length,
+        };
+      });
+
+      // 인사이트 생성
+      const cheapBucket = buckets[0].count + buckets[1].count > 0
+        ? Math.round((buckets[0].avgVolume * buckets[0].count + buckets[1].avgVolume * buckets[1].count) / (buckets[0].count + buckets[1].count))
+        : 0;
+      const expBucket = buckets[3].count + buckets[4].count > 0
+        ? Math.round((buckets[3].avgVolume * buckets[3].count + buckets[4].avgVolume * buckets[4].count) / (buckets[3].count + buckets[4].count))
+        : 0;
+      const similarBucket = buckets[2].avgVolume;
+
+      let insight = "";
+      if (cheapBucket > 0 && expBucket > 0 && similarBucket > 0) {
+        const diffPct = cheapBucket > 0 ? Math.round(((cheapBucket - expBucket) / expBucket) * 100) : 0;
+        insight = `경쟁사보다 저렴할 때 평균 ${cheapBucket.toLocaleString()}L, 비쌀 때 ${expBucket.toLocaleString()}L로 약 ${Math.abs(diffPct)}% 차이가 있습니다.`;
+      } else if (points.length > 0) {
+        insight = `${points.length}일간의 데이터를 수집 중입니다. 더 많은 데이터가 쌓이면 정확한 분석이 가능합니다.`;
+      }
+
+      competitorGap = { points, buckets, totalDays: points.length, insight };
+    }
+  }
+
   return NextResponse.json(
     {
       summary: {
@@ -223,6 +390,7 @@ export async function GET(
       dailySales,
       eventDates,
       weekdayPattern,
+      competitorGap,
     },
     { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600" } }
   );

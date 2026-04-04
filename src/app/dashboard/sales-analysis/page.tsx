@@ -12,6 +12,10 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   BarChart,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  Cell,
 } from "recharts";
 import DetailHeader from "../_components/DetailHeader";
 
@@ -55,6 +59,23 @@ interface SalesAnalysis {
     avgGasoline: number;
     avgDiesel: number;
   }>;
+  competitorGap: {
+    points: Array<{
+      date: string;
+      myPrice: number;
+      compAvg: number;
+      gap: number;
+      gasoline_volume: number;
+    }>;
+    buckets: Array<{
+      label: string;
+      range: string;
+      avgVolume: number;
+      count: number;
+    }>;
+    totalDays: number;
+    insight: string;
+  };
 }
 
 // ─── 헬퍼 ───
@@ -89,7 +110,7 @@ export default function SalesAnalysisPage() {
     );
   }
 
-  const { summary, events, dailySales, eventDates, weekdayPattern } = data;
+  const { summary, events, dailySales, eventDates, weekdayPattern, competitorGap } = data;
   const chartData = chartRange === 30 ? dailySales.slice(-30) : dailySales;
 
   // 요일 패턴: 월~일 순서로 재배열
@@ -370,7 +391,109 @@ export default function SalesAnalysisPage() {
           )}
         </section>
 
-        {/* ── 6. 데이터 안내 ── */}
+        {/* ── 6. 경쟁사 가격 차이 vs 판매량 ── */}
+        <section className="bg-white rounded-xl border border-border p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[14px] font-bold text-text-primary m-0">경쟁사 대비 가격 차이 vs 판매량</h2>
+            <span className="text-[10px] text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
+              데이터 {competitorGap.totalDays}일
+            </span>
+          </div>
+
+          {competitorGap.totalDays < 7 ? (
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <p className="text-[13px] text-text-tertiary m-0">
+                데이터 축적 중 ({competitorGap.totalDays}일)
+              </p>
+              <p className="text-[11px] text-text-tertiary m-0 mt-1">
+                price_history 기반으로 경쟁사 평균 가격을 비교합니다. 최소 7일 이상의 데이터가 필요합니다.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* 구간별 평균 판매량 */}
+              <div className="space-y-1.5 mb-4">
+                {competitorGap.buckets.map((b, i) => {
+                  const maxVol = Math.max(...competitorGap.buckets.filter((x) => x.count > 0).map((x) => x.avgVolume), 1);
+                  const pct = b.count > 0 ? (b.avgVolume / maxVol) * 100 : 0;
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[10px] text-text-secondary w-[90px] shrink-0 text-right">{b.range}</span>
+                      <div className="flex-1 h-5 bg-gray-50 rounded-full overflow-hidden relative">
+                        {b.count > 0 && (
+                          <div
+                            className={`h-full rounded-full ${
+                              i <= 1 ? "bg-emerald-400" : i === 2 ? "bg-gray-300" : "bg-red-400"
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-semibold text-text-primary w-[60px] shrink-0">
+                        {b.count > 0 ? `${formatNum(b.avgVolume)}L` : "—"}
+                      </span>
+                      <span className="text-[9px] text-text-tertiary w-[30px] shrink-0">
+                        {b.count}일
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 산점도 */}
+              {competitorGap.points.length >= 7 && (
+                <div style={{ height: 220 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis
+                        type="number"
+                        dataKey="gap"
+                        name="가격 차이"
+                        tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                        tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}`}
+                        label={{ value: "경쟁사 대비 가격 차이(원)", position: "bottom", offset: -2, style: { fontSize: 10, fill: "#9BA8B7" } }}
+                      />
+                      <YAxis
+                        type="number"
+                        dataKey="gasoline_volume"
+                        name="판매량"
+                        tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                        tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
+                        width={40}
+                      />
+                      <ZAxis range={[30, 30]} />
+                      <Tooltip
+                        contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                        formatter={(value, name) => {
+                          if (name === "가격 차이") return [`${Number(value) > 0 ? "+" : ""}${value}원`, name];
+                          if (name === "판매량") return [`${formatNum(Number(value))}L`, name];
+                          return [value, String(name)];
+                        }}
+                        labelFormatter={() => ""}
+                      />
+                      <ReferenceLine x={0} stroke="#666" strokeDasharray="3 3" />
+                      <Scatter data={competitorGap.points}>
+                        {competitorGap.points.map((p, i) => (
+                          <Cell key={i} fill={p.gap <= -10 ? "#34D399" : p.gap >= 10 ? "#F87171" : "#9CA3AF"} />
+                        ))}
+                      </Scatter>
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 인사이트 */}
+              {competitorGap.insight && (
+                <div className="bg-gray-50 rounded-lg p-3 mt-3 text-[12px] text-text-secondary">
+                  <p className="m-0">{competitorGap.insight}</p>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* ── 7. 데이터 안내 ── */}
         <p className="text-[11px] text-text-tertiary m-0 leading-relaxed pb-6">
           * 데이터 기간: {summary.dataRange.from ? formatDate(summary.dataRange.from) : "—"} ~ {summary.dataRange.to ? formatDate(summary.dataRange.to) : "—"} ({summary.dataRange.totalDays}일)
           <br />
