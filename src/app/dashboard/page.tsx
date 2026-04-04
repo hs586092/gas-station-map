@@ -202,10 +202,17 @@ export default function DashboardPage() {
     events: Array<{ date: string; priceChange: number; volumeChangeRate: number; recoveryRate: number | null }>;
   } | null>(null);
 
+  const [timingAnalysis, setTimingAnalysis] = useState<{
+    currentSituation: { pendingReaction: boolean; message: string; urgency: "high" | "medium" | "low" | "none" };
+    competitorSpeed: Array<{ name: string; avgDaysToReact: number | null; rank: number }>;
+    dataStatus: { totalEvents: number; isReliable: boolean };
+    timingImpact: { optimalDays: number | null } | null;
+  } | null>(null);
+
   const [loading, setLoading] = useState({
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
-    salesAnalysis: true,
+    salesAnalysis: true, timingAnalysis: true,
   });
 
   useEffect(() => {
@@ -246,6 +253,14 @@ export default function DashboardPage() {
         setLoading((p) => ({ ...p, salesAnalysis: false }));
       })
       .catch(() => setLoading((p) => ({ ...p, salesAnalysis: false })));
+
+    fetch(`${base}/timing-analysis`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.currentSituation) setTimingAnalysis(d);
+        setLoading((p) => ({ ...p, timingAnalysis: false }));
+      })
+      .catch(() => setLoading((p) => ({ ...p, timingAnalysis: false })));
   }, []);
 
   const recIcon = {
@@ -856,6 +871,43 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+            </ClickableCard>
+          )}
+
+          {/* ⑨ 타이밍 분석 */}
+          {loading.timingAnalysis ? <CardSkeleton /> : timingAnalysis && (
+            <ClickableCard href="/dashboard/timing-analysis" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="text-[12px] font-semibold text-text-secondary">타이밍 분석</div>
+                {timingAnalysis.currentSituation.urgency !== "none" && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                    timingAnalysis.currentSituation.urgency === "high" ? "bg-red-100 text-red-600" :
+                    timingAnalysis.currentSituation.urgency === "medium" ? "bg-amber-100 text-amber-600" :
+                    "bg-blue-100 text-blue-600"
+                  }`}>
+                    {timingAnalysis.currentSituation.urgency === "high" ? "긴급" :
+                     timingAnalysis.currentSituation.urgency === "medium" ? "주의" : "참고"}
+                  </span>
+                )}
+              </div>
+              <p className="text-[12px] text-text-primary m-0 leading-relaxed mb-3">
+                {timingAnalysis.currentSituation.message}
+              </p>
+              <div className="space-y-1.5">
+                {timingAnalysis.competitorSpeed.slice(0, 3).map((c, i) => (
+                  <div key={i} className="flex items-center justify-between text-[11px]">
+                    <span className="text-text-secondary">{c.rank}위 {c.name}</span>
+                    <span className="font-semibold text-text-primary">
+                      {c.avgDaysToReact != null ? `${c.avgDaysToReact}일` : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {timingAnalysis.timingImpact?.optimalDays && (
+                <div className="mt-2 pt-2 border-t border-border text-[11px] text-text-secondary">
+                  최적 대응: 경쟁사 반응 후 <span className="font-bold text-text-primary">{timingAnalysis.timingImpact.optimalDays}일 이내</span>
+                </div>
+              )}
             </ClickableCard>
           )}
         </div>
