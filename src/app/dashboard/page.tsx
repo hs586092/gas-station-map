@@ -202,6 +202,12 @@ export default function DashboardPage() {
     events: Array<{ date: string; priceChange: number; volumeChangeRate: number; recoveryRate: number | null }>;
   } | null>(null);
 
+  const [aiBriefing, setAiBriefing] = useState<{
+    aiBriefing: string | null;
+    fallback: boolean;
+    recommendationType: string;
+  } | null>(null);
+
   const [timingAnalysis, setTimingAnalysis] = useState<{
     currentSituation: { pendingReaction: boolean; message: string; urgency: "high" | "medium" | "low" | "none" };
     competitorSpeed: Array<{ name: string; avgDaysToReact: number | null; rank: number }>;
@@ -245,6 +251,11 @@ export default function DashboardPage() {
     fetch(`${base}/dashboard-insights`)
       .then((r) => r.json())
       .then((d) => { setInsights(d); setLoading((p) => ({ ...p, insights: false })); });
+
+    fetch(`${base}/ai-briefing`)
+      .then((r) => r.json())
+      .then((d) => setAiBriefing(d))
+      .catch(() => {});
 
     fetch(`${base}/sales-analysis`)
       .then((r) => r.json())
@@ -319,27 +330,52 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : insights && (
-          <ClickableCard href="/dashboard/briefing" className={`mb-5 rounded-2xl p-5 border-2 ${recColor[insights.recommendation.type]} shadow-sm`}>
+          <ClickableCard href="/dashboard/briefing" className={`mb-5 rounded-2xl p-5 border-2 ${recColor[aiBriefing?.recommendationType as keyof typeof recColor ?? insights.recommendation.type]} shadow-sm`}>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[20px]">{recIcon[insights.recommendation.type]}</span>
               <span className="text-[13px] font-bold text-text-primary">오늘의 경영 브리핑</span>
+              {aiBriefing?.aiBriefing && !aiBriefing.fallback && (
+                <span className="text-[9px] font-bold bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">AI 분석</span>
+              )}
             </div>
-            <p className="text-[15px] font-semibold text-text-primary m-0 leading-relaxed">
-              {insights.recommendation.message}
-            </p>
-            {insights.oilStory && (
-              <p className="text-[12px] text-text-secondary m-0 mt-2 leading-relaxed">
-                {insights.oilStory}
-              </p>
+
+            {/* AI 브리핑 또는 기존 규칙 기반 */}
+            {aiBriefing?.aiBriefing && !aiBriefing.fallback ? (
+              <div className="text-[14px] text-text-primary m-0 leading-relaxed whitespace-pre-line">
+                {aiBriefing.aiBriefing}
+              </div>
+            ) : !aiBriefing && !loading.insights ? (
+              /* AI 로딩 중 */
+              <div>
+                <p className="text-[15px] font-semibold text-text-primary m-0 leading-relaxed">
+                  {insights.recommendation.message}
+                </p>
+                <p className="text-[11px] text-text-tertiary m-0 mt-2 italic">
+                  AI가 분석 중입니다...
+                </p>
+              </div>
+            ) : (
+              /* 폴백: 기존 규칙 기반 */
+              <div>
+                <p className="text-[15px] font-semibold text-text-primary m-0 leading-relaxed">
+                  {insights.recommendation.message}
+                </p>
+                {insights.oilStory && (
+                  <p className="text-[12px] text-text-secondary m-0 mt-2 leading-relaxed">
+                    {insights.oilStory}
+                  </p>
+                )}
+              </div>
             )}
+
             {insights.weeklyTrend.message && (
               <p className="text-[11px] text-text-tertiary m-0 mt-1.5">
-                📊 {insights.weeklyTrend.message}
+                {insights.weeklyTrend.message}
               </p>
             )}
             <div className="flex items-center justify-between mt-3">
               <p className="text-[10px] text-text-tertiary m-0">
-                * 데이터 기반 참고 정보이며, 최종 판단은 사장님께 있습니다.
+                * 참고 정보이며, 최종 판단은 사장님께 있습니다.
               </p>
               <span className="text-[11px] font-semibold text-text-secondary flex items-center gap-0.5 shrink-0">
                 근거 보기
