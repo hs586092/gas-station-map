@@ -22,7 +22,7 @@ export async function GET(
   // ── 1. 판매 데이터 (전체) ──
   const { data: salesRaw } = await supabase
     .from("sales_data")
-    .select("date, gasoline_volume, gasoline_count, gasoline_amount, diesel_volume, diesel_count")
+    .select("date, gasoline_volume, gasoline_count, gasoline_amount, diesel_volume, diesel_count, diesel_amount")
     .eq("station_id", id)
     .order("date", { ascending: true });
 
@@ -55,8 +55,11 @@ export async function GET(
     gasoline_count: number;
     diesel_count: number;
     gasoline_amount: number;
+    diesel_amount: number;
     gasoline_price: number | null;    // price_history 기준
+    diesel_price: number | null;      // price_history 기준
     gasoline_unit_price: number | null; // 실효 단가 (amount/volume)
+    diesel_unit_price: number | null;   // 실효 단가 (amount/volume)
     price_source: "price_history" | "sales_unit_price" | null;
   }
 
@@ -68,10 +71,12 @@ export async function GET(
     const gVol = Number(s.gasoline_volume) || 0;
     const dVol = Number(s.diesel_volume) || 0;
     const gAmt = Number(s.gasoline_amount) || 0;
+    const dAmt = Number(s.diesel_amount) || 0;
     const gCount = Number(s.gasoline_count) || 0;
     const dCount = Number(s.diesel_count) || 0;
 
     const unitPrice = gVol > 0 ? Math.round(gAmt / gVol) : null;
+    const dieselUnitPrice = dVol > 0 ? Math.round(dAmt / dVol) : null;
     const ph = priceByDate.get(s.date);
 
     days.push({
@@ -81,8 +86,11 @@ export async function GET(
       gasoline_count: gCount,
       diesel_count: dCount,
       gasoline_amount: gAmt,
+      diesel_amount: dAmt,
       gasoline_price: ph?.gasoline ?? null,
+      diesel_price: ph?.diesel ?? null,
       gasoline_unit_price: unitPrice,
+      diesel_unit_price: dieselUnitPrice,
       price_source: ph ? "price_history" : unitPrice ? "sales_unit_price" : null,
     });
   }
@@ -209,18 +217,15 @@ export async function GET(
   }));
 
   // ── 7. 차트용 일별 데이터 (최근 90일) ──
-  const dailySales = days.slice(-90).map((d) => {
-    const ph = priceByDate.get(d.date);
-    return {
-      date: d.date,
-      gasoline_volume: d.gasoline_volume,
-      diesel_volume: d.diesel_volume,
-      gasoline_price: d.gasoline_price ?? d.gasoline_unit_price,
-      diesel_price: ph?.diesel ?? null,
-      gasoline_count: d.gasoline_count,
-      diesel_count: d.diesel_count,
-    };
-  });
+  const dailySales = days.slice(-90).map((d) => ({
+    date: d.date,
+    gasoline_volume: d.gasoline_volume,
+    diesel_volume: d.diesel_volume,
+    gasoline_price: d.gasoline_price ?? d.gasoline_unit_price,
+    diesel_price: d.diesel_price ?? d.diesel_unit_price,
+    gasoline_count: d.gasoline_count,
+    diesel_count: d.diesel_count,
+  }));
 
   // 이벤트 날짜 셋 (차트에 세로선 표시용)
   const eventDates = events.map((e) => e.date);

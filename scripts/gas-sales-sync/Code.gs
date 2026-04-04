@@ -90,7 +90,7 @@ function uploadAllHistorical() {
 
 /**
  * Google Sheets에서 판매 데이터를 읽어옴
- * 컬럼 순서: Date, 휘발유_총판매수량, 휘발유_총건수, 휘발유_판매금액(할인포함), 경유_총판매수량, 경유_총건수
+ * 컬럼 순서: Date, 휘발유_총판매수량, 휘발유_총건수, 휘발유_판매금액(할인포함), 경유_총판매수량, 경유_총건수, 경유_판매금액(할인포함)
  */
 function readSheetData_() {
   var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
@@ -149,6 +149,7 @@ function readSheetData_() {
       gasoline_amount: parseNum_(row[3]),
       diesel_volume: dVol,
       diesel_count: parseNum_(row[5]),
+      diesel_amount: parseNum_(row[6]),
     });
   }
 
@@ -176,6 +177,7 @@ function toSupabaseRow_(row) {
     gasoline_amount: row.gasoline_amount,
     diesel_volume: row.diesel_volume,
     diesel_count: row.diesel_count,
+    diesel_amount: row.diesel_amount,
   };
 }
 
