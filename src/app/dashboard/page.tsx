@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -145,6 +146,28 @@ function InsightBadge({ children, color = "slate" }: { children: React.ReactNode
   );
 }
 
+// ─── 클릭 가능 카드 래퍼 ───
+function ClickableCard({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
+  const router = useRouter();
+  return (
+    <div
+      onClick={() => router.push(href)}
+      className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${className}`}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && router.push(href)}
+    >
+      {children}
+      <div className="flex items-center justify-end mt-2 text-[10px] text-text-tertiary gap-0.5">
+        <span>상세보기</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 // ─── 메인 ───
 export default function DashboardPage() {
   const [competitors, setCompetitors] = useState<CompetitorData | null>(null);
@@ -277,7 +300,7 @@ export default function DashboardPage() {
 
           {/* ① 가격 포지션 변화 */}
           {loading.competitors ? <CardSkeleton /> : competitors && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/price-position" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="text-[12px] font-semibold text-text-secondary mb-3">내 가격 · 포지션</div>
               <div className="space-y-3">
                 {competitors.baseStation.gasoline_price && (
@@ -327,7 +350,7 @@ export default function DashboardPage() {
                   {competitors.stats.avg_diesel && ` · 경유 ${competitors.stats.avg_diesel.toLocaleString()}원`}
                 </div>
               )}
-            </div>
+            </ClickableCard>
           )}
 
           {/* ② 경쟁사 행동 패턴 */}
@@ -397,7 +420,7 @@ export default function DashboardPage() {
 
           {/* ③ 적정가 벤치마크 */}
           {loading.benchmark ? <CardSkeleton /> : benchmark && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/benchmark" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="text-[12px] font-semibold text-text-secondary mb-3">적정가 벤치마크</div>
               <div className="space-y-3">
                 {benchmark.benchmarks.district && (() => {
@@ -442,7 +465,7 @@ export default function DashboardPage() {
                   {insights.benchmarkInsight}
                 </InsightBadge>
               )}
-            </div>
+            </ClickableCard>
           )}
 
           {/* ④ 유가→경쟁사→내 가격 스토리 (wide) */}
@@ -490,7 +513,7 @@ export default function DashboardPage() {
 
           {/* ⑤ 국제유가 + 향후 전망 */}
           {loading.oilPrices ? <CardSkeleton /> : oilPrices && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/oil-prices" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="text-[12px] font-semibold text-text-secondary mb-1">국제유가 · 전망</div>
               {oilPrices.summary && (
                 <div className="flex gap-3 mb-3 text-[11px]">
@@ -535,7 +558,7 @@ export default function DashboardPage() {
                   {insights.oilWeekTrend.message}
                 </InsightBadge>
               )}
-            </div>
+            </ClickableCard>
           )}
 
           {/* ⑥ EV 충전소 요약 */}
@@ -691,7 +714,7 @@ export default function DashboardPage() {
           {loading.priceHistory ? (
             <div className="md:col-span-2 lg:col-span-3"><CardSkeleton /></div>
           ) : priceHistory && priceHistory.history.length > 0 && (
-            <div className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-text-secondary">내 가격 추이 (30일)</div>
                 <div className="flex gap-3 text-[10px]">
@@ -713,7 +736,7 @@ export default function DashboardPage() {
                   <Line type="monotone" dataKey="diesel" stroke="#1B2838" strokeWidth={2} dot={false} name="경유" connectNulls />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </ClickableCard>
           )}
         </div>
       </main>
