@@ -177,7 +177,7 @@ export default function BriefingPage() {
     <div className="min-h-screen bg-surface h-screen overflow-y-auto">
       <DetailHeader title="경영 브리핑 상세" description="종합 추천의 판단 근거를 투명하게 공개합니다" />
 
-      <div className="px-5 py-4 space-y-5 max-w-2xl mx-auto">
+      <main className="px-5 pb-10 space-y-5">
 
         {/* ── 1. 오늘의 추천 ── */}
         <section className={`rounded-2xl p-5 border-2 ${recColor[rec.type]} shadow-sm`}>
@@ -258,7 +258,7 @@ export default function BriefingPage() {
         <p className="text-[11px] text-text-tertiary m-0 leading-relaxed pb-6">
           * 본 분석은 국제유가·경쟁사 가격·시장 추세 데이터를 기반으로 자동 생성된 참고 정보입니다. 최종 가격 결정은 사장님의 판단에 따릅니다.
         </p>
-      </div>
+      </main>
     </div>
   );
 }

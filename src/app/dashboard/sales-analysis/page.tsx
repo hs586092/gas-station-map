@@ -132,24 +132,24 @@ export default function SalesAnalysisPage() {
     <div className="min-h-screen bg-surface h-screen overflow-y-auto">
       <DetailHeader title="판매량 · 가격 분석" description="가격 변경이 판매량에 미치는 영향을 분석합니다" />
 
-      <div className="px-5 py-4 space-y-5 max-w-2xl mx-auto">
+      <main className="px-5 pb-10 space-y-5">
 
         {/* ── 1. 요약 카드 ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-xl border border-border p-4">
-            <p className="text-[11px] text-text-secondary m-0 mb-1">최근 30일 평균 판매량</p>
-            <p className="text-[20px] font-bold text-text-primary m-0">
-              {formatNum(summary.avg30d.gasoline)}<span className="text-[12px] font-normal text-text-secondary">L/일</span>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl border border-border p-5">
+            <p className="text-[12px] text-text-secondary m-0 mb-1">최근 30일 평균 판매량</p>
+            <p className="text-[28px] font-bold text-text-primary m-0">
+              {formatNum(summary.avg30d.gasoline)}<span className="text-[14px] font-normal text-text-secondary ml-1">L/일</span>
             </p>
-            <p className="text-[11px] text-text-tertiary m-0 mt-0.5">
+            <p className="text-[12px] text-text-tertiary m-0 mt-1">
               경유 {formatNum(summary.avg30d.diesel)}L/일
             </p>
           </div>
-          <div className="bg-white rounded-xl border border-border p-4">
-            <p className="text-[11px] text-text-secondary m-0 mb-1">가격 탄력성</p>
+          <div className="bg-white rounded-xl border border-border p-5">
+            <p className="text-[12px] text-text-secondary m-0 mb-1">가격 탄력성</p>
             {summary.elasticity != null ? (
               <>
-                <p className="text-[20px] font-bold text-text-primary m-0">
+                <p className="text-[28px] font-bold text-text-primary m-0">
                   {summary.elasticity}
                 </p>
                 <p className={`text-[11px] font-semibold m-0 mt-0.5 ${
@@ -190,7 +190,7 @@ export default function SalesAnalysisPage() {
               ))}
             </div>
           </div>
-          <div style={{ height: 260 }}>
+          <div style={{ height: 350 }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -327,7 +327,7 @@ export default function SalesAnalysisPage() {
         {/* ── 4. 요일별 판매 패턴 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
           <h2 className="text-[14px] font-bold text-text-primary m-0 mb-3">요일별 평균 판매량</h2>
-          <div style={{ height: 200 }}>
+          <div style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={orderedWeekday} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -454,7 +454,7 @@ export default function SalesAnalysisPage() {
 
               {/* 산점도 */}
               {competitorGap.points.length >= 7 && (
-                <div style={{ height: 220 }}>
+                <div style={{ height: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <ScatterChart margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -576,7 +576,7 @@ export default function SalesAnalysisPage() {
                   return (
                     <div className="mb-4">
                       <p className="text-[11px] text-text-secondary m-0 mb-2">경쟁사별 가격 차이 vs 일 판매량</p>
-                      <div style={{ height: 240 }}>
+                      <div style={{ height: 320 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 5, right: 10, left: -10, bottom: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -688,7 +688,7 @@ export default function SalesAnalysisPage() {
           <br />
           * 판매량 변화에는 요일·날씨·계절 등 가격 외 요인도 포함됩니다.
         </p>
-      </div>
+      </main>
     </div>
   );
 }
