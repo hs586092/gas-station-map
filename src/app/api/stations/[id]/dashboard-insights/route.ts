@@ -719,6 +719,22 @@ export async function GET(
         type: recommendationType,
         suggestedRange,
       },
+      // 브리핑 상세용 raw 데이터
+      briefingFactors: {
+        oil: {
+          latestBrent: recentOil?.[0]?.brent ?? null,
+          latestWti: recentOil?.[0]?.wti ?? null,
+          brent2wChange,
+          oilDirection,
+          reflectionStatus,
+          myPriceChange,
+        },
+        position: {
+          myPrice: base.gasoline_price,
+          avgPrice: avgGas,
+          priceDiff: priceDiffFromAvg,
+        },
+      },
     },
     { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" } }
   );

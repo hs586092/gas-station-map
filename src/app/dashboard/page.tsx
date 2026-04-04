@@ -290,7 +290,7 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : insights && (
-          <div className={`mb-5 rounded-2xl p-5 border-2 ${recColor[insights.recommendation.type]} shadow-sm`}>
+          <ClickableCard href="/dashboard/briefing" className={`mb-5 rounded-2xl p-5 border-2 ${recColor[insights.recommendation.type]} shadow-sm`}>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[20px]">{recIcon[insights.recommendation.type]}</span>
               <span className="text-[13px] font-bold text-text-primary">오늘의 경영 브리핑</span>
@@ -308,10 +308,16 @@ export default function DashboardPage() {
                 📊 {insights.weeklyTrend.message}
               </p>
             )}
-            <p className="text-[10px] text-text-tertiary m-0 mt-3">
-              * 본 분석은 데이터 기반 참고 정보이며, 최종 가격 결정은 사장님의 판단에 따릅니다.
-            </p>
-          </div>
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-[10px] text-text-tertiary m-0">
+                * 데이터 기반 참고 정보이며, 최종 판단은 사장님께 있습니다.
+              </p>
+              <span className="text-[11px] font-semibold text-text-secondary flex items-center gap-0.5 shrink-0">
+                근거 보기
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+              </span>
+            </div>
+          </ClickableCard>
         )}
 
         {/* 카드 그리드 */}
