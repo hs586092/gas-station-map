@@ -115,8 +115,8 @@ function readSheetData_() {
   var data = sheet.getDataRange().getValues();
   var rows = [];
 
-  // 첫 행은 헤더, 두 번째 행부터 데이터
-  for (var i = 1; i < data.length; i++) {
+  // 1행: 카테고리, 2행: 컬럼명 → 데이터는 3행(index 2)부터
+  for (var i = 2; i < data.length; i++) {
     var row = data[i];
     var dateVal = row[0];
 
@@ -179,7 +179,7 @@ function toSupabaseRow_(row) {
  * ON CONFLICT (station_id, date) DO UPDATE
  */
 function upsertToSupabase_(payload) {
-  var url = CONFIG.SUPABASE_URL + "/rest/v1/sales_data";
+  var url = CONFIG.SUPABASE_URL + "/rest/v1/sales_data?on_conflict=station_id,date";
 
   var options = {
     method: "post",
