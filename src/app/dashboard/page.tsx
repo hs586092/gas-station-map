@@ -377,7 +377,7 @@ export default function DashboardPage() {
 
           {/* ② 경쟁사 행동 패턴 */}
           {loading.changes ? <CardSkeleton /> : changes && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/competitors" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-text-secondary">
                   경쟁사 가격 변동
@@ -440,7 +440,7 @@ export default function DashboardPage() {
                   )}
                 </InsightBadge>
               )}
-            </div>
+            </ClickableCard>
           )}
 
           {/* ③ 적정가 벤치마크 */}
@@ -500,7 +500,7 @@ export default function DashboardPage() {
           {loading.detail ? (
             <div className="md:col-span-2"><CardSkeleton /></div>
           ) : detail?.oilReflection && (
-            <div className="md:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/oil-reflection" className="md:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-text-secondary">유가 반영 분석</div>
                 <DataFreshness date={oilPrices?.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="유가 데이터" />
@@ -539,7 +539,7 @@ export default function DashboardPage() {
                   <div className="text-[12px] text-text-primary leading-relaxed">{insights.oilStory}</div>
                 </div>
               )}
-            </div>
+            </ClickableCard>
           )}
 
           {/* ⑤ 국제유가 + 향후 전망 */}
@@ -604,7 +604,7 @@ export default function DashboardPage() {
                 ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50" }
                 : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50" };
             return (
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <ClickableCard href="/dashboard/ev-threat" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
                 <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-text-secondary">EV 충전소 현황</div>
                 <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
@@ -625,7 +625,7 @@ export default function DashboardPage() {
                     완속 {detail.evNearby.stations - fs}개소 · 반경 3km
                   </div>
                 </div>
-              </div>
+              </ClickableCard>
             );
           })()}
 
