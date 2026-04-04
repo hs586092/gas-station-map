@@ -225,7 +225,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="w-full px-5 py-6">
         {/* 주유소 정보 헤더 */}
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-1">
@@ -273,7 +273,7 @@ export default function DashboardPage() {
         )}
 
         {/* 카드 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 
           {/* ① 가격 포지션 변화 */}
           {loading.competitors ? <CardSkeleton /> : competitors && (
