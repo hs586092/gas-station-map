@@ -209,14 +209,18 @@ export async function GET(
   }));
 
   // ── 7. 차트용 일별 데이터 (최근 90일) ──
-  const dailySales = days.slice(-90).map((d) => ({
-    date: d.date,
-    gasoline_volume: d.gasoline_volume,
-    diesel_volume: d.diesel_volume,
-    gasoline_price: d.gasoline_price ?? d.gasoline_unit_price,
-    gasoline_count: d.gasoline_count,
-    diesel_count: d.diesel_count,
-  }));
+  const dailySales = days.slice(-90).map((d) => {
+    const ph = priceByDate.get(d.date);
+    return {
+      date: d.date,
+      gasoline_volume: d.gasoline_volume,
+      diesel_volume: d.diesel_volume,
+      gasoline_price: d.gasoline_price ?? d.gasoline_unit_price,
+      diesel_price: ph?.diesel ?? null,
+      gasoline_count: d.gasoline_count,
+      diesel_count: d.diesel_count,
+    };
+  });
 
   // 이벤트 날짜 셋 (차트에 세로선 표시용)
   const eventDates = events.map((e) => e.date);

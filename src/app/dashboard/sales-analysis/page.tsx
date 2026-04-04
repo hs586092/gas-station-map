@@ -49,6 +49,7 @@ interface SalesAnalysis {
     gasoline_volume: number;
     diesel_volume: number;
     gasoline_price: number | null;
+    diesel_price: number | null;
     gasoline_count: number;
     diesel_count: number;
   }>;
@@ -218,9 +219,10 @@ export default function SalesAnalysisPage() {
                   contentStyle={{ fontSize: 12, borderRadius: 8 }}
                   formatter={(value, name) => {
                     const v = Number(value);
-                    if (name === "gasoline_volume") return [`${formatNum(v)}L`, "휘발유"];
-                    if (name === "diesel_volume") return [`${formatNum(v)}L`, "경유"];
-                    if (name === "gasoline_price") return [`${formatNum(v)}원`, "가격"];
+                    if (name === "gasoline_volume") return [`${formatNum(v)}L`, "휘발유 판매량"];
+                    if (name === "diesel_volume") return [`${formatNum(v)}L`, "경유 판매량"];
+                    if (name === "gasoline_price") return [`${formatNum(v)}원`, "휘발유 가격"];
+                    if (name === "diesel_price") return [`${formatNum(v)}원`, "경유 가격"];
                     return [v, String(name)];
                   }}
                   labelFormatter={(label) => formatDate(String(label))}
@@ -238,13 +240,15 @@ export default function SalesAnalysisPage() {
                 <Bar yAxisId="volume" dataKey="gasoline_volume" fill="#00C073" opacity={0.3} radius={[2, 2, 0, 0]} />
                 <Bar yAxisId="volume" dataKey="diesel_volume" fill="#3B82F6" opacity={0.2} radius={[2, 2, 0, 0]} />
                 <Line yAxisId="price" type="stepAfter" dataKey="gasoline_price" stroke="#ef4444" strokeWidth={1.5} dot={false} connectNulls />
+                <Line yAxisId="price" type="stepAfter" dataKey="diesel_price" stroke="#3B82F6" strokeWidth={1.5} dot={false} connectNulls />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex items-center gap-4 mt-2 text-[12px] text-text-tertiary">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[12px] text-text-tertiary">
             <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-emerald-500 opacity-40" /> 휘발유(L)</span>
             <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-500 opacity-30" /> 경유(L)</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-500" /> 가격(원)</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-500" /> 휘발유 가격(원)</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-blue-500" /> 경유 가격(원)</span>
             <span className="flex items-center gap-1"><span className="w-3 h-0 border-t border-dashed border-red-400" /> 가격 변경일</span>
           </div>
         </section>
