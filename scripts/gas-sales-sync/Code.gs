@@ -137,12 +137,17 @@ function readSheetData_() {
       continue;
     }
 
+    // 판매량이 전부 비어있는 행 건너뛰기 (미래 날짜 등)
+    var gVol = parseNum_(row[1]);
+    var dVol = parseNum_(row[4]);
+    if (gVol === null && dVol === null) continue;
+
     rows.push({
       date: date,
-      gasoline_volume: parseNum_(row[1]),
+      gasoline_volume: gVol,
       gasoline_count: parseNum_(row[2]),
       gasoline_amount: parseNum_(row[3]),
-      diesel_volume: parseNum_(row[4]),
+      diesel_volume: dVol,
       diesel_count: parseNum_(row[5]),
     });
   }
