@@ -79,20 +79,20 @@ export default function EvThreatPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <div className="text-[10px] text-text-secondary">총 충전소</div>
-              <div className="text-[20px] font-extrabold text-text-primary">{summary.stations}<span className="text-[11px] font-normal">개소</span></div>
+              <div className="text-[12px] text-text-secondary">총 충전소</div>
+              <div className="text-[20px] font-extrabold text-text-primary">{summary.stations}<span className="text-[13px] font-normal">개소</span></div>
             </div>
             <div>
-              <div className="text-[10px] text-text-secondary">급속 충전소</div>
-              <div className="text-[20px] font-extrabold text-text-primary">{summary.fastStations}<span className="text-[11px] font-normal">개소</span></div>
+              <div className="text-[12px] text-text-secondary">급속 충전소</div>
+              <div className="text-[20px] font-extrabold text-text-primary">{summary.fastStations}<span className="text-[13px] font-normal">개소</span></div>
             </div>
             <div>
-              <div className="text-[10px] text-text-secondary">급속 충전기</div>
-              <div className="text-[20px] font-extrabold text-text-primary">{summary.totalFast}<span className="text-[11px] font-normal">대</span></div>
+              <div className="text-[12px] text-text-secondary">급속 충전기</div>
+              <div className="text-[20px] font-extrabold text-text-primary">{summary.totalFast}<span className="text-[13px] font-normal">대</span></div>
             </div>
             <div>
-              <div className="text-[10px] text-text-secondary">완속 충전기</div>
-              <div className="text-[20px] font-extrabold text-text-primary">{summary.totalSlow}<span className="text-[11px] font-normal">대</span></div>
+              <div className="text-[12px] text-text-secondary">완속 충전기</div>
+              <div className="text-[20px] font-extrabold text-text-primary">{summary.totalSlow}<span className="text-[13px] font-normal">대</span></div>
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function EvThreatPage() {
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
             <div className="text-[13px] font-bold text-text-primary mb-4">전체 충전소 ({chargers.length}개)</div>
             <div className="overflow-x-auto">
-              <table className="w-full text-[11px]">
+              <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left py-2 px-2 text-text-secondary font-semibold">충전소명</th>
@@ -198,7 +198,7 @@ export default function EvThreatPage() {
                     <span className="text-[14px] font-bold text-text-tertiary w-5">{i + 1}</span>
                     <div>
                       <div className="text-[12px] font-semibold text-text-primary">{c.station_name}</div>
-                      <div className="text-[10px] text-text-secondary">{c.operator} · 급속 {c.fast_count}대</div>
+                      <div className="text-[12px] text-text-secondary">{c.operator} · 급속 {c.fast_count}대</div>
                     </div>
                   </div>
                   <div className="text-[13px] font-bold text-text-primary">{c.distance_km}km</div>

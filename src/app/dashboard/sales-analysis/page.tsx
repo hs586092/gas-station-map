@@ -152,7 +152,7 @@ export default function SalesAnalysisPage() {
                 <p className="text-[28px] font-bold text-text-primary m-0">
                   {summary.elasticity}
                 </p>
-                <p className={`text-[11px] font-semibold m-0 mt-0.5 ${
+                <p className={`text-[13px] font-semibold m-0 mt-0.5 ${
                   summary.elasticityLabel === "민감" ? "text-red-500" :
                   summary.elasticityLabel === "둔감" ? "text-emerald-600" : "text-amber-500"
                 }`}>
@@ -162,7 +162,7 @@ export default function SalesAnalysisPage() {
             ) : (
               <>
                 <p className="text-[16px] font-bold text-text-tertiary m-0">—</p>
-                <p className="text-[11px] text-text-tertiary m-0 mt-0.5">
+                <p className="text-[13px] text-text-tertiary m-0 mt-0.5">
                   이벤트 {summary.totalEvents}건 (데이터 축적 중)
                 </p>
               </>
@@ -173,13 +173,13 @@ export default function SalesAnalysisPage() {
         {/* ── 2. 판매량 추이 차트 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[14px] font-bold text-text-primary m-0">판매량 추이</h2>
+            <h2 className="text-[16px] font-bold text-text-primary m-0">판매량 추이</h2>
             <div className="flex gap-1">
               {([30, 90] as const).map((r) => (
                 <button
                   key={r}
                   onClick={() => setChartRange(r)}
-                  className={`px-2.5 py-1 text-[11px] rounded-full border transition-colors ${
+                  className={`px-2.5 py-1 text-[13px] rounded-full border transition-colors ${
                     chartRange === r
                       ? "bg-navy text-white border-navy"
                       : "bg-white text-text-secondary border-border hover:bg-gray-50"
@@ -197,25 +197,25 @@ export default function SalesAnalysisPage() {
                 <XAxis
                   dataKey="date"
                   tickFormatter={formatDate}
-                  tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                  tick={{ fontSize: 12, fill: "#9BA8B7" }}
                   interval={chartRange === 30 ? 4 : 13}
                 />
                 <YAxis
                   yAxisId="volume"
-                  tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                  tick={{ fontSize: 12, fill: "#9BA8B7" }}
                   tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
                   width={40}
                 />
                 <YAxis
                   yAxisId="price"
                   orientation="right"
-                  tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                  tick={{ fontSize: 12, fill: "#9BA8B7" }}
                   tickFormatter={(v: number) => `${v}`}
                   width={45}
                   domain={["auto", "auto"]}
                 />
                 <Tooltip
-                  contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
                   formatter={(value, name) => {
                     const v = Number(value);
                     if (name === "gasoline_volume") return [`${formatNum(v)}L`, "휘발유"];
@@ -241,7 +241,7 @@ export default function SalesAnalysisPage() {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex items-center gap-4 mt-2 text-[10px] text-text-tertiary">
+          <div className="flex items-center gap-4 mt-2 text-[12px] text-text-tertiary">
             <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-emerald-500 opacity-40" /> 휘발유(L)</span>
             <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-500 opacity-30" /> 경유(L)</span>
             <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-500" /> 가격(원)</span>
@@ -251,7 +251,7 @@ export default function SalesAnalysisPage() {
 
         {/* ── 3. 가격 변경 이벤트 목록 ── */}
         <section>
-          <h2 className="text-[14px] font-bold text-text-primary m-0 mb-3">
+          <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">
             가격 변경 이벤트 ({events.length}건)
           </h2>
           {events.length === 0 ? (
@@ -259,7 +259,7 @@ export default function SalesAnalysisPage() {
               <p className="text-[13px] text-text-tertiary m-0">
                 감지된 가격 변경 이벤트가 없습니다.
               </p>
-              <p className="text-[11px] text-text-tertiary m-0 mt-1">
+              <p className="text-[13px] text-text-tertiary m-0 mt-1">
                 판매 데이터가 더 쌓이면 자동으로 분석됩니다.
               </p>
             </div>
@@ -270,7 +270,7 @@ export default function SalesAnalysisPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-bold text-text-primary">{formatDate(e.date)}</span>
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      <span className={`text-[13px] font-semibold px-2 py-0.5 rounded-full ${
                         e.priceChange > 0
                           ? "bg-red-50 text-red-600"
                           : "bg-blue-50 text-blue-600"
@@ -279,11 +279,11 @@ export default function SalesAnalysisPage() {
                       </span>
                     </div>
                     {e.priceSource === "sales_unit_price" && (
-                      <span className="text-[9px] text-text-tertiary bg-gray-100 px-1.5 py-0.5 rounded">추정</span>
+                      <span className="text-[12px] text-text-tertiary bg-gray-100 px-1.5 py-0.5 rounded">추정</span>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                  <div className="grid grid-cols-3 gap-2 text-[13px]">
                     <div>
                       <p className="text-text-tertiary m-0">변경 전 3일</p>
                       <p className="font-semibold text-text-primary m-0">{formatNum(e.volumeBefore3d)}L</p>
@@ -303,7 +303,7 @@ export default function SalesAnalysisPage() {
                   </div>
 
                   {(e.recoveryRate != null || e.elasticity != null) && (
-                    <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border text-[11px]">
+                    <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border text-[13px]">
                       {e.recoveryRate != null && (
                         <span className="text-text-secondary">
                           1주 후: <span className={e.recoveryRate < 0 ? "text-red-500" : "text-emerald-600"}>
@@ -326,19 +326,19 @@ export default function SalesAnalysisPage() {
 
         {/* ── 4. 요일별 판매 패턴 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
-          <h2 className="text-[14px] font-bold text-text-primary m-0 mb-3">요일별 평균 판매량</h2>
+          <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">요일별 평균 판매량</h2>
           <div style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={orderedWeekday} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis dataKey="dayLabel" tick={{ fontSize: 11, fill: "#666" }} />
+                <XAxis dataKey="dayLabel" tick={{ fontSize: 12, fill: "#666" }} />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                  tick={{ fontSize: 12, fill: "#9BA8B7" }}
                   tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
                   width={40}
                 />
                 <Tooltip
-                  contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
                   formatter={(value, name) => {
                     const v = Number(value);
                     if (name === "avgGasoline") return [`${formatNum(v)}L`, "휘발유"];
@@ -355,7 +355,7 @@ export default function SalesAnalysisPage() {
             const maxDay = orderedWeekday.reduce((max, d) => d.avgGasoline > max.avgGasoline ? d : max, orderedWeekday[0]);
             const minDay = orderedWeekday.reduce((min, d) => d.avgGasoline < min.avgGasoline && d.avgGasoline > 0 ? d : min, orderedWeekday[0]);
             return (
-              <p className="text-[11px] text-text-secondary m-0 mt-2">
+              <p className="text-[13px] text-text-secondary m-0 mt-2">
                 {maxDay.dayLabel}요일이 가장 많고 ({formatNum(maxDay.avgGasoline)}L), {minDay.dayLabel}요일이 가장 적습니다 ({formatNum(minDay.avgGasoline)}L)
               </p>
             );
@@ -364,7 +364,7 @@ export default function SalesAnalysisPage() {
 
         {/* ── 5. 탄력성 요약 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
-          <h2 className="text-[14px] font-bold text-text-primary m-0 mb-2">탄력성 해석</h2>
+          <h2 className="text-[16px] font-bold text-text-primary m-0 mb-2">탄력성 해석</h2>
           {summary.elasticity != null ? (
             <div className="space-y-2">
               <div className="flex items-center gap-3">
@@ -378,7 +378,7 @@ export default function SalesAnalysisPage() {
                   <p className="text-[13px] font-semibold text-text-primary m-0">
                     가격에 {summary.elasticityLabel}
                   </p>
-                  <p className="text-[11px] text-text-secondary m-0">
+                  <p className="text-[13px] text-text-secondary m-0">
                     {summary.totalEvents}건의 가격 변경 이벤트 기준
                   </p>
                 </div>
@@ -406,8 +406,8 @@ export default function SalesAnalysisPage() {
         {/* ── 6. 경쟁사 가격 차이 vs 판매량 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[14px] font-bold text-text-primary m-0">경쟁사 대비 가격 차이 vs 판매량</h2>
-            <span className="text-[10px] text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
+            <h2 className="text-[16px] font-bold text-text-primary m-0">경쟁사 대비 가격 차이 vs 판매량</h2>
+            <span className="text-[12px] text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
               데이터 {competitorGap.totalDays}일
             </span>
           </div>
@@ -417,7 +417,7 @@ export default function SalesAnalysisPage() {
               <p className="text-[13px] text-text-tertiary m-0">
                 데이터 축적 중 ({competitorGap.totalDays}일)
               </p>
-              <p className="text-[11px] text-text-tertiary m-0 mt-1">
+              <p className="text-[13px] text-text-tertiary m-0 mt-1">
                 price_history 기반으로 경쟁사 평균 가격을 비교합니다. 최소 7일 이상의 데이터가 필요합니다.
               </p>
             </div>
@@ -430,7 +430,7 @@ export default function SalesAnalysisPage() {
                   const pct = b.count > 0 ? (b.avgVolume / maxVol) * 100 : 0;
                   return (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-[10px] text-text-secondary w-[90px] shrink-0 text-right">{b.range}</span>
+                      <span className="text-[12px] text-text-secondary w-[90px] shrink-0 text-right">{b.range}</span>
                       <div className="flex-1 h-5 bg-gray-50 rounded-full overflow-hidden relative">
                         {b.count > 0 && (
                           <div
@@ -441,10 +441,10 @@ export default function SalesAnalysisPage() {
                           />
                         )}
                       </div>
-                      <span className="text-[10px] font-semibold text-text-primary w-[60px] shrink-0">
+                      <span className="text-[12px] font-semibold text-text-primary w-[60px] shrink-0">
                         {b.count > 0 ? `${formatNum(b.avgVolume)}L` : "—"}
                       </span>
-                      <span className="text-[9px] text-text-tertiary w-[30px] shrink-0">
+                      <span className="text-[12px] text-text-tertiary w-[30px] shrink-0">
                         {b.count}일
                       </span>
                     </div>
@@ -462,21 +462,21 @@ export default function SalesAnalysisPage() {
                         type="number"
                         dataKey="gap"
                         name="가격 차이"
-                        tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                        tick={{ fontSize: 12, fill: "#9BA8B7" }}
                         tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}`}
-                        label={{ value: "경쟁사 대비 가격 차이(원)", position: "bottom", offset: -2, style: { fontSize: 10, fill: "#9BA8B7" } }}
+                        label={{ value: "경쟁사 대비 가격 차이(원)", position: "bottom", offset: -2, style: { fontSize: 12, fill: "#9BA8B7" } }}
                       />
                       <YAxis
                         type="number"
                         dataKey="gasoline_volume"
                         name="판매량"
-                        tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                        tick={{ fontSize: 12, fill: "#9BA8B7" }}
                         tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
                         width={40}
                       />
                       <ZAxis range={[30, 30]} />
                       <Tooltip
-                        contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                        contentStyle={{ fontSize: 12, borderRadius: 8 }}
                         formatter={(value, name) => {
                           if (name === "가격 차이") return [`${Number(value) > 0 ? "+" : ""}${value}원`, name];
                           if (name === "판매량") return [`${formatNum(Number(value))}L`, name];
@@ -509,8 +509,8 @@ export default function SalesAnalysisPage() {
         {keyCompetitorAnalysis.competitors.length > 0 && (
           <section className="bg-white rounded-xl border border-border p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[14px] font-bold text-text-primary m-0">주요 경쟁사별 가격 차이 vs 판매량</h2>
-              <span className="text-[10px] text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
+              <h2 className="text-[16px] font-bold text-text-primary m-0">주요 경쟁사별 가격 차이 vs 판매량</h2>
+              <span className="text-[12px] text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
                 데이터 {keyCompetitorAnalysis.totalDays}일
               </span>
             </div>
@@ -520,7 +520,7 @@ export default function SalesAnalysisPage() {
                 <p className="text-[13px] text-text-tertiary m-0">
                   데이터 축적 중 ({keyCompetitorAnalysis.totalDays}일)
                 </p>
-                <p className="text-[11px] text-text-tertiary m-0 mt-1">
+                <p className="text-[13px] text-text-tertiary m-0 mt-1">
                   price_history 기반 (3/15 이후). 최소 7일 이상의 데이터가 필요합니다.
                 </p>
               </div>
@@ -528,7 +528,7 @@ export default function SalesAnalysisPage() {
               <>
                 {/* 상관계수 비교 바 */}
                 <div className="mb-4">
-                  <p className="text-[11px] text-text-secondary m-0 mb-2">상관계수 (가격 차이↑ → 판매량 변화)</p>
+                  <p className="text-[13px] text-text-secondary m-0 mb-2">상관계수 (가격 차이↑ → 판매량 변화)</p>
                   <div className="space-y-2">
                     {keyCompetitorAnalysis.competitors.map((c, i) => {
                       const corr = c.correlation ?? 0;
@@ -536,7 +536,7 @@ export default function SalesAnalysisPage() {
                       const isNeg = corr < 0;
                       return (
                         <div key={i} className="flex items-center gap-2">
-                          <span className="text-[11px] text-text-primary font-medium w-[100px] shrink-0 truncate">{c.name}</span>
+                          <span className="text-[13px] text-text-primary font-medium w-[100px] shrink-0 truncate">{c.name}</span>
                           <div className="flex-1 h-4 bg-gray-50 rounded-full overflow-hidden relative flex">
                             {/* 중앙 기준 바 */}
                             <div className="w-1/2 flex justify-end">
@@ -551,17 +551,17 @@ export default function SalesAnalysisPage() {
                               )}
                             </div>
                           </div>
-                          <span className={`text-[11px] font-bold w-[45px] shrink-0 text-right ${
+                          <span className={`text-[13px] font-bold w-[45px] shrink-0 text-right ${
                             corr < -0.3 ? "text-red-500" : corr > 0.3 ? "text-emerald-600" : "text-gray-400"
                           }`}>
                             {c.correlation != null ? c.correlation.toFixed(2) : "—"}
                           </span>
-                          <span className="text-[9px] text-text-tertiary w-[25px] shrink-0">{c.totalDays}일</span>
+                          <span className="text-[12px] text-text-tertiary w-[25px] shrink-0">{c.totalDays}일</span>
                         </div>
                       );
                     })}
                   </div>
-                  <p className="text-[9px] text-text-tertiary m-0 mt-1.5">
+                  <p className="text-[12px] text-text-tertiary m-0 mt-1.5">
                     음수(빨강): 가격 차이가 벌어지면 판매량 감소 / 양수(녹색): 가격 차이와 판매량 동시 증가
                   </p>
                 </div>
@@ -575,7 +575,7 @@ export default function SalesAnalysisPage() {
                   if (allScatterData.length < 7) return null;
                   return (
                     <div className="mb-4">
-                      <p className="text-[11px] text-text-secondary m-0 mb-2">경쟁사별 가격 차이 vs 일 판매량</p>
+                      <p className="text-[13px] text-text-secondary m-0 mb-2">경쟁사별 가격 차이 vs 일 판매량</p>
                       <div style={{ height: 320 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 5, right: 10, left: -10, bottom: 20 }}>
@@ -584,21 +584,21 @@ export default function SalesAnalysisPage() {
                               type="number"
                               dataKey="gap"
                               name="가격 차이"
-                              tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                              tick={{ fontSize: 12, fill: "#9BA8B7" }}
                               tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v}`}
-                              label={{ value: "내 가격 - 경쟁사 가격(원)", position: "bottom", offset: 0, style: { fontSize: 10, fill: "#9BA8B7" } }}
+                              label={{ value: "내 가격 - 경쟁사 가격(원)", position: "bottom", offset: 0, style: { fontSize: 12, fill: "#9BA8B7" } }}
                             />
                             <YAxis
                               type="number"
                               dataKey="gasoline_volume"
                               name="판매량"
-                              tick={{ fontSize: 10, fill: "#9BA8B7" }}
+                              tick={{ fontSize: 12, fill: "#9BA8B7" }}
                               tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
                               width={40}
                             />
                             <ZAxis range={[25, 25]} />
                             <Tooltip
-                              contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                              contentStyle={{ fontSize: 12, borderRadius: 8 }}
                               formatter={(value, name) => {
                                 if (name === "가격 차이") return [`${Number(value) > 0 ? "+" : ""}${value}원`, name];
                                 if (name === "판매량") return [`${formatNum(Number(value))}L`, name];
@@ -621,7 +621,7 @@ export default function SalesAnalysisPage() {
                       </div>
                       <div className="flex flex-wrap gap-3 mt-1">
                         {keyCompetitorAnalysis.competitors.map((c, ci) => (
-                          <span key={ci} className="flex items-center gap-1 text-[10px] text-text-secondary">
+                          <span key={ci} className="flex items-center gap-1 text-[12px] text-text-secondary">
                             <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: COMP_COLORS[ci % COMP_COLORS.length] }} />
                             {c.name}
                           </span>
@@ -633,7 +633,7 @@ export default function SalesAnalysisPage() {
 
                 {/* 경쟁사별 구간 테이블 */}
                 <div className="overflow-x-auto">
-                  <table className="w-full text-[11px] border-collapse">
+                  <table className="w-full text-[13px] border-collapse">
                     <thead>
                       <tr className="bg-gray-50 text-text-secondary">
                         <th className="text-left px-2 py-1.5 font-semibold border-b border-border">경쟁사</th>
@@ -651,8 +651,8 @@ export default function SalesAnalysisPage() {
                             <td key={bi} className="text-right px-2 py-2 text-text-secondary">
                               {b.count > 0 ? (
                                 <span>
-                                  {formatNum(b.avgVolume)}<span className="text-[9px] text-text-tertiary">L</span>
-                                  <span className="text-[9px] text-text-tertiary ml-0.5">({b.count})</span>
+                                  {formatNum(b.avgVolume)}<span className="text-[12px] text-text-tertiary">L</span>
+                                  <span className="text-[12px] text-text-tertiary ml-0.5">({b.count})</span>
                                 </span>
                               ) : "—"}
                             </td>
@@ -681,7 +681,7 @@ export default function SalesAnalysisPage() {
         )}
 
         {/* ── 8. 데이터 안내 ── */}
-        <p className="text-[11px] text-text-tertiary m-0 leading-relaxed pb-6">
+        <p className="text-[13px] text-text-tertiary m-0 leading-relaxed pb-6">
           * 데이터 기간: {summary.dataRange.from ? formatDate(summary.dataRange.from) : "—"} ~ {summary.dataRange.to ? formatDate(summary.dataRange.to) : "—"} ({summary.dataRange.totalDays}일)
           <br />
           * 가격 변경 감지: ±5원 이상 변동 시 이벤트로 인정. "추정" 표시는 판매 단가(매출/판매량) 기준입니다.

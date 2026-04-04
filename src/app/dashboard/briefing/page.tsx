@@ -183,7 +183,7 @@ export default function BriefingPage() {
         <section className={`rounded-2xl p-5 border-2 ${recColor[rec.type]} shadow-sm`}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[22px]">{recIcon[rec.type]}</span>
-            <span className="text-[14px] font-bold">오늘의 추천: {recLabel[rec.type]}</span>
+            <span className="text-[16px] font-bold">오늘의 추천: {recLabel[rec.type]}</span>
           </div>
           <p className="text-[15px] font-semibold m-0 leading-relaxed">{rec.message}</p>
           {insights.oilStory && (
@@ -206,7 +206,7 @@ export default function BriefingPage() {
           <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">찬반 요약</h2>
           <div className="rounded-xl border border-border overflow-hidden bg-white">
             {/* 헤더 */}
-            <div className="grid grid-cols-3 text-[11px] font-semibold text-text-secondary bg-gray-50 border-b border-border">
+            <div className="grid grid-cols-3 text-[13px] font-semibold text-text-secondary bg-gray-50 border-b border-border">
               <div className="px-3 py-2">항목</div>
               <div className="px-3 py-2 text-red-600">🔺 인상 찬성</div>
               <div className="px-3 py-2 text-blue-600">🔻 인상 반대</div>
@@ -236,7 +236,7 @@ export default function BriefingPage() {
         {/* ── 4. 금액 범위 ── */}
         {rec.suggestedRange && (
           <section className="rounded-xl border border-border bg-white p-4">
-            <h2 className="text-[14px] font-bold text-text-primary m-0 mb-2">
+            <h2 className="text-[16px] font-bold text-text-primary m-0 mb-2">
               {rec.type === "raise" ? "📈 인상" : rec.type === "lower" ? "📉 인하" : "💡"} 검토 금액
             </h2>
             <div className="flex items-baseline gap-2">
@@ -255,7 +255,7 @@ export default function BriefingPage() {
         )}
 
         {/* ── 5. 면책조항 ── */}
-        <p className="text-[11px] text-text-tertiary m-0 leading-relaxed pb-6">
+        <p className="text-[13px] text-text-tertiary m-0 leading-relaxed pb-6">
           * 본 분석은 국제유가·경쟁사 가격·시장 추세 데이터를 기반으로 자동 생성된 참고 정보입니다. 최종 가격 결정은 사장님의 판단에 따릅니다.
         </p>
       </main>
@@ -273,12 +273,12 @@ function FactorCard({ factor, index, insights }: { factor: Factor; index: number
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[11px] font-bold text-text-secondary">
+          <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[13px] font-bold text-text-secondary">
             {labels[index]}
           </span>
-          <span className="text-[14px] font-bold text-text-primary">{factor.label}</span>
+          <span className="text-[16px] font-bold text-text-primary">{factor.label}</span>
         </div>
-        <span className={`text-[11px] font-semibold ${stanceColor[factor.stance]} flex items-center gap-1`}>
+        <span className={`text-[13px] font-semibold ${stanceColor[factor.stance]} flex items-center gap-1`}>
           {stanceIcon[factor.stance]} {stanceLabel[factor.stance]}
         </span>
       </div>

@@ -101,7 +101,7 @@ export default function TimingAnalysisPage() {
         <section className={`rounded-2xl p-5 border-2 ${urgencyColor[currentSituation.urgency]} shadow-sm`}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[20px]">{urgencyIcon[currentSituation.urgency]}</span>
-            <span className="text-[14px] font-bold">현재 상황</span>
+            <span className="text-[16px] font-bold">현재 상황</span>
           </div>
           <p className="text-[14px] font-semibold m-0 leading-relaxed">{currentSituation.message}</p>
           {timingImpact?.optimalDays && (
@@ -113,7 +113,7 @@ export default function TimingAnalysisPage() {
 
         {/* ── 2. 경쟁사 반응 속도 비교 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
-          <h2 className="text-[14px] font-bold text-text-primary m-0 mb-3">경쟁사 반응 속도</h2>
+          <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">경쟁사 반응 속도</h2>
           {competitorSpeed.some((c) => c.avgDaysToReact != null) ? (
             <>
               <div style={{ height: 200 }}>
@@ -124,10 +124,10 @@ export default function TimingAnalysisPage() {
                     margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: "#9BA8B7" }}
-                      label={{ value: "평균 반응일(일)", position: "bottom", offset: -2, style: { fontSize: 10, fill: "#9BA8B7" } }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#333" }} width={100} />
-                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                    <XAxis type="number" tick={{ fontSize: 12, fill: "#9BA8B7" }}
+                      label={{ value: "평균 반응일(일)", position: "bottom", offset: -2, style: { fontSize: 12, fill: "#9BA8B7" } }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#333" }} width={100} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }}
                       formatter={(value) => [`${value}일`, "평균 반응"]} />
                     <Bar dataKey="avgDaysToReact" radius={[0, 4, 4, 0]}>
                       {competitorSpeed.filter((c) => c.avgDaysToReact != null).map((_, i) => (
@@ -157,22 +157,22 @@ export default function TimingAnalysisPage() {
 
         {/* ── 3. 선제 vs 추종 판매량 비교 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
-          <h2 className="text-[14px] font-bold text-text-primary m-0 mb-3">선제 대응 vs 추종 대응</h2>
+          <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">선제 대응 vs 추종 대응</h2>
           {timingImpact ? (
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center">
-                <p className="text-[11px] text-emerald-700 m-0 mb-1">경쟁사보다 먼저/같이</p>
+                <p className="text-[13px] text-emerald-700 m-0 mb-1">경쟁사보다 먼저/같이</p>
                 <p className={`text-[28px] font-bold m-0 ${timingImpact.earlyResponse.avgSalesChange < 0 ? "text-red-500" : "text-emerald-600"}`}>
                   {timingImpact.earlyResponse.avgSalesChange > 0 ? "+" : ""}{timingImpact.earlyResponse.avgSalesChange}%
                 </p>
-                <p className="text-[10px] text-emerald-600 m-0 mt-1">{timingImpact.earlyResponse.count}건</p>
+                <p className="text-[12px] text-emerald-600 m-0 mt-1">{timingImpact.earlyResponse.count}건</p>
               </div>
               <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-center">
-                <p className="text-[11px] text-red-700 m-0 mb-1">경쟁사보다 늦게</p>
+                <p className="text-[13px] text-red-700 m-0 mb-1">경쟁사보다 늦게</p>
                 <p className={`text-[28px] font-bold m-0 ${timingImpact.lateResponse.avgSalesChange < 0 ? "text-red-500" : "text-emerald-600"}`}>
                   {timingImpact.lateResponse.avgSalesChange > 0 ? "+" : ""}{timingImpact.lateResponse.avgSalesChange}%
                 </p>
-                <p className="text-[10px] text-red-600 m-0 mt-1">{timingImpact.lateResponse.count}건</p>
+                <p className="text-[12px] text-red-600 m-0 mt-1">{timingImpact.lateResponse.count}건</p>
               </div>
             </div>
           ) : (
@@ -194,7 +194,7 @@ export default function TimingAnalysisPage() {
 
         {/* ── 4. 유가 이벤트 타임라인 ── */}
         <section className="bg-white rounded-xl border border-border p-4">
-          <h2 className="text-[14px] font-bold text-text-primary m-0 mb-3">
+          <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">
             유가 이벤트 타임라인 ({oilEvents.length}건)
           </h2>
           {oilEvents.length === 0 ? (
@@ -216,13 +216,13 @@ export default function TimingAnalysisPage() {
                       </span>
                       <span className="text-[13px] font-bold text-text-primary">{formatDate(ev.date)}</span>
                     </div>
-                    <span className="text-[11px] text-text-tertiary">${ev.brentPrice.toFixed(1)}</span>
+                    <span className="text-[13px] text-text-tertiary">${ev.brentPrice.toFixed(1)}</span>
                   </div>
 
                   {/* 반응 타임라인 */}
                   <div className="space-y-1.5">
                     {ev.competitorReactions.map((r, ri) => (
-                      <div key={ri} className="flex items-center gap-2 text-[11px]">
+                      <div key={ri} className="flex items-center gap-2 text-[13px]">
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COMP_COLORS[ri % COMP_COLORS.length] }} />
                         <span className="text-text-primary font-medium w-[90px] shrink-0 truncate">{r.name}</span>
                         {r.reactionDate ? (
@@ -239,7 +239,7 @@ export default function TimingAnalysisPage() {
                       </div>
                     ))}
                     {/* 내 반응 */}
-                    <div className="flex items-center gap-2 text-[11px] pt-1 border-t border-border mt-1">
+                    <div className="flex items-center gap-2 text-[13px] pt-1 border-t border-border mt-1">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                       <span className="text-emerald-700 font-bold w-[90px] shrink-0">우리 주유소</span>
                       {ev.myReaction.reactionDate ? (
@@ -258,7 +258,7 @@ export default function TimingAnalysisPage() {
 
                   {/* 판매량 영향 */}
                   {ev.salesImpact && (
-                    <div className="mt-2 pt-2 border-t border-border text-[11px] flex items-center gap-3">
+                    <div className="mt-2 pt-2 border-t border-border text-[13px] flex items-center gap-3">
                       <span className="text-text-secondary">판매량:</span>
                       <span className="text-text-secondary">{ev.salesImpact.beforeAvg.toLocaleString()}L →</span>
                       <span className="text-text-secondary">{ev.salesImpact.afterAvg.toLocaleString()}L</span>
@@ -274,7 +274,7 @@ export default function TimingAnalysisPage() {
         </section>
 
         {/* ── 5. 데이터 안내 ── */}
-        <div className="bg-gray-50 rounded-xl p-4 text-[11px] text-text-tertiary space-y-1">
+        <div className="bg-gray-50 rounded-xl p-4 text-[13px] text-text-tertiary space-y-1">
           <p className="m-0 font-semibold text-text-secondary">데이터 현황</p>
           <p className="m-0">유가 이벤트: {dataStatus.totalEvents}건 (최소 {dataStatus.minRequired}건 필요, {dataStatus.isReliable ? "✅ 신뢰 가능" : "⏳ 축적 중"})</p>
           <p className="m-0">분석 기간: {dataStatus.dataRange.from ? formatDate(dataStatus.dataRange.from) : "—"} ~ {dataStatus.dataRange.to ? formatDate(dataStatus.dataRange.to) : "—"} (price_history 기준)</p>

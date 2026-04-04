@@ -142,21 +142,21 @@ export default function PriceHistoryPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">현재가</div>
+            <div className="text-[13px] text-text-secondary mb-1">현재가</div>
             <div className="text-[20px] font-extrabold text-text-primary">{latestPrice.toLocaleString()}<span className="text-[12px] font-normal">원</span></div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">30일 변동</div>
+            <div className="text-[13px] text-text-secondary mb-1">30일 변동</div>
             <div className={`text-[20px] font-extrabold ${totalChange > 0 ? "text-coral" : totalChange < 0 ? "text-blue-600" : "text-text-primary"}`}>
               {totalChange > 0 ? "+" : ""}{totalChange}<span className="text-[12px] font-normal">원</span>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">30일 평균</div>
+            <div className="text-[13px] text-text-secondary mb-1">30일 평균</div>
             <div className="text-[20px] font-extrabold text-text-primary">{avgPrice.toLocaleString()}<span className="text-[12px] font-normal">원</span></div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">최저↔최고</div>
+            <div className="text-[13px] text-text-secondary mb-1">최저↔최고</div>
             <div className="text-[14px] font-bold text-text-primary">
               {minPrice.toLocaleString()} ~ {maxPrice.toLocaleString()}
             </div>
@@ -190,10 +190,10 @@ export default function PriceHistoryPage() {
         {/* 메인 차트 */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[14px] font-bold text-text-primary">
+            <div className="text-[16px] font-bold text-text-primary">
               {selectedFuel === "gasoline" ? "휘발유" : "경유"} 가격 추이
             </div>
-            <div className="flex gap-3 text-[10px]">
+            <div className="flex gap-3 text-[12px]">
               <span className="flex items-center gap-1">
                 <span className="w-2.5 h-0.5 rounded inline-block" style={{ background: selectedFuel === "gasoline" ? "#FF5252" : "#1B2838" }} />
                 내 주유소
@@ -288,7 +288,7 @@ export default function PriceHistoryPage() {
                     style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }}
                   />
                   {c.name}
-                  <span className="text-[10px] text-text-tertiary">{c.distance_km}km</span>
+                  <span className="text-[12px] text-text-tertiary">{c.distance_km}km</span>
                 </button>
               ))}
             </div>

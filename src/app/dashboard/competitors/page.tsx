@@ -125,19 +125,19 @@ export default function CompetitorsPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">총 경쟁사</div>
+            <div className="text-[13px] text-text-secondary mb-1">총 경쟁사</div>
             <div className="text-[22px] font-extrabold text-text-primary">{competitors.length}<span className="text-[12px] font-normal">개</span></div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">이번 주 인상</div>
+            <div className="text-[13px] text-text-secondary mb-1">이번 주 인상</div>
             <div className="text-[22px] font-extrabold text-coral">{weeklyTrend?.risingCount ?? 0}<span className="text-[12px] font-normal">곳</span></div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">이번 주 인하</div>
+            <div className="text-[13px] text-text-secondary mb-1">이번 주 인하</div>
             <div className="text-[22px] font-extrabold text-blue-600">{weeklyTrend?.fallingCount ?? 0}<span className="text-[12px] font-normal">곳</span></div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">선제형 경쟁사</div>
+            <div className="text-[13px] text-text-secondary mb-1">선제형 경쟁사</div>
             <div className="text-[22px] font-extrabold text-text-primary">{profiles.filter((p) => p.type === "leader").length}<span className="text-[12px] font-normal">곳</span></div>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function CompetitorsPage() {
           </div>
           <div className="flex gap-1">
             {(["distance", "price", "changes"] as const).map((s) => (
-              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-white text-text-secondary border-border"}`}>
+              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-white text-text-secondary border-border"}`}>
                 {s === "distance" ? "거리순" : s === "price" ? "가격순" : "변경순"}
               </button>
             ))}
@@ -188,17 +188,17 @@ export default function CompetitorsPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[13px] font-semibold text-text-primary truncate">{c.name}</span>
-                          <span className="text-[10px] text-text-tertiary">{BRAND_LABELS[c.brand] || ""}</span>
+                          <span className="text-[12px] text-text-tertiary">{BRAND_LABELS[c.brand] || ""}</span>
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-text-secondary">
+                        <div className="flex items-center gap-2 mt-0.5 text-[12px] text-text-secondary">
                           <span>{c.distance_km}km</span>
                           {prof && (
-                            <span className={`px-1.5 py-0.5 rounded-full font-bold text-[9px] ${typeColor(prof.type)}`}>
+                            <span className={`px-1.5 py-0.5 rounded-full font-bold text-[12px] ${typeColor(prof.type)}`}>
                               {typeLabel(prof.type)} · {prof.changeCount}회
                             </span>
                           )}
                           {corrVal != null && (
-                            <span className={`text-[9px] font-medium ${corrVal >= 0.7 ? "text-emerald" : corrVal >= 0.3 ? "text-amber-600" : "text-text-tertiary"}`}>
+                            <span className={`text-[12px] font-medium ${corrVal >= 0.7 ? "text-emerald" : corrVal >= 0.3 ? "text-amber-600" : "text-text-tertiary"}`}>
                               연동 {corrVal.toFixed(2)}
                             </span>
                           )}
@@ -206,9 +206,9 @@ export default function CompetitorsPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <div className="text-[16px] font-bold text-text-primary">{price?.toLocaleString() || "-"}<span className="text-[10px] font-normal">원</span></div>
+                      <div className="text-[16px] font-bold text-text-primary">{price?.toLocaleString() || "-"}<span className="text-[12px] font-normal">원</span></div>
                       {diff != null && (
-                        <div className={`text-[11px] font-bold ${diff > 0 ? "text-coral" : diff < 0 ? "text-blue-600" : "text-text-tertiary"}`}>
+                        <div className={`text-[13px] font-bold ${diff > 0 ? "text-coral" : diff < 0 ? "text-blue-600" : "text-text-tertiary"}`}>
                           나보다 {diff > 0 ? `+${diff}` : diff}원
                         </div>
                       )}
@@ -230,13 +230,13 @@ export default function CompetitorsPage() {
                       </div>
                     ) : chartData.length > 0 ? (
                       <div className="pt-3">
-                        <div className="text-[11px] text-text-secondary mb-2">{c.name} · 최근 30일 {selectedFuel === "gasoline" ? "휘발유" : "경유"}</div>
+                        <div className="text-[13px] text-text-secondary mb-2">{c.name} · 최근 30일 {selectedFuel === "gasoline" ? "휘발유" : "경유"}</div>
                         <ResponsiveContainer width="100%" height={200}>
                           <LineChart data={chartData.map((d) => ({ ...d, date: d.date.slice(5) }))}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
                             <XAxis dataKey="date" fontSize={10} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" tickLine={false} />
                             <YAxis fontSize={10} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 20", "dataMax + 20"]} tickFormatter={(v: number) => v.toLocaleString()} axisLine={false} tickLine={false} width={45} />
-                            <Tooltip formatter={(value, name) => [`${Number(value).toLocaleString()}원`, String(name)]} contentStyle={{ borderRadius: 10, border: "1px solid #E8EBF0", fontSize: 11 }} />
+                            <Tooltip formatter={(value, name) => [`${Number(value).toLocaleString()}원`, String(name)]} contentStyle={{ borderRadius: 10, border: "1px solid #E8EBF0", fontSize: 12 }} />
                             <Line type="monotone" dataKey={selectedFuel} stroke={BRAND_COLORS[c.brand] || "#9BA8B7"} strokeWidth={2} dot={false} connectNulls />
                           </LineChart>
                         </ResponsiveContainer>
@@ -254,8 +254,8 @@ export default function CompetitorsPage() {
         {/* 가격 연동성 */}
         {correlations.length > 0 && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
-            <div className="text-[14px] font-bold text-text-primary mb-1">가격 연동성 분석</div>
-            <div className="text-[11px] text-text-secondary mb-4">나와 가격이 같이 움직이는 경쟁사 (Pearson 상관계수, 30일 기준)</div>
+            <div className="text-[16px] font-bold text-text-primary mb-1">가격 연동성 분석</div>
+            <div className="text-[13px] text-text-secondary mb-4">나와 가격이 같이 움직이는 경쟁사 (Pearson 상관계수, 30일 기준)</div>
             <div className="space-y-3">
               {correlations
                 .filter((c) => (selectedFuel === "gasoline" ? c.gasoline_correlation : c.diesel_correlation) != null)
@@ -276,14 +276,14 @@ export default function CompetitorsPage() {
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
                           <span className="text-[12px] text-text-primary truncate">{c.name}</span>
-                          <span className="text-[10px] text-text-tertiary">{c.distance_km}km</span>
+                          <span className="text-[12px] text-text-tertiary">{c.distance_km}km</span>
                         </div>
                         <span className="text-[12px] font-bold text-text-primary shrink-0 ml-2">{val.toFixed(2)}</span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
                         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(absVal * 100, 5)}%` }} />
                       </div>
-                      <div className="text-[10px] text-text-secondary">{label} · 데이터 {c.data_points}일</div>
+                      <div className="text-[12px] text-text-secondary">{label} · 데이터 {c.data_points}일</div>
                     </div>
                   );
                 })}
@@ -294,7 +294,7 @@ export default function CompetitorsPage() {
         {/* 프로파일 요약 */}
         {profiles.length > 0 && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-            <div className="text-[14px] font-bold text-text-primary mb-4">경쟁사 행동 프로파일</div>
+            <div className="text-[16px] font-bold text-text-primary mb-4">경쟁사 행동 프로파일</div>
             <div className="grid grid-cols-3 gap-3 mb-4">
               {(["leader", "follower", "steady"] as const).map((t) => {
                 const count = profiles.filter((p) => p.type === t).length;
@@ -302,12 +302,12 @@ export default function CompetitorsPage() {
                 return (
                   <div key={t} className={`rounded-xl p-3 text-center ${colors[t]}`}>
                     <div className="text-[20px] font-extrabold">{count}</div>
-                    <div className="text-[11px] font-medium">{typeLabel(t)}</div>
+                    <div className="text-[13px] font-medium">{typeLabel(t)}</div>
                   </div>
                 );
               })}
             </div>
-            <div className="text-[10px] text-text-tertiary">
+            <div className="text-[12px] text-text-tertiary">
               * 18일간 가격 변경 빈도: 5회 이상 선제형, 3~4회 추종형, 2회 이하 안정형
             </div>
           </div>

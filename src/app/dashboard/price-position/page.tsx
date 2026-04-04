@@ -131,27 +131,27 @@ export default function PricePositionPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">내 {selectedFuel === "gasoline" ? "휘발유" : "경유"}</div>
+            <div className="text-[13px] text-text-secondary mb-1">내 {selectedFuel === "gasoline" ? "휘발유" : "경유"}</div>
             <div className="text-[22px] font-extrabold text-text-primary">
               {myPrice?.toLocaleString() || "-"}<span className="text-[12px] font-normal">원</span>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">현재 순위</div>
+            <div className="text-[13px] text-text-secondary mb-1">현재 순위</div>
             <div className="text-[22px] font-extrabold text-emerald">
               {selectedFuel === "gasoline" ? competitors.stats.my_gasoline_rank : competitors.stats.my_diesel_rank}위
               <span className="text-[12px] font-normal text-text-secondary"> / {competitors.stats.total_count}개</span>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">지역 평균</div>
+            <div className="text-[13px] text-text-secondary mb-1">지역 평균</div>
             <div className="text-[20px] font-extrabold text-text-primary">
               {(selectedFuel === "gasoline" ? competitors.stats.avg_gasoline : competitors.stats.avg_diesel)?.toLocaleString() || "-"}
               <span className="text-[12px] font-normal">원</span>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">평균 대비</div>
+            <div className="text-[13px] text-text-secondary mb-1">평균 대비</div>
             {(() => {
               const avg = selectedFuel === "gasoline" ? competitors.stats.avg_gasoline : competitors.stats.avg_diesel;
               const diff = myPrice && avg ? myPrice - avg : null;
@@ -172,7 +172,7 @@ export default function PricePositionPage() {
           <div className={`mb-6 rounded-2xl px-5 py-4 ${
             activeRankInfo.diff < 0 ? "bg-emerald-light" : "bg-red-50"
           }`}>
-            <div className="text-[14px] font-bold text-text-primary">
+            <div className="text-[16px] font-bold text-text-primary">
               어제 {activeRankInfo.yesterday?.rank}위 → 오늘 {activeRankInfo.today?.rank}위
               {activeRankInfo.diff < 0 ? " 📈 순위 상승" : " 📉 순위 하락"}
             </div>
@@ -207,7 +207,7 @@ export default function PricePositionPage() {
               <button
                 key={s}
                 onClick={() => setSortBy(s)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
                   sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-white text-text-secondary border-border"
                 }`}
               >
@@ -234,12 +234,12 @@ export default function PricePositionPage() {
                     style={{ height: `${20 + (i / priceDistribution.length) * 44}px` }}
                   />
                   {d.isMe && (
-                    <div className="text-[9px] font-bold text-emerald mt-1">나</div>
+                    <div className="text-[12px] font-bold text-emerald mt-1">나</div>
                   )}
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-2 text-[10px] text-text-tertiary">
+            <div className="flex justify-between mt-2 text-[12px] text-text-tertiary">
               <span>{priceDistribution[0]?.price.toLocaleString()}원</span>
               <span>{priceDistribution[priceDistribution.length - 1]?.price.toLocaleString()}원</span>
             </div>
@@ -272,7 +272,7 @@ export default function PricePositionPage() {
                     <div className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full" style={{ background: BRAND_COLORS[competitors.baseStation.brand] }} />
                       <span className="font-bold text-text-primary">{competitors.baseStation.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-emerald text-white rounded-full font-bold">나</span>
+                      <span className="text-[12px] px-1.5 py-0.5 bg-emerald text-white rounded-full font-bold">나</span>
                     </div>
                   </td>
                   <td className="py-2.5 px-3 text-right font-bold text-text-primary">
@@ -291,7 +291,7 @@ export default function PricePositionPage() {
                         <div className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
                           <span className="text-text-primary">{c.name}</span>
-                          <span className="text-[10px] text-text-tertiary">{BRAND_LABELS[c.brand] || ""}</span>
+                          <span className="text-[12px] text-text-tertiary">{BRAND_LABELS[c.brand] || ""}</span>
                         </div>
                       </td>
                       <td className="py-2.5 px-3 text-right font-medium text-text-primary">
@@ -317,7 +317,7 @@ export default function PricePositionPage() {
         {myPrice && simulations.length > 0 && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
             <div className="text-[13px] font-bold text-text-primary mb-1">가격 시뮬레이터</div>
-            <div className="text-[11px] text-text-tertiary mb-4">
+            <div className="text-[13px] text-text-tertiary mb-4">
               현재 {selectedFuel === "gasoline" ? "휘발유" : "경유"} {myPrice.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위 변화 예측
             </div>
             <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
@@ -329,15 +329,15 @@ export default function PricePositionPage() {
                       {delta > 0 ? "+" : ""}{delta}원
                     </div>
                     <div className="text-[14px] font-extrabold text-text-primary mt-1">{simPrice.toLocaleString()}</div>
-                    <div className="text-[11px] text-text-secondary mt-1">
+                    <div className="text-[13px] text-text-secondary mt-1">
                       {total}개 중 <span className="font-bold">{simRank}위</span>
                     </div>
                     {rankChange !== 0 ? (
-                      <div className={`text-[10px] font-medium mt-0.5 ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
+                      <div className={`text-[12px] font-medium mt-0.5 ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
                         {rankChange > 0 ? `▼${rankChange}단계` : `▲${Math.abs(rankChange)}단계`}
                       </div>
                     ) : (
-                      <div className="text-[10px] text-text-tertiary mt-0.5">변동 없음</div>
+                      <div className="text-[12px] text-text-tertiary mt-0.5">변동 없음</div>
                     )}
                   </div>
                 );

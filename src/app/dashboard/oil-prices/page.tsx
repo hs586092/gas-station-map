@@ -126,13 +126,13 @@ export default function OilPricesPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">Brent 현재</div>
+            <div className="text-[13px] text-text-secondary mb-1">Brent 현재</div>
             <div className="text-[20px] font-extrabold text-text-primary">
               ${brentLatest.toFixed(1)}
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">2주 변동</div>
+            <div className="text-[13px] text-text-secondary mb-1">2주 변동</div>
             <div className={`text-[20px] font-extrabold ${
               (summary?.brentChange ?? 0) > 0 ? "text-coral" : (summary?.brentChange ?? 0) < 0 ? "text-blue-600" : "text-text-primary"
             }`}>
@@ -140,11 +140,11 @@ export default function OilPricesPage() {
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">60일 평균</div>
+            <div className="text-[13px] text-text-secondary mb-1">60일 평균</div>
             <div className="text-[20px] font-extrabold text-text-primary">${brentAvg.toFixed(1)}</div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
-            <div className="text-[11px] text-text-secondary mb-1">60일 범위</div>
+            <div className="text-[13px] text-text-secondary mb-1">60일 범위</div>
             <div className="text-[14px] font-bold text-text-primary">
               ${brentMin.toFixed(1)} ~ ${brentMax.toFixed(1)}
             </div>
@@ -154,8 +154,8 @@ export default function OilPricesPage() {
         {/* 메인 차트: WTI / Brent */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[14px] font-bold text-text-primary">국제유가 60일 추이</div>
-            <div className="flex gap-3 text-[10px]">
+            <div className="text-[16px] font-bold text-text-primary">국제유가 60일 추이</div>
+            <div className="flex gap-3 text-[12px]">
               <span className="flex items-center gap-1">
                 <span className="w-2.5 h-0.5 rounded inline-block" style={{ background: "#f97316" }} /> WTI
               </span>
@@ -179,13 +179,13 @@ export default function OilPricesPage() {
                 contentStyle={{ borderRadius: 12, border: "1px solid #E8EBF0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", padding: "8px 12px", fontSize: 12 }}
               />
               {twoWeeksAgoDate && (
-                <ReferenceLine x={twoWeeksAgoDate} stroke="#fca5a5" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: "2주 전", position: "top", fontSize: 10, fill: "#ef4444" }} />
+                <ReferenceLine x={twoWeeksAgoDate} stroke="#fca5a5" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: "2주 전", position: "top", fontSize: 12, fill: "#ef4444" }} />
               )}
               <Line type="monotone" dataKey="wti" stroke="#f97316" strokeWidth={2} dot={false} name="wti" connectNulls />
               <Line type="monotone" dataKey="brent" stroke="#3b82f6" strokeWidth={2} dot={false} name="brent" connectNulls />
             </LineChart>
           </ResponsiveContainer>
-          <div className="mt-3 bg-slate-50 rounded-lg px-3 py-2.5 text-[11px] text-slate-500 leading-relaxed">
+          <div className="mt-3 bg-slate-50 rounded-lg px-3 py-2.5 text-[13px] text-slate-500 leading-relaxed">
             국제유가 변동은 약 <strong className="text-slate-700">2주 후</strong> 주유소 소매가에 반영됩니다.
             빨간 점선(2주 전) 기준의 유가가 현재 소매가에 영향을 주는 시점입니다.
           </div>
@@ -195,14 +195,14 @@ export default function OilPricesPage() {
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="text-[14px] font-bold text-text-primary">유가 → 소매가 시차 분석</div>
-              <div className="text-[11px] text-text-secondary mt-0.5">
+              <div className="text-[16px] font-bold text-text-primary">유가 → 소매가 시차 분석</div>
+              <div className="text-[13px] text-text-secondary mt-0.5">
                 Brent 유가와 2주 후 내 소매가를 같은 시점에 겹쳐 표시
               </div>
             </div>
             <button
               onClick={() => setShowRetail(!showRetail)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
                 showRetail
                   ? "bg-emerald-light text-emerald border-emerald"
                   : "bg-white text-text-secondary border-border"
@@ -233,7 +233,7 @@ export default function OilPricesPage() {
               )}
             </LineChart>
           </ResponsiveContainer>
-          <div className="flex gap-4 mt-3 text-[10px]">
+          <div className="flex gap-4 mt-3 text-[12px]">
             <span className="flex items-center gap-1">
               <span className="w-2.5 h-0.5 rounded inline-block" style={{ background: "#3b82f6" }} /> Brent (좌축, $/BBL)
             </span>
@@ -245,13 +245,13 @@ export default function OilPricesPage() {
 
         {/* 상관관계 분석 카드 */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
-          <div className="text-[14px] font-bold text-text-primary mb-4">유가-소매가 상관관계</div>
+          <div className="text-[16px] font-bold text-text-primary mb-4">유가-소매가 상관관계</div>
           <div className="flex items-center gap-6">
             <div className="text-center">
               <div className="text-[36px] font-extrabold text-text-primary">
                 {correlation.toFixed(2)}
               </div>
-              <div className="text-[11px] text-text-secondary mt-1">Pearson 상관계수</div>
+              <div className="text-[13px] text-text-secondary mt-1">Pearson 상관계수</div>
             </div>
             <div className="flex-1">
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-2">
@@ -278,7 +278,7 @@ export default function OilPricesPage() {
         {/* 향후 전망 */}
         {summary && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-            <div className="text-[14px] font-bold text-text-primary mb-3">향후 2주 소매가 전망</div>
+            <div className="text-[16px] font-bold text-text-primary mb-3">향후 2주 소매가 전망</div>
             <div className={`rounded-xl px-4 py-4 ${
               (summary.brentChange ?? 0) > 0 ? "bg-red-50" : (summary.brentChange ?? 0) < 0 ? "bg-blue-50" : "bg-slate-50"
             }`}>
@@ -289,7 +289,7 @@ export default function OilPricesPage() {
                   ? `Brent 유가가 2주간 $${Math.abs(summary.brentChange ?? 0).toFixed(1)} 하락했습니다. 향후 2주 내 소매가 인하 여력이 생길 수 있습니다.`
                   : `Brent 유가가 2주간 큰 변동 없이 안정적입니다. 소매가 유지가 적절한 시점입니다.`}
               </div>
-              <div className="text-[11px] text-text-secondary mt-2">
+              <div className="text-[13px] text-text-secondary mt-2">
                 * 국제유가 → 국내 소매가 반영에는 약 2주의 시차가 있으며, 실제 반영은 경쟁 환경에 따라 달라질 수 있습니다.
               </div>
             </div>

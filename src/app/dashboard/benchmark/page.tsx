@@ -132,8 +132,8 @@ export default function BenchmarkPage() {
 
         {/* 적정가 범위 카드 */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
-          <div className="text-[14px] font-bold text-text-primary mb-1">적정 가격 범위</div>
-          <div className="text-[11px] text-text-secondary mb-4">{refBenchmark.label} 기준 Q1~Q3 범위</div>
+          <div className="text-[16px] font-bold text-text-primary mb-1">적정 가격 범위</div>
+          <div className="text-[13px] text-text-secondary mb-4">{refBenchmark.label} 기준 Q1~Q3 범위</div>
 
           {/* 범위 시각화 */}
           <div className="relative h-12 mb-3">
@@ -156,7 +156,7 @@ export default function BenchmarkPage() {
                     className="absolute top-1 flex flex-col items-center"
                     style={{ left: `${myPos}%`, transform: "translateX(-50%)" }}
                   >
-                    <div className="text-[9px] font-bold text-emerald mb-0.5">나</div>
+                    <div className="text-[12px] font-bold text-emerald mb-0.5">나</div>
                     <div className="w-3 h-3 rounded-full bg-emerald border-2 border-white shadow-sm" />
                     <div className="w-0.5 h-3 bg-emerald" />
                   </div>
@@ -164,22 +164,22 @@ export default function BenchmarkPage() {
               );
             })()}
           </div>
-          <div className="flex justify-between text-[10px] text-text-tertiary mb-4">
+          <div className="flex justify-between text-[12px] text-text-tertiary mb-4">
             <span>{dMin.toLocaleString()}원</span>
             <span>{dMax.toLocaleString()}원</span>
           </div>
 
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-blue-50 rounded-xl p-3">
-              <div className="text-[10px] text-text-secondary mb-1">Q1 (하위 25%)</div>
+              <div className="text-[12px] text-text-secondary mb-1">Q1 (하위 25%)</div>
               <div className="text-[16px] font-bold text-blue-600">{fairMin.toLocaleString()}</div>
             </div>
             <div className="bg-emerald-light rounded-xl p-3">
-              <div className="text-[10px] text-text-secondary mb-1">중앙값</div>
+              <div className="text-[12px] text-text-secondary mb-1">중앙값</div>
               <div className="text-[16px] font-bold text-emerald">{fairMedian.toLocaleString()}</div>
             </div>
             <div className="bg-red-50 rounded-xl p-3">
-              <div className="text-[10px] text-text-secondary mb-1">Q3 (상위 25%)</div>
+              <div className="text-[12px] text-text-secondary mb-1">Q3 (상위 25%)</div>
               <div className="text-[16px] font-bold text-coral">{fairMax.toLocaleString()}</div>
             </div>
           </div>
@@ -200,8 +200,8 @@ export default function BenchmarkPage() {
 
         {/* 히스토그램 */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
-          <div className="text-[14px] font-bold text-text-primary mb-1">가격 분포 히스토그램</div>
-          <div className="text-[11px] text-text-secondary mb-4">{distribution.source} · {distribution.prices.length}개</div>
+          <div className="text-[16px] font-bold text-text-primary mb-1">가격 분포 히스토그램</div>
+          <div className="text-[13px] text-text-secondary mb-4">{distribution.source} · {distribution.prices.length}개</div>
           <div className="flex items-end gap-1 h-40">
             {bins.map((bin, i) => (
               <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
@@ -218,7 +218,7 @@ export default function BenchmarkPage() {
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-[9px] text-text-tertiary">
+          <div className="flex justify-between mt-2 text-[12px] text-text-tertiary">
             <span>{dMin.toLocaleString()}</span>
             <span>{Math.round((dMin + dMax) / 2).toLocaleString()}</span>
             <span>{dMax.toLocaleString()}</span>
@@ -227,7 +227,7 @@ export default function BenchmarkPage() {
 
         {/* 5축 벤치마크 비교 */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
-          <div className="text-[14px] font-bold text-text-primary mb-4">다축 벤치마크 비교</div>
+          <div className="text-[16px] font-bold text-text-primary mb-4">다축 벤치마크 비교</div>
           <div className="space-y-4">
             {allBenchmarks.map((bm, i) => {
               const diff = myPrice - bm.avg;
@@ -238,13 +238,13 @@ export default function BenchmarkPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <div className="text-[13px] font-bold text-text-primary">{bm.label}</div>
-                      <div className="text-[10px] text-text-tertiary">{bm.count}개 중 {bm.rank}위 · 상위 {bm.percentile}%</div>
+                      <div className="text-[12px] text-text-tertiary">{bm.count}개 중 {bm.rank}위 · 상위 {bm.percentile}%</div>
                     </div>
                     <div className="text-right">
                       <div className={`text-[18px] font-extrabold ${diffColor}`}>
                         {diff > 0 ? "+" : ""}{diff}원
                       </div>
-                      <div className={`text-[11px] font-medium ${diffColor}`}>{diffLabel}</div>
+                      <div className={`text-[13px] font-medium ${diffColor}`}>{diffLabel}</div>
                     </div>
                   </div>
 
@@ -278,7 +278,7 @@ export default function BenchmarkPage() {
                       );
                     })()}
                   </div>
-                  <div className="flex justify-between text-[9px] text-text-tertiary mt-1">
+                  <div className="flex justify-between text-[12px] text-text-tertiary mt-1">
                     <span>최저 {bm.min.toLocaleString()}</span>
                     <span>평균 {bm.avg.toLocaleString()}</span>
                     <span>최고 {bm.max.toLocaleString()}</span>
@@ -292,8 +292,8 @@ export default function BenchmarkPage() {
         {/* 유동인구 비교 (있는 경우) */}
         {data.benchmarks.population && (
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-            <div className="text-[14px] font-bold text-text-primary mb-2">유동인구 유사 지역 비교</div>
-            <div className="text-[11px] text-text-secondary mb-3">
+            <div className="text-[16px] font-bold text-text-primary mb-2">유동인구 유사 지역 비교</div>
+            <div className="text-[13px] text-text-secondary mb-3">
               유동인구 {(data.benchmarks.population as PopulationTier).level} 수준 · {(data.benchmarks.population as PopulationTier).districts.join(", ")}
             </div>
             <div className="bg-slate-50 rounded-lg px-4 py-3">
