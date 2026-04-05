@@ -930,7 +930,7 @@ export default function DashboardPage() {
             const refEndDate = oilChartData[oilChartData.length - 1]?.date;
             return (
             <ClickableCard href="/dashboard/oil-prices" className={`rounded-2xl p-5 shadow-sm border border-border ${
-              isOilUp ? "bg-gradient-to-b from-red-950/30 to-surface-raised" : isOilDown ? "bg-gradient-to-b from-blue-950/30 to-surface-raised" : "bg-surface-raised"
+              "bg-surface-raised"
             }`}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
