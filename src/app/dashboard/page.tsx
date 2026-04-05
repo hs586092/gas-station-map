@@ -143,14 +143,25 @@ interface Insights {
   recommendation: { message: string; type: "hold" | "raise" | "lower" | "watch"; suggestedRange: { min: number; max: number } | null };
 }
 
+// ─── KST(Asia/Seoul) 기준 YYYY-MM-DD ───
+// new Date().toISOString()은 UTC 기준이라 한국 새벽~오전에 "어제"로 표시되는 문제가 있어
+// sv-SE 로케일(ISO 포맷)로 KST 타임존을 명시해 항상 한국 날짜를 얻는다.
+function todayKST(): string {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+}
+
 // ─── 데이터 신선도 배지 ───
 function DataFreshness({ date, label }: { date: string | null; label?: string }) {
   if (!date) return null;
-  const dataDate = new Date(date + "T00:00:00");
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor((today.getTime() - dataDate.getTime()) / 86400000);
-  const displayDate = `${dataDate.getMonth() + 1}/${dataDate.getDate()}`;
+  // 모든 비교를 KST 기준 YYYY-MM-DD 문자열로 수행 (타임존 오차 원천 차단)
+  const todayStr = todayKST();
+  const [y, m, d] = date.split("-").map(Number);
+  const [ty, tm, td] = todayStr.split("-").map(Number);
+  // 날짜 문자열을 UTC 자정으로 파싱해 일 단위 차이만 계산 (타임존 무관)
+  const dataMs = Date.UTC(y, (m || 1) - 1, d || 1);
+  const todayMs = Date.UTC(ty, tm - 1, td);
+  const diffDays = Math.max(0, Math.floor((todayMs - dataMs) / 86400000));
+  const displayDate = `${m}/${d}`;
   const isStale = diffDays >= 3;
 
   return (
@@ -744,7 +755,7 @@ export default function DashboardPage() {
                   경쟁사 가격 변동
                   <span className="text-[12px] font-normal text-text-tertiary ml-1">오늘</span>
                 </div>
-                <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
+                <DataFreshness date={todayKST()} label="기준" />
               </div>
               {changes.changes.length === 0 ? (
                 <div className="text-[14px] text-text-tertiary py-4 text-center">
@@ -995,7 +1006,7 @@ export default function DashboardPage() {
                     <span className="text-[18px]">{threat.signal}</span>
                     <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">EV 충전소 현황</div>
                   </div>
-                  <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
+                  <DataFreshness date={todayKST()} label="기준" />
                 </div>
                 <div className={`rounded-xl px-4 py-3 ${threat.bg}`}>
                   <div className={`text-[14px] font-bold ${threat.color} mb-2`}>{threat.label}</div>
