@@ -16,11 +16,11 @@ const CATEGORIES = [
 ];
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
-  정유사정보: { bg: "bg-blue-950/30", text: "text-blue-600", dot: "#3B82F6" },
-  운영고민: { bg: "bg-amber-950/30", text: "text-amber-600", dot: "#F59E0B" },
-  장비추천: { bg: "bg-emerald-950/30", text: "text-emerald-600", dot: "#10B981" },
+  정유사정보: { bg: "bg-blue-50", text: "text-blue-600", dot: "#3B82F6" },
+  운영고민: { bg: "bg-amber-50", text: "text-amber-600", dot: "#F59E0B" },
+  장비추천: { bg: "bg-emerald-50", text: "text-emerald-600", dot: "#10B981" },
   구인구직: { bg: "bg-purple-50", text: "text-purple-600", dot: "#8B5CF6" },
-  자유: { bg: "bg-slate-900/60", text: "text-gray-500", dot: "#9CA3AF" },
+  자유: { bg: "bg-slate-50", text: "text-gray-500", dot: "#9CA3AF" },
 };
 
 interface Post {

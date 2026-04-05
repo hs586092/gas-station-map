@@ -59,10 +59,10 @@ function formatDate(d: string) {
 }
 
 const urgencyColor = {
-  high: "border-red-500 bg-red-950/30 text-red-800",
-  medium: "border-amber-500 bg-amber-950/30 text-amber-800",
-  low: "border-blue-500 bg-blue-950/30 text-blue-800",
-  none: "border-emerald-500 bg-emerald-950/30 text-emerald-800",
+  high: "border-red-500 bg-red-50 text-red-800",
+  medium: "border-amber-500 bg-amber-50 text-amber-800",
+  low: "border-blue-500 bg-blue-50 text-blue-800",
+  none: "border-emerald-500 bg-emerald-50 text-emerald-800",
 };
 const urgencyIcon = { high: "🚨", medium: "⚠️", low: "👀", none: "✅" };
 
@@ -123,10 +123,10 @@ export default function TimingAnalysisPage() {
                     layout="vertical"
                     margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#26282F" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" horizontal={false} />
                     <XAxis type="number" tick={{ fontSize: 12, fill: "#9BA8B7" }}
                       label={{ value: "평균 반응일(일)", position: "bottom", offset: -2, style: { fontSize: 12, fill: "#9BA8B7" } }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#A3A9B5" }} width={100} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#9CA3AF" }} width={100} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }}
                       formatter={(value) => [`${value}일`, "평균 반응"]} />
                     <Bar dataKey="avgDaysToReact" radius={[0, 4, 4, 0]}>
@@ -149,7 +149,7 @@ export default function TimingAnalysisPage() {
               </div>
             </>
           ) : (
-            <div className="bg-slate-900/60 rounded-lg p-4 text-center text-[12px] text-text-tertiary">
+            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-text-tertiary">
               경쟁사 반응 데이터가 아직 없습니다. price_history가 쌓이면 자동으로 분석됩니다.
             </div>
           )}
@@ -160,14 +160,14 @@ export default function TimingAnalysisPage() {
           <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">선제 대응 vs 추종 대응</h2>
           {timingImpact ? (
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl bg-emerald-950/30 border border-emerald-900/60 p-4 text-center">
+              <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 text-center">
                 <p className="text-[13px] text-emerald-700 m-0 mb-1">경쟁사보다 먼저/같이</p>
                 <p className={`text-[28px] font-bold m-0 ${timingImpact.earlyResponse.avgSalesChange < 0 ? "text-red-500" : "text-emerald-600"}`}>
                   {timingImpact.earlyResponse.avgSalesChange > 0 ? "+" : ""}{timingImpact.earlyResponse.avgSalesChange}%
                 </p>
                 <p className="text-[12px] text-emerald-600 m-0 mt-1">{timingImpact.earlyResponse.count}건</p>
               </div>
-              <div className="rounded-xl bg-red-950/30 border border-red-900/60 p-4 text-center">
+              <div className="rounded-xl bg-red-50 border border-red-100 p-4 text-center">
                 <p className="text-[13px] text-red-700 m-0 mb-1">경쟁사보다 늦게</p>
                 <p className={`text-[28px] font-bold m-0 ${timingImpact.lateResponse.avgSalesChange < 0 ? "text-red-500" : "text-emerald-600"}`}>
                   {timingImpact.lateResponse.avgSalesChange > 0 ? "+" : ""}{timingImpact.lateResponse.avgSalesChange}%
@@ -176,12 +176,12 @@ export default function TimingAnalysisPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900/60 rounded-lg p-4 text-center text-[12px] text-text-tertiary">
+            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-text-tertiary">
               데이터 축적 중 ({dataStatus.totalEvents}개 이벤트 / 최소 2개 필요)
             </div>
           )}
           {timingImpact && (
-            <div className="bg-slate-900/60 rounded-lg p-3 mt-3 text-[12px] text-text-secondary">
+            <div className="bg-slate-50 rounded-lg p-3 mt-3 text-[12px] text-text-secondary">
               {timingImpact.earlyResponse.avgSalesChange > timingImpact.lateResponse.avgSalesChange ? (
                 <p className="m-0">💡 경쟁사보다 먼저 대응하면 판매량 손실이 {Math.abs(timingImpact.earlyResponse.avgSalesChange - timingImpact.lateResponse.avgSalesChange).toFixed(1)}%p 적습니다.
                   {timingImpact.optimalDays && ` 경쟁사 반응 후 ${timingImpact.optimalDays}일 이내 대응을 권장합니다.`}</p>
@@ -198,7 +198,7 @@ export default function TimingAnalysisPage() {
             유가 이벤트 타임라인 ({oilEvents.length}건)
           </h2>
           {oilEvents.length === 0 ? (
-            <div className="bg-slate-900/60 rounded-lg p-4 text-center text-[12px] text-text-tertiary">
+            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-text-tertiary">
               <p className="m-0">±$2 이상의 유가 변동 이벤트가 감지되지 않았습니다.</p>
               <p className="m-0 mt-1">데이터 기간: {dataStatus.dataRange.from ? formatDate(dataStatus.dataRange.from) : "—"} ~ {dataStatus.dataRange.to ? formatDate(dataStatus.dataRange.to) : "—"}</p>
             </div>
@@ -210,7 +210,7 @@ export default function TimingAnalysisPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ${
-                        ev.direction === "up" ? "bg-red-950/30 text-red-600" : "bg-blue-950/30 text-blue-600"
+                        ev.direction === "up" ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"
                       }`}>
                         Brent {ev.brentChange > 0 ? "+" : ""}{ev.brentChange.toFixed(1)}$
                       </span>
@@ -274,7 +274,7 @@ export default function TimingAnalysisPage() {
         </section>
 
         {/* ── 5. 데이터 안내 ── */}
-        <div className="bg-slate-900/60 rounded-xl p-4 text-[13px] text-text-tertiary space-y-1">
+        <div className="bg-slate-50 rounded-xl p-4 text-[13px] text-text-tertiary space-y-1">
           <p className="m-0 font-semibold text-text-secondary">데이터 현황</p>
           <p className="m-0">유가 이벤트: {dataStatus.totalEvents}건 (최소 {dataStatus.minRequired}건 필요, {dataStatus.isReliable ? "✅ 신뢰 가능" : "⏳ 축적 중"})</p>
           <p className="m-0">분석 기간: {dataStatus.dataRange.from ? formatDate(dataStatus.dataRange.from) : "—"} ~ {dataStatus.dataRange.to ? formatDate(dataStatus.dataRange.to) : "—"} (price_history 기준)</p>

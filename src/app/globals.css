@@ -14,35 +14,48 @@
 
 :root {
   /* ── Base surfaces (darkest → lightest) ── */
-  --background: #0A0B0E;        /* page background, near-black */
-  --foreground: #F0F2F5;        /* bone white */
+  --background: #0E1015;        /* page background — slightly lifted near-black */
+  --foreground: #F0F2F5;        /* bone white (used on page-level, not inside cards) */
   --surface: #0E1015;           /* sections / main content region */
-  --surface-raised: #15171C;    /* cards (replaces bg-white) */
-  --surface-elevated: #1C1F26;  /* modals, elevated cards */
-  --surface-hover: #22262F;     /* hover state for cards */
+  --surface-raised: #FFFFFF;    /* CARDS — white (hybrid theme) */
+  --surface-elevated: #FFFFFF;  /* modals, elevated cards */
+  --surface-hover: #F8F8F7;     /* hover state for white cards */
 
-  /* ── Borders (hairlines) ── */
-  --border: #26282F;            /* default hairline */
-  --border-strong: #3A3D46;     /* stronger division */
-  --border-subtle: #1B1E24;     /* barely-there separator */
+  /* ── Borders ── */
+  --border: #E5E5E5;            /* card hairline — light gray */
+  --border-strong: #D4D4D4;     /* card strong division */
+  --border-subtle: #F0F0F0;     /* barely-there separator inside cards */
+  --border-dark: #26282F;       /* page-level dark hairline (between dark sections) */
 
-  /* ── Text hierarchy ── */
-  --text-primary: #F0F2F5;      /* bone white */
-  --text-secondary: #A3A9B5;    /* cool mid gray */
-  --text-tertiary: #6B7280;     /* dim gray — labels, timestamps */
-  --text-disabled: #4B5058;
+  /* ── Text hierarchy ──
+     On dark page background, we still need bone-white text for page-level
+     elements (hero, footer). But inside white cards, we need dark text.
+     Tailwind utilities `text-text-primary` etc. are assigned to CARD context
+     (the dominant case), and page-level overrides use `text-white` directly. */
+  --text-primary: #1A1A1A;      /* dark ink — for card interiors */
+  --text-secondary: #666666;    /* mid gray — for card interiors */
+  --text-tertiary: #9CA3AF;     /* light gray — for card interiors */
+  --text-disabled: #D1D5DB;
+
+  /* Page-level text (dark background contexts) */
+  --text-on-dark: #F0F2F5;
+  --text-on-dark-secondary: #A3A9B5;
+  --text-on-dark-tertiary: #6B7280;
 
   /* ── Brand & legacy color tokens (kept for compatibility) ── */
-  --navy: #0A0B0E;              /* headers — aligns with base */
+  --navy: #0A0B0E;              /* page-level headers — near-black */
   --navy-light: #15171C;        /* header border divider */
   --emerald: #00C073;           /* signal: up / hold / positive */
-  --emerald-light: #0A2A1C;     /* dark tinted bg for emerald badges */
+  --emerald-light: #E6F9F0;     /* light tinted bg for emerald badges INSIDE cards */
   --coral: #FF5252;             /* signal: down / warn / negative */
-  --coral-light: #2A0F0F;       /* dark tinted bg for red badges */
+  --coral-light: #FFF0F0;       /* light tinted bg for red badges INSIDE cards */
 
-  /* ── S-OIL Accent Yellow ── */
+  /* ── S-OIL Accent Yellow ──
+     Used on both dark (page) and light (card) contexts. The yellow itself
+     stays vivid; the "soft" variant needs two values (card vs page). */
   --oil-yellow: #FFD200;
-  --oil-yellow-soft: #3A2E00;   /* dark tinted bg for yellow badges */
+  --oil-yellow-soft: #FFF7CC;   /* light tint for badges INSIDE white cards */
+  --oil-yellow-dark: #3A2E00;   /* dark tint for badges on DARK page backgrounds */
   --oil-yellow-border: #F5C400;
 
   /* ── Layout ── */
@@ -53,11 +66,11 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
 
-  /* ── Shadows: almost none, borders do the work ── */
-  --shadow-sm: 0 1px 0 rgba(0,0,0,0.4);
-  --shadow-md: 0 2px 0 rgba(0,0,0,0.5);
-  --shadow-lg: 0 4px 16px rgba(0,0,0,0.6);
-  --shadow-xl: 0 8px 32px rgba(0,0,0,0.7);
+  /* ── Shadows: white cards sit on dark page, so shadows add depth ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.6);
 
   /* ── Typography ── */
   --letter-tight: -0.01em;

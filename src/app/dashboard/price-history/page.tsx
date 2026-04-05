@@ -208,7 +208,7 @@ export default function PriceHistoryPage() {
           </div>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
               <XAxis
                 dataKey="date"
                 fontSize={11}

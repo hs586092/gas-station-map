@@ -170,7 +170,7 @@ export default function PricePositionPage() {
         {/* 순위 변동 인사이트 */}
         {activeRankInfo && activeRankInfo.diff !== null && activeRankInfo.diff !== 0 && (
           <div className={`mb-6 rounded-2xl px-5 py-4 ${
-            activeRankInfo.diff < 0 ? "bg-emerald-light" : "bg-red-950/30"
+            activeRankInfo.diff < 0 ? "bg-emerald-light" : "bg-red-50"
           }`}>
             <div className="text-[16px] font-bold text-text-primary">
               어제 {activeRankInfo.yesterday?.rank}위 → 오늘 {activeRankInfo.today?.rank}위
@@ -208,7 +208,7 @@ export default function PricePositionPage() {
                 key={s}
                 onClick={() => setSortBy(s)}
                 className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-                  sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-surface-raised text-text-secondary border-border"
+                  sortBy === s ? "bg-slate-200 text-white border-slate-700" : "bg-surface-raised text-text-secondary border-border"
                 }`}
               >
                 {s === "price" ? "가격순" : s === "distance" ? "거리순" : "차이순"}
@@ -324,7 +324,7 @@ export default function PricePositionPage() {
               {simulations.map(({ delta, simPrice, simRank, total, rankChange }) => {
                 const isUp = delta > 0;
                 return (
-                  <div key={delta} className={`rounded-xl p-3 text-center ${isUp ? "bg-red-950/30" : "bg-blue-950/30"}`}>
+                  <div key={delta} className={`rounded-xl p-3 text-center ${isUp ? "bg-red-50" : "bg-blue-50"}`}>
                     <div className={`text-[12px] font-bold ${isUp ? "text-coral" : "text-blue-600"}`}>
                       {delta > 0 ? "+" : ""}{delta}원
                     </div>

@@ -146,7 +146,7 @@ export default function WeatherImpactPage() {
               <div className="mt-3 flex items-center gap-2">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                   data.todayForecast.confidence === "high" ? "bg-emerald/30 text-emerald" :
-                  data.todayForecast.confidence === "medium" ? "bg-amber-400/30 text-amber-300" :
+                  data.todayForecast.confidence === "medium" ? "bg-amber-400/30 text-amber-700" :
                   "bg-gray-500/30 text-gray-300"
                 }`}>
                   신뢰도 {data.todayForecast.confidence === "high" ? "높음" : data.todayForecast.confidence === "medium" ? "중간" : "낮음"}
@@ -162,7 +162,7 @@ export default function WeatherImpactPage() {
                 <div className="text-[13px] font-semibold text-text-secondary">본격 비 영향</div>
                 {data.tTest && (
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    data.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-slate-800 text-text-tertiary"
+                    data.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-slate-100 text-text-tertiary"
                   }`}>
                     {data.tTest.label}
                   </span>
@@ -230,14 +230,14 @@ export default function WeatherImpactPage() {
                       <span className="text-[14px] font-bold text-text-primary">{b.volumeMean.toLocaleString()}L</span>
                       <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded ${
                         b.adjustedDiffPct > 1 ? "bg-emerald/15 text-emerald"
-                        : b.adjustedDiffPct < -1 ? "bg-red-950/30 text-red-500"
-                        : "bg-slate-800 text-text-tertiary"
+                        : b.adjustedDiffPct < -1 ? "bg-red-50 text-red-500"
+                        : "bg-slate-100 text-text-tertiary"
                       }`}>
                         {b.adjustedDiffPct >= 0 ? "+" : ""}{b.adjustedDiffPct}%
                       </span>
                     </div>
                   </div>
-                  <div className="relative h-6 bg-slate-800 rounded-md overflow-hidden">
+                  <div className="relative h-6 bg-slate-100 rounded-md overflow-hidden">
                     <div
                       className={`absolute inset-y-0 left-0 rounded-md ${
                         b.key === "dry" ? "bg-emerald/70"
@@ -263,7 +263,7 @@ export default function WeatherImpactPage() {
         <section className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-[16px] font-bold text-text-primary">요일 × 강수 히트맵</h2>
-            <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-0.5">
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
               <button
                 onClick={() => setMode("additive")}
                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
@@ -380,7 +380,7 @@ export default function WeatherImpactPage() {
         </section>
 
         {/* ── 하단 주의사항 ── */}
-        <section className="bg-amber-950/30 border border-amber-900/60 rounded-2xl p-5">
+        <section className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
           <h3 className="text-[14px] font-bold text-amber-900 mb-2">📌 분석 한계</h3>
           <ul className="text-[12px] text-amber-900 space-y-1 list-disc pl-5">
             <li>데이터 범위: {data.dataRange.from} ~ {data.dataRange.to} ({data.dataRange.days}일). 여름(6~9월) 데이터 부재로 기온 분석은 1년 후 재평가 필요.</li>

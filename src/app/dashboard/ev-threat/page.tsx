@@ -56,10 +56,10 @@ export default function EvThreatPage() {
 
   // 위협 레벨
   const threatLevel = summary.fastStations <= 5
-    ? { label: "EV 전환 영향 적음", color: "text-emerald-700", bg: "bg-emerald-950/30", border: "border-emerald-900/60" }
+    ? { label: "EV 전환 영향 적음", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-100" }
     : summary.fastStations <= 20
-    ? { label: "EV 인프라 확대 중", color: "text-amber-700", bg: "bg-amber-950/30", border: "border-amber-900/60" }
-    : { label: "EV 충전 밀집 지역", color: "text-red-700", bg: "bg-red-950/30", border: "border-red-900/60" };
+    ? { label: "EV 인프라 확대 중", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-100" }
+    : { label: "EV 충전 밀집 지역", color: "text-red-700", bg: "bg-red-50", border: "border-red-100" };
 
   // 운영업체 색상
   const opColors = ["#3b82f6", "#f97316", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#f59e0b", "#ec4899"];
@@ -221,7 +221,7 @@ export default function EvThreatPage() {
                       <span className="text-[12px] text-text-primary">{op.name}</span>
                       <span className="text-[12px] font-bold text-text-primary">{op.count}개 ({pct}%)</span>
                     </div>
-                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${pct}%`, background: opColors[i % opColors.length] }}

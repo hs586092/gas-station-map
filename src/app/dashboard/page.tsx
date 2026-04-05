@@ -175,7 +175,7 @@ function DataFreshness({ date, label }: { date: string | null; label?: string })
 
 // ─── 스켈레톤 ───
 function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse bg-slate-800 rounded-lg ${className}`} />;
+  return <div className={`animate-pulse bg-slate-100 rounded-lg ${className}`} />;
 }
 
 function CardSkeleton() {
@@ -191,11 +191,11 @@ function CardSkeleton() {
 // ─── 인사이트 배지 (다크 테마) ───
 function InsightBadge({ children, color = "slate" }: { children: React.ReactNode; color?: "slate" | "blue" | "red" | "emerald" | "amber" }) {
   const colors = {
-    slate: "bg-slate-900/60 text-slate-300 border-slate-800",
-    blue: "bg-blue-950/40 text-blue-300 border-blue-900/60",
-    red: "bg-red-950/40 text-red-300 border-red-900/60",
-    emerald: "bg-emerald-950/40 text-emerald-300 border-emerald-900/60",
-    amber: "bg-amber-950/40 text-amber-300 border-amber-900/60",
+    slate: "bg-slate-50 text-slate-700 border-slate-200",
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    red: "bg-red-50 text-red-700 border-red-100",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
   };
   return (
     <div className={`mt-3 rounded-md border px-3 py-2 text-[13px] leading-relaxed ${colors[color]}`}>
@@ -266,9 +266,9 @@ function PriceRangeBar({ myPrice, avg, label, rank, count }: { myPrice: number; 
         <span className="text-[13px] text-text-secondary">{label}</span>
         <span className="text-[12px] text-text-tertiary">{count}개 중 {rank}위</span>
       </div>
-      <div className="relative h-3 rounded-full bg-slate-800">
+      <div className="relative h-3 rounded-full bg-slate-100">
         {/* 평균선 */}
-        <div className="absolute top-0 bottom-0 w-0.5 bg-slate-500 z-10" style={{ left: `${avgPct}%` }} />
+        <div className="absolute top-0 bottom-0 w-0.5 bg-slate-400 z-10" style={{ left: `${avgPct}%` }} />
         <div className="absolute -top-4 text-[9px] text-text-tertiary whitespace-nowrap" style={{ left: `${avgPct}%`, transform: "translateX(-50%)" }}>
           평균
         </div>
@@ -460,18 +460,18 @@ export default function DashboardPage() {
       <SiteHeader />
 
       <main className="w-full max-w-[1280px] mx-auto px-6 py-7">
-        {/* 주유소 정보 헤더 */}
-        <div className="mb-6 pb-5 border-b border-border">
+        {/* 주유소 정보 헤더 (다크 배경) */}
+        <div className="mb-6 pb-5 border-b border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-oil-yellow-soft border border-oil-yellow/40 text-[11px] font-bold text-oil-yellow tracking-wider uppercase">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-oil-yellow/40 text-[11px] font-bold text-oil-yellow tracking-wider uppercase" style={{ background: "rgba(255, 210, 0, 0.1)" }}>
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: BRAND_COLORS["SOL"] }} />
               {BRAND_LABELS["SOL"]}
             </span>
-            <span className="text-[11px] font-semibold text-text-tertiary tracking-wider uppercase">ID · {STATION_ID}</span>
+            <span className="text-[11px] font-semibold text-white/50 tracking-wider uppercase">ID · {STATION_ID}</span>
           </div>
-          <h1 className="text-[26px] font-extrabold text-text-primary tnum tracking-tight m-0 tracking-tight">셀프광장주유소</h1>
+          <h1 className="text-[26px] font-extrabold text-white tnum tracking-tight m-0">셀프광장주유소</h1>
           {!loading.detail && detail?.newAddress && (
-            <p className="text-[13px] text-text-secondary m-0 mt-1.5 flex items-center gap-1.5">
+            <p className="text-[13px] text-white/60 m-0 mt-1.5 flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
               {detail.newAddress}
             </p>
@@ -666,7 +666,7 @@ export default function DashboardPage() {
                           {rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%
                         </span>
                         <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
-                          weatherImpact.tTest.significant ? "bg-emerald/20 text-emerald" : "bg-slate-800 text-text-tertiary"
+                          weatherImpact.tTest.significant ? "bg-emerald/20 text-emerald" : "bg-slate-100 text-text-tertiary"
                         }`}>
                           {weatherImpact.tTest.label}
                         </span>
@@ -783,7 +783,7 @@ export default function DashboardPage() {
                             </div>
                           )}
                           {total - rising - falling > 0 && (
-                            <div className="bg-slate-700 flex items-center justify-center text-text-tertiary text-[11px] font-bold" style={{ width: `${((total - rising - falling) / total) * 100}%` }}>
+                            <div className="bg-slate-200 flex items-center justify-center text-text-tertiary text-[11px] font-bold" style={{ width: `${((total - rising - falling) / total) * 100}%` }}>
                               유지 {total - rising - falling}
                             </div>
                           )}
@@ -804,7 +804,7 @@ export default function DashboardPage() {
                             <div className="flex-1 flex items-center">
                               {/* 0 기준선 중앙 배치 */}
                               <div className="flex-1 flex items-center relative h-4">
-                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
+                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-300" />
                                 {diff !== 0 && (
                                   <div
                                     className={`absolute h-3 rounded-sm ${diff > 0 ? "bg-red-400" : "bg-blue-400"}`}
@@ -897,21 +897,21 @@ export default function DashboardPage() {
               />
               {/* 상태 메시지 */}
               <div className={`rounded-lg px-4 py-2.5 mt-3 border ${
-                detail.oilReflection.direction === "up" ? "bg-red-950/30 border-red-900/60"
-                  : detail.oilReflection.direction === "down" ? "bg-blue-950/30 border-blue-900/60"
-                  : "bg-slate-900/60 border-slate-800"
+                detail.oilReflection.direction === "up" ? "bg-red-50 border-red-100"
+                  : detail.oilReflection.direction === "down" ? "bg-blue-50 border-blue-100"
+                  : "bg-slate-50 border-slate-200"
               }`}>
                 <span className={`text-[14px] font-semibold ${
-                  detail.oilReflection.direction === "up" ? "text-red-300"
-                    : detail.oilReflection.direction === "down" ? "text-blue-300"
-                    : "text-slate-300"
+                  detail.oilReflection.direction === "up" ? "text-red-700"
+                    : detail.oilReflection.direction === "down" ? "text-blue-700"
+                    : "text-slate-700"
                 }`}>
                   {detail.oilReflection.message}
                 </span>
               </div>
               {/* 유가→경쟁사→내 가격 연결 스토리 */}
               {insights?.oilStory && (
-                <div className="mt-3 rounded-lg bg-slate-900/60 border border-slate-800 px-4 py-3">
+                <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
                   <div className="text-[14px] font-medium text-text-secondary mb-1">흐름 분석</div>
                   <div className="text-[12px] text-text-primary leading-relaxed">{insights.oilStory}</div>
                 </div>
@@ -965,14 +965,14 @@ export default function DashboardPage() {
               )}
               <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={oilChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#A3A9B5" }} interval="preserveStartEnd" />
-                  <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9, fill: "#A3A9B5" }} tickFormatter={(v) => `$${v}`} width={40} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} interval="preserveStartEnd" />
+                  <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickFormatter={(v) => `$${v}`} width={40} />
                   <Tooltip
                     formatter={(value, name) => [`$${value}`, name]}
-                    contentStyle={{ background: "#15171C", border: "1px solid #26282F", borderRadius: 6, fontSize: 12 }}
-                    labelStyle={{ color: "#F0F2F5" }}
-                    itemStyle={{ color: "#F0F2F5" }}
+                    contentStyle={{ background: "#FFFFFF", border: "1px solid #E5E5E5", borderRadius: 6, fontSize: 12 }}
+                    labelStyle={{ color: "#1A1A1A" }}
+                    itemStyle={{ color: "#1A1A1A" }}
                   />
                   {refStartDate && refEndDate && (
                     <ReferenceArea x1={refStartDate} x2={refEndDate} fill={isOilUp ? "#fecaca" : isOilDown ? "#bfdbfe" : "#e2e8f0"} fillOpacity={0.3} label={{ value: "반영 중", position: "insideTop", fontSize: 9, fill: "#94a3b8" }} />
@@ -999,10 +999,10 @@ export default function DashboardPage() {
           {loading.detail ? <CardSkeleton /> : detail?.evNearby && detail.evNearby.stations > 0 && (() => {
             const fs = detail.evNearby.fastStations;
             const threat = fs <= 5
-              ? { label: "EV 전환 영향 적음", color: "text-emerald-400", bg: "bg-emerald-950/40 border border-emerald-900/60", signal: "🟢", barColor: "bg-emerald-500" }
+              ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-50 border border-emerald-100", signal: "🟢", barColor: "bg-emerald-500" }
               : fs <= 20
-                ? { label: "EV 인프라 확대 중", color: "text-amber-400", bg: "bg-amber-950/40 border border-amber-900/60", signal: "🟡", barColor: "bg-amber-500" }
-                : { label: "EV 충전 밀집 지역", color: "text-red-400", bg: "bg-red-950/40 border border-red-900/60", signal: "🔴", barColor: "bg-red-500" };
+                ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50 border border-amber-100", signal: "🟡", barColor: "bg-amber-500" }
+                : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50 border border-red-100", signal: "🔴", barColor: "bg-red-500" };
             return (
               <ClickableCard href="/dashboard/ev-threat" className="bg-surface-raised rounded-xl p-5 border border-border relative overflow-hidden">
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${threat.barColor}`} />
@@ -1038,10 +1038,10 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {insights.competitorProfiles.slice(0, 6).map((p) => {
                   const typeColors = {
-                    leader: { bg: "bg-red-950/30 border border-red-900/50", text: "text-red-300", badge: "bg-red-900/50 text-red-300" },
-                    follower: { bg: "bg-amber-950/30 border border-amber-900/50", text: "text-amber-300", badge: "bg-amber-900/50 text-amber-300" },
-                    steady: { bg: "bg-slate-900/60 border border-slate-800", text: "text-slate-400", badge: "bg-slate-800 text-slate-300" },
-                    unknown: { bg: "bg-slate-900/40 border border-slate-800", text: "text-slate-500", badge: "bg-slate-800 text-slate-400" },
+                    leader: { bg: "bg-red-50 border border-red-100", text: "text-red-700", badge: "bg-red-900/50 text-red-700" },
+                    follower: { bg: "bg-amber-50 border border-amber-100", text: "text-amber-700", badge: "bg-amber-900/50 text-amber-700" },
+                    steady: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-600", badge: "bg-slate-100 text-slate-700" },
+                    unknown: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-500", badge: "bg-slate-100 text-slate-600" },
                   };
                   const tc = typeColors[p.type];
                   return (
@@ -1081,7 +1081,7 @@ export default function DashboardPage() {
                   const absCorr = Math.abs(c.correlation);
                   const barColor = c.correlation >= 0.7 ? "bg-emerald-500"
                     : c.correlation >= 0.3 ? "bg-amber-400"
-                    : c.correlation >= -0.3 ? "bg-slate-600"
+                    : c.correlation >= -0.3 ? "bg-slate-300"
                     : "bg-red-400";
                   return (
                     <div key={c.id}>
@@ -1092,7 +1092,7 @@ export default function DashboardPage() {
                         </div>
                         <span className="text-[14px] font-bold text-text-primary shrink-0 ml-2">{c.correlation.toFixed(2)}</span>
                       </div>
-                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1">
+                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
                         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(absCorr * 100, 8)}%` }} />
                       </div>
                       <div className="text-[12px] text-text-secondary">{c.label} — {c.insight}</div>
@@ -1128,8 +1128,8 @@ export default function DashboardPage() {
                   {simulations.map(({ delta, simPrice, simRank, total, rankChange }) => {
                     const isUp = delta > 0;
                     return (
-                      <div key={delta} className={`rounded-lg p-3 text-center border ${isUp ? "bg-red-950/30 border-red-900/50" : "bg-blue-950/30 border-blue-900/50"}`}>
-                        <div className={`text-[12px] font-bold ${isUp ? "text-red-400" : "text-blue-400"}`}>
+                      <div key={delta} className={`rounded-lg p-3 text-center border ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
+                        <div className={`text-[12px] font-bold ${isUp ? "text-red-600" : "text-blue-600"}`}>
                           {delta > 0 ? "+" : ""}{delta}원
                         </div>
                         <div className="text-[16px] font-extrabold text-text-primary tnum tracking-tight mt-1">{simPrice.toLocaleString()}</div>
@@ -1173,17 +1173,17 @@ export default function DashboardPage() {
               </div>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={priceHistory.history.map((h) => ({ ...h, date: h.date.slice(5) }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#A3A9B5" }} interval="preserveStartEnd" />
-                  <YAxis domain={["dataMin - 20", "dataMax + 20"]} tick={{ fontSize: 12, fill: "#A3A9B5" }} tickFormatter={(v) => v.toLocaleString()} width={45} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#9CA3AF" }} interval="preserveStartEnd" />
+                  <YAxis domain={["dataMin - 20", "dataMax + 20"]} tick={{ fontSize: 12, fill: "#9CA3AF" }} tickFormatter={(v) => v.toLocaleString()} width={45} />
                   <Tooltip
                     formatter={(value, name) => [`${Number(value).toLocaleString()}원`, name]}
-                    contentStyle={{ background: "#15171C", border: "1px solid #26282F", borderRadius: 6, fontSize: 12 }}
-                    labelStyle={{ color: "#F0F2F5" }}
-                    itemStyle={{ color: "#F0F2F5" }}
+                    contentStyle={{ background: "#FFFFFF", border: "1px solid #E5E5E5", borderRadius: 6, fontSize: 12 }}
+                    labelStyle={{ color: "#1A1A1A" }}
+                    itemStyle={{ color: "#1A1A1A" }}
                   />
                   <Line type="monotone" dataKey="gasoline" stroke="#FF5252" strokeWidth={2} dot={false} name="휘발유" connectNulls />
-                  <Line type="monotone" dataKey="diesel" stroke="#F0F2F5" strokeWidth={2} dot={false} name="경유" connectNulls />
+                  <Line type="monotone" dataKey="diesel" stroke="#1A1A1A" strokeWidth={2} dot={false} name="경유" connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </ClickableCard>
@@ -1250,9 +1250,9 @@ export default function DashboardPage() {
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">타이밍 분석</div>
                 {timingAnalysis.currentSituation.urgency !== "none" && (
                   <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full ${
-                    timingAnalysis.currentSituation.urgency === "high" ? "bg-red-900/50 text-red-300 border border-red-900" :
-                    timingAnalysis.currentSituation.urgency === "medium" ? "bg-amber-900/50 text-amber-300 border border-amber-900" :
-                    "bg-blue-900/50 text-blue-300 border border-blue-900"
+                    timingAnalysis.currentSituation.urgency === "high" ? "bg-red-900/50 text-red-700 border border-red-200" :
+                    timingAnalysis.currentSituation.urgency === "medium" ? "bg-amber-900/50 text-amber-700 border border-amber-200" :
+                    "bg-blue-900/50 text-blue-700 border border-blue-200"
                   }`}>
                     {timingAnalysis.currentSituation.urgency === "high" ? "긴급" :
                      timingAnalysis.currentSituation.urgency === "medium" ? "주의" : "참고"}

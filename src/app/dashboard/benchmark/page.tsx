@@ -138,7 +138,7 @@ export default function BenchmarkPage() {
           {/* 범위 시각화 */}
           <div className="relative h-12 mb-3">
             {/* 전체 바 */}
-            <div className="absolute top-4 left-0 right-0 h-4 bg-slate-800 rounded-full" />
+            <div className="absolute top-4 left-0 right-0 h-4 bg-slate-100 rounded-full" />
             {/* 적정 범위 */}
             {(() => {
               const range = dMax - dMin || 1;
@@ -170,7 +170,7 @@ export default function BenchmarkPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-blue-950/30 rounded-xl p-3">
+            <div className="bg-blue-50 rounded-xl p-3">
               <div className="text-[12px] text-text-secondary mb-1">Q1 (하위 25%)</div>
               <div className="text-[16px] font-bold text-blue-600">{fairMin.toLocaleString()}</div>
             </div>
@@ -178,7 +178,7 @@ export default function BenchmarkPage() {
               <div className="text-[12px] text-text-secondary mb-1">중앙값</div>
               <div className="text-[16px] font-bold text-emerald">{fairMedian.toLocaleString()}</div>
             </div>
-            <div className="bg-red-950/30 rounded-xl p-3">
+            <div className="bg-red-50 rounded-xl p-3">
               <div className="text-[12px] text-text-secondary mb-1">Q3 (상위 25%)</div>
               <div className="text-[16px] font-bold text-coral">{fairMax.toLocaleString()}</div>
             </div>
@@ -186,8 +186,8 @@ export default function BenchmarkPage() {
 
           {/* 내 가격 판정 */}
           <div className={`mt-4 rounded-lg px-4 py-3 text-[13px] font-medium ${
-            myPrice < fairMin ? "bg-blue-950/30 text-blue-700"
-              : myPrice > fairMax ? "bg-red-950/30 text-red-700"
+            myPrice < fairMin ? "bg-blue-50 text-blue-700"
+              : myPrice > fairMax ? "bg-red-50 text-red-700"
               : "bg-emerald-light text-emerald"
           }`}>
             {myPrice < fairMin
@@ -250,7 +250,7 @@ export default function BenchmarkPage() {
 
                   {/* 가격 범위 바 */}
                   <div className="relative h-6 mt-2">
-                    <div className="absolute top-2.5 left-0 right-0 h-1.5 bg-slate-800 rounded-full" />
+                    <div className="absolute top-2.5 left-0 right-0 h-1.5 bg-slate-100 rounded-full" />
                     {/* Q1~Q3 범위 */}
                     {(() => {
                       const range = bm.max - bm.min || 1;
@@ -296,7 +296,7 @@ export default function BenchmarkPage() {
             <div className="text-[13px] text-text-secondary mb-3">
               유동인구 {(data.benchmarks.population as PopulationTier).level} 수준 · {(data.benchmarks.population as PopulationTier).districts.join(", ")}
             </div>
-            <div className="bg-slate-900/60 rounded-lg px-4 py-3">
+            <div className="bg-slate-50 rounded-lg px-4 py-3">
               <div className="text-[12px] text-text-primary">
                 유동인구 수준이 비슷한 지역({(data.benchmarks.population as PopulationTier).districts.length}개 구)의 평균가는{" "}
                 <strong>{data.benchmarks.population.avg.toLocaleString()}원</strong>이며,

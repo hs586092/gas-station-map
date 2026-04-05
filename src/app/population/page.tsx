@@ -306,7 +306,7 @@ export default function PopulationPage() {
             {/* 4분면 라벨 */}
             <div className="absolute top-2 left-[calc(50%+40px)] text-[10px] font-semibold text-purple-400 z-10 pointer-events-none hidden md:block">프리미엄 지역</div>
             <div className="absolute bottom-8 left-[calc(50%+40px)] text-[10px] font-semibold text-emerald-500 z-10 pointer-events-none hidden md:block">기회 지역</div>
-            <div className="absolute top-2 left-[80px] text-[10px] font-semibold text-red-400 z-10 pointer-events-none hidden md:block">독점 지역</div>
+            <div className="absolute top-2 left-[80px] text-[10px] font-semibold text-red-600 z-10 pointer-events-none hidden md:block">독점 지역</div>
             <div className="absolute bottom-8 left-[80px] text-[10px] font-semibold text-gray-400 z-10 pointer-events-none hidden md:block">관망 지역</div>
 
             <ResponsiveContainer width="100%" height={400}>

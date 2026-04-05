@@ -104,7 +104,7 @@ export default function CompetitorsPage() {
   });
 
   const typeLabel = (t: string) => t === "leader" ? "선제형" : t === "follower" ? "추종형" : t === "steady" ? "안정형" : "미분류";
-  const typeColor = (t: string) => t === "leader" ? "bg-red-100 text-red-700" : t === "follower" ? "bg-amber-100 text-amber-700" : "bg-slate-800 text-slate-600";
+  const typeColor = (t: string) => t === "leader" ? "bg-red-100 text-red-700" : t === "follower" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600";
 
   if (loading) {
     return (
@@ -145,7 +145,7 @@ export default function CompetitorsPage() {
         {/* 7일 추세 */}
         {weeklyTrend && (
           <div className={`mb-6 rounded-2xl px-5 py-4 ${
-            weeklyTrend.action === "rising" ? "bg-red-950/30" : weeklyTrend.action === "falling" ? "bg-blue-950/30" : "bg-slate-900/60"
+            weeklyTrend.action === "rising" ? "bg-red-50" : weeklyTrend.action === "falling" ? "bg-blue-50" : "bg-slate-50"
           }`}>
             <div className="text-[13px] font-semibold text-text-primary">{weeklyTrend.message}</div>
           </div>
@@ -159,7 +159,7 @@ export default function CompetitorsPage() {
           </div>
           <div className="flex gap-1">
             {(["distance", "price", "changes"] as const).map((s) => (
-              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-surface-raised text-text-secondary border-border"}`}>
+              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-200 text-white border-slate-700" : "bg-surface-raised text-text-secondary border-border"}`}>
                 {s === "distance" ? "거리순" : s === "price" ? "가격순" : "변경순"}
               </button>
             ))}
@@ -280,7 +280,7 @@ export default function CompetitorsPage() {
                         </div>
                         <span className="text-[12px] font-bold text-text-primary shrink-0 ml-2">{val.toFixed(2)}</span>
                       </div>
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-1">
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-1">
                         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(absVal * 100, 5)}%` }} />
                       </div>
                       <div className="text-[12px] text-text-secondary">{label} · 데이터 {c.data_points}일</div>
@@ -298,7 +298,7 @@ export default function CompetitorsPage() {
             <div className="grid grid-cols-3 gap-3 mb-4">
               {(["leader", "follower", "steady"] as const).map((t) => {
                 const count = profiles.filter((p) => p.type === t).length;
-                const colors = { leader: "bg-red-950/30 text-red-700", follower: "bg-amber-950/30 text-amber-700", steady: "bg-slate-900/60 text-slate-600" };
+                const colors = { leader: "bg-red-50 text-red-700", follower: "bg-amber-50 text-amber-700", steady: "bg-slate-50 text-slate-600" };
                 return (
                   <div key={t} className={`rounded-xl p-3 text-center ${colors[t]}`}>
                     <div className="text-[20px] font-extrabold">{count}</div>

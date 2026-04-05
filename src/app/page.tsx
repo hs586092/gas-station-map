@@ -18,7 +18,7 @@ export default function LandingPage() {
   }, [loading, user, router]);
 
   return (
-    <div className="h-screen overflow-y-auto bg-background text-text-primary">
+    <div className="h-screen overflow-y-auto bg-background text-white">
       <SiteHeader
         rightSlot={
           <Link
@@ -59,7 +59,7 @@ export default function LandingPage() {
               Analytics
             </span>
           </div>
-          <p className="text-[16px] md:text-[19px] text-text-secondary mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-[16px] md:text-[19px] text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
             경쟁사 실시간 모니터링부터 AI 적정가 분석, 국제유가 반영 타이밍까지 —<br className="hidden md:inline" />
             매일 아침, 오늘의 가격 판단 근거를 브리핑으로 받아보세요.
           </p>
@@ -77,7 +77,7 @@ export default function LandingPage() {
               경쟁사 지도 보기
             </Link>
           </div>
-          <p className="text-[12px] text-text-tertiary mt-6 tracking-wider uppercase">무료 체험 · 별도 설치 없음 · 하남·광주 지역 기준</p>
+          <p className="text-[12px] text-white/50 mt-6 tracking-wider uppercase">무료 체험 · 별도 설치 없음 · 하남·광주 지역 기준</p>
         </div>
       </section>
 
@@ -85,10 +85,10 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-5 md:px-10 py-20 md:py-24">
         <div className="text-center mb-14">
           <div className="text-[11px] font-bold text-oil-yellow mb-2 tracking-[0.22em] uppercase">Core Features</div>
-          <h2 className="text-[28px] md:text-[36px] font-extrabold text-text-primary mb-3 tracking-tight">
+          <h2 className="text-[28px] md:text-[36px] font-extrabold text-white mb-3 tracking-tight">
             주유소 경영의 모든 판단 근거
           </h2>
-          <p className="text-[15px] text-text-secondary">
+          <p className="text-[15px] text-white/60">
             가격 결정에 필요한 데이터를 자동으로 수집하고 분석합니다.
           </p>
         </div>
@@ -147,10 +147,10 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-5 md:px-10">
           <div className="text-center mb-12">
             <div className="text-[11px] font-bold text-oil-yellow mb-2 tracking-[0.22em] uppercase">Dashboard</div>
-            <h2 className="text-[28px] md:text-[36px] font-extrabold text-text-primary mb-3 tracking-tight">
+            <h2 className="text-[28px] md:text-[36px] font-extrabold text-white mb-3 tracking-tight">
               이런 인사이트를 매일 받습니다
             </h2>
-            <p className="text-[15px] text-text-secondary">
+            <p className="text-[15px] text-white/60">
               12개 이상의 카드로 구성된 경영 대시보드. 한 화면에 오늘의 모든 판단 근거가 모입니다.
             </p>
           </div>
@@ -194,7 +194,7 @@ export default function LandingPage() {
           <h2 className="text-[28px] md:text-[36px] font-extrabold mb-4 tracking-tight">
             오늘부터 데이터로 결정하세요
           </h2>
-          <p className="text-[15px] md:text-[17px] text-text-secondary mb-8">
+          <p className="text-[15px] md:text-[17px] text-white/70 mb-8">
             설치 없이 바로 시작할 수 있습니다. 무료 체험 후 결정하세요.
           </p>
           <Link
@@ -203,20 +203,20 @@ export default function LandingPage() {
           >
             무료로 시작하기
           </Link>
-          <div className="mt-10 pt-8 border-t border-border text-[13px] text-text-tertiary">
+          <div className="mt-10 pt-8 border-t border-white/10 text-[13px] text-white/50">
             문의 · 피드백은 대시보드 내 커뮤니티 게시판 또는 관리자에게 연락주세요.
           </div>
         </div>
       </section>
 
       {/* ── 푸터 ── */}
-      <footer className="bg-background text-text-tertiary py-8 border-t border-border">
+      <footer className="bg-background text-white/50 py-8 border-t border-white/10">
         <div className="max-w-6xl mx-auto px-5 md:px-10 flex flex-col md:flex-row items-center justify-between gap-3 text-[12px]">
           <div>© 2026 SLP Analytics · 주유소 경영 데이터 플랫폼</div>
           <div className="flex items-center gap-4">
-            <Link href="/map" className="hover:text-text-primary no-underline transition-colors">지도</Link>
-            <Link href="/dashboard" className="hover:text-text-primary no-underline transition-colors">대시보드</Link>
-            <Link href="/community" className="hover:text-text-primary no-underline transition-colors">커뮤니티</Link>
+            <Link href="/map" className="hover:text-white no-underline transition-colors">지도</Link>
+            <Link href="/dashboard" className="hover:text-white no-underline transition-colors">대시보드</Link>
+            <Link href="/community" className="hover:text-white no-underline transition-colors">커뮤니티</Link>
           </div>
         </div>
       </footer>

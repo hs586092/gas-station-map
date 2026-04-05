@@ -169,7 +169,7 @@ export default function OilPricesPage() {
           </div>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={oilData.map((p) => ({ ...p, date: p.date.slice(5) }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
               <XAxis dataKey="date" fontSize={11} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" axisLine={{ stroke: "#26282F" }} tickLine={false} />
               <YAxis fontSize={11} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 3", "dataMax + 3"]} tickFormatter={(v: number) => `$${v}`} axisLine={false} tickLine={false} width={50} />
               <Tooltip
@@ -185,7 +185,7 @@ export default function OilPricesPage() {
               <Line type="monotone" dataKey="brent" stroke="#3b82f6" strokeWidth={2} dot={false} name="brent" connectNulls />
             </LineChart>
           </ResponsiveContainer>
-          <div className="mt-3 bg-slate-900/60 rounded-lg px-3 py-2.5 text-[13px] text-slate-500 leading-relaxed">
+          <div className="mt-3 bg-slate-50 rounded-lg px-3 py-2.5 text-[13px] text-slate-500 leading-relaxed">
             국제유가 변동은 약 <strong className="text-slate-700">2주 후</strong> 주유소 소매가에 반영됩니다.
             빨간 점선(2주 전) 기준의 유가가 현재 소매가에 영향을 주는 시점입니다.
           </div>
@@ -213,7 +213,7 @@ export default function OilPricesPage() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={overlayData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
               <XAxis dataKey="date" fontSize={11} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" axisLine={{ stroke: "#26282F" }} tickLine={false} />
               <YAxis yAxisId="oil" fontSize={11} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 3", "dataMax + 3"]} tickFormatter={(v: number) => `$${v}`} axisLine={false} tickLine={false} width={50} />
               {showRetail && (
@@ -254,7 +254,7 @@ export default function OilPricesPage() {
               <div className="text-[13px] text-text-secondary mt-1">Pearson 상관계수</div>
             </div>
             <div className="flex-1">
-              <div className="h-3 bg-slate-800 rounded-full overflow-hidden mb-2">
+              <div className="h-3 bg-slate-100 rounded-full overflow-hidden mb-2">
                 <div
                   className={`h-full rounded-full transition-all ${
                     correlation >= 0.7 ? "bg-emerald-500"
@@ -280,7 +280,7 @@ export default function OilPricesPage() {
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <div className="text-[16px] font-bold text-text-primary mb-3">향후 2주 소매가 전망</div>
             <div className={`rounded-xl px-4 py-4 ${
-              (summary.brentChange ?? 0) > 0 ? "bg-red-950/30" : (summary.brentChange ?? 0) < 0 ? "bg-blue-950/30" : "bg-slate-900/60"
+              (summary.brentChange ?? 0) > 0 ? "bg-red-50" : (summary.brentChange ?? 0) < 0 ? "bg-blue-50" : "bg-slate-50"
             }`}>
               <div className="text-[14px] font-semibold text-text-primary leading-relaxed">
                 {(summary.brentChange ?? 0) > 2

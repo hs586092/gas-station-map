@@ -161,8 +161,8 @@ export default function OilReflectionPage() {
         {/* 현재 상태 */}
         {reflection && (
           <div className={`mb-6 rounded-xl p-5 border border-border ${
-            reflection.direction === "up" ? "bg-red-950/30 border-red-900/60"
-              : reflection.direction === "down" ? "bg-blue-950/30 border-blue-900/60"
+            reflection.direction === "up" ? "bg-red-50 border-red-100"
+              : reflection.direction === "down" ? "bg-blue-50 border-blue-100"
               : "bg-surface-raised"
           }`}>
             <div className="flex items-center gap-2 mb-2">
@@ -214,7 +214,7 @@ export default function OilReflectionPage() {
           <div className="text-[13px] text-text-secondary mb-4">Brent 유가와 2주 후 내 소매가를 같은 시점에 겹쳐 표시</div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={overlayData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
               <XAxis dataKey="date" fontSize={12} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" tickLine={false} />
               <YAxis yAxisId="oil" fontSize={12} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 3", "dataMax + 3"]} tickFormatter={(v: number) => `$${v}`} axisLine={false} tickLine={false} width={50} />
               <YAxis yAxisId="retail" orientation="right" fontSize={12} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 20", "dataMax + 20"]} tickFormatter={(v: number) => `${v}`} axisLine={false} tickLine={false} width={50} />
@@ -257,13 +257,13 @@ export default function OilReflectionPage() {
                       ev.direction === "up" ? "bg-coral" : "bg-blue-500"
                     }`} />
 
-                    <div className={`rounded-xl p-4 ${ev.direction === "up" ? "bg-red-950/30" : "bg-blue-950/30"}`}>
+                    <div className={`rounded-xl p-4 ${ev.direction === "up" ? "bg-red-50" : "bg-blue-50"}`}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="text-[12px] font-bold text-text-primary">
                           {ev.endDate.slice(5)} · Brent {ev.direction === "up" ? "▲" : "▼"}${Math.abs(ev.change).toFixed(1)}
                         </div>
                         <span className={`text-[12px] px-2 py-0.5 rounded-full font-bold ${
-                          ev.reflected ? "bg-emerald-900/50 text-emerald-700" : "bg-slate-800 text-text-tertiary"
+                          ev.reflected ? "bg-emerald-900/50 text-emerald-700" : "bg-slate-100 text-text-tertiary"
                         }`}>
                           {ev.reflected ? "반영 완료" : "미반영"}
                         </span>

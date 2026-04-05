@@ -590,21 +590,21 @@ export default function CompetitorModal({
                   {/* 신뢰도 + 기간 안내 */}
                   <div className="mb-4">
                     {corrData.reliability === "low" && (
-                      <div className="flex items-start gap-2 bg-amber-950/30 border border-amber-200 rounded-[12px] px-4 py-3">
+                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-[12px] px-4 py-3">
                         <span className="text-[13px] leading-relaxed text-amber-800">
                           ⚠️ 데이터 부족 ({corrData.dataPoints}일) — 2주 이상 쌓이면 정확도 향상
                         </span>
                       </div>
                     )}
                     {corrData.reliability === "medium" && (
-                      <div className="flex items-start gap-2 bg-blue-950/30 border border-blue-200 rounded-[12px] px-4 py-3">
+                      <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-[12px] px-4 py-3">
                         <span className="text-[13px] leading-relaxed text-blue-800">
                           📊 보통 신뢰도 ({corrData.dataPoints}일)
                         </span>
                       </div>
                     )}
                     {corrData.reliability === "high" && (
-                      <div className="flex items-start gap-2 bg-emerald-950/30 border border-emerald-200 rounded-[12px] px-4 py-3">
+                      <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-[12px] px-4 py-3">
                         <span className="text-[13px] leading-relaxed text-emerald-800">
                           ✅ 높은 신뢰도 ({corrData.dataPoints}일)
                         </span>
@@ -718,7 +718,7 @@ export default function CompetitorModal({
                 <>
                   {/* 지역 매칭 안 된 주유소 안내 */}
                   {!benchData.station.district && (
-                    <div className="flex items-start gap-2 bg-amber-950/30 border border-amber-200 rounded-[12px] px-4 py-3 mb-4">
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-[12px] px-4 py-3 mb-4">
                       <span className="text-[13px] leading-relaxed text-amber-800">
                         ⚠️ 이 주유소는 지역 매칭이 되지 않아 지역별·유동인구 비교를 제공할 수 없습니다. 브랜드·도로등급·전체 평균 비교는 가능합니다.
                       </span>
@@ -727,7 +727,7 @@ export default function CompetitorModal({
 
                   {/* 표본 부족 경고 */}
                   {benchData.benchmarks.district && benchData.benchmarks.district.count <= 5 && (
-                    <div className="flex items-start gap-2 bg-blue-950/30 border border-blue-200 rounded-[12px] px-4 py-3 mb-4">
+                    <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-[12px] px-4 py-3 mb-4">
                       <span className="text-[13px] leading-relaxed text-blue-800">
                         ℹ️ {benchData.benchmarks.district.label} 주유소가 {benchData.benchmarks.district.count}개로 적어 통계 정확도가 낮을 수 있습니다.
                       </span>
@@ -765,7 +765,7 @@ export default function CompetitorModal({
                         </div>
 
                         <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] ${
-                          diff > 30 ? "bg-red-950/30" : diff < -30 ? "bg-blue-950/30" : "bg-emerald-950/30"
+                          diff > 30 ? "bg-red-50" : diff < -30 ? "bg-blue-50" : "bg-emerald-50"
                         }`}>
                           <span className={`text-[15px] font-bold ${
                             diff > 30 ? "text-[#DC2626]" : diff < -30 ? "text-[#2563EB]" : "text-emerald"
@@ -773,7 +773,7 @@ export default function CompetitorModal({
                             {diff > 0 ? "+" : ""}{diff}원
                           </span>
                           <span className={`text-[12px] ${
-                            diff > 30 ? "text-red-400" : diff < -30 ? "text-blue-400" : "text-emerald"
+                            diff > 30 ? "text-red-600" : diff < -30 ? "text-blue-600" : "text-emerald"
                           }`}>
                             {diff > 30 ? "평균보다 비쌈" : diff < -30 ? "평균보다 저렴" : "평균 수준"}
                           </span>

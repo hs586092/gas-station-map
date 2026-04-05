@@ -121,7 +121,7 @@ export default function PriceChart({
           {!loading && !error && data.length > 0 && (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
                 <XAxis
                   dataKey="date"
                   fontSize={11}

@@ -610,19 +610,19 @@ function MapContent() {
                 {(stationDetail.hasCarWash || stationDetail.hasCvs || stationDetail.hasLpg) && (
                   <div className="flex gap-1 mb-3 flex-wrap">
                     {stationDetail.hasCarWash && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-950/30 text-blue-400 text-[10px] font-medium rounded-full">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v6M6 8l1.5 1.5M18 8l-1.5 1.5M4 14h16M6 22V14M18 22V14"/></svg>
                         세차
                       </span>
                     )}
                     {stationDetail.hasCvs && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-950/30 text-amber-600 text-[10px] font-medium rounded-full">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-medium rounded-full">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                         편의점
                       </span>
                     )}
                     {stationDetail.hasLpg && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-950/30 text-emerald-400 text-[10px] font-medium rounded-full">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-medium rounded-full">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                         LPG
                       </span>
@@ -659,7 +659,7 @@ function MapContent() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all"
                             style={{ width: `${ratio * 100}%`, background: color }}
@@ -690,9 +690,9 @@ function MapContent() {
                 {/* 유가 반영 인사이트 (주유소별 맞춤) */}
                 {stationDetail.oilReflection && (
                   <div className={`rounded-[10px] px-3 py-2 mb-3 ${
-                    stationDetail.oilReflection.direction === "up" ? "bg-red-950/30"
-                      : stationDetail.oilReflection.direction === "down" ? "bg-blue-950/30"
-                      : "bg-slate-900/60"
+                    stationDetail.oilReflection.direction === "up" ? "bg-red-50"
+                      : stationDetail.oilReflection.direction === "down" ? "bg-blue-50"
+                      : "bg-slate-50"
                   }`}>
                     <div className="flex items-center gap-1.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" stroke={
@@ -703,9 +703,9 @@ function MapContent() {
                         <path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/>
                       </svg>
                       <span className={`text-[11px] font-medium ${
-                        stationDetail.oilReflection.direction === "up" ? "text-red-300"
-                          : stationDetail.oilReflection.direction === "down" ? "text-blue-300"
-                          : "text-slate-400"
+                        stationDetail.oilReflection.direction === "up" ? "text-red-700"
+                          : stationDetail.oilReflection.direction === "down" ? "text-blue-700"
+                          : "text-slate-600"
                       }`}>
                         {stationDetail.oilReflection.message}
                       </span>
@@ -722,10 +722,10 @@ function MapContent() {
                 {stationDetail.evNearby && stationDetail.evNearby.stations > 0 && (() => {
                   const fs = stationDetail.evNearby!.fastStations;
                   const threat = fs <= 5
-                    ? { label: "EV 전환 영향 적음", color: "text-emerald-400", bg: "bg-emerald-500", bar: "bg-emerald-100" }
+                    ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-500", bar: "bg-emerald-100" }
                     : fs <= 20
                       ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-400", bar: "bg-amber-100" }
-                      : { label: "EV 충전 밀집 지역", color: "text-red-400", bg: "bg-red-500", bar: "bg-red-100" };
+                      : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-500", bar: "bg-red-100" };
                   const barPct = Math.min(fs / 30 * 100, 100);
                   return (
                     <div className="bg-surface rounded-[10px] p-3 mb-3">
@@ -901,7 +901,7 @@ function MapContent() {
           >
             <div className="text-[11px] font-semibold text-text-secondary mb-2">가격 히트맵</div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-blue-400">{minP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-blue-600">{minP.toLocaleString()}원</span>
               <div
                 className="h-3 rounded-full"
                 style={{
@@ -909,7 +909,7 @@ function MapContent() {
                   background: "linear-gradient(to right, rgba(0,100,255,0.8), rgba(0,200,100,0.8), rgba(255,255,0,0.9), rgba(255,150,0,0.95), rgba(255,0,0,1))",
                 }}
               />
-              <span className="text-[11px] font-medium text-red-400">{maxP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-red-600">{maxP.toLocaleString()}원</span>
             </div>
           </div>
         );
@@ -928,14 +928,14 @@ function MapContent() {
           >
             <div className="text-[11px] font-semibold text-text-secondary mb-2">가격 히트맵</div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-blue-400">{minP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-blue-600">{minP.toLocaleString()}원</span>
               <div
                 className="flex-1 h-3 rounded-full"
                 style={{
                   background: "linear-gradient(to right, rgba(0,100,255,0.8), rgba(0,200,100,0.8), rgba(255,255,0,0.9), rgba(255,150,0,0.95), rgba(255,0,0,1))",
                 }}
               />
-              <span className="text-[11px] font-medium text-red-400">{maxP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-red-600">{maxP.toLocaleString()}원</span>
             </div>
           </div>
         );
