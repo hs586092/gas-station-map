@@ -141,21 +141,21 @@ export default function PriceHistoryPage() {
       <main className="px-5 pb-10">
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">현재가</div>
             <div className="text-[20px] font-extrabold text-text-primary">{latestPrice.toLocaleString()}<span className="text-[12px] font-normal">원</span></div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">30일 변동</div>
             <div className={`text-[20px] font-extrabold ${totalChange > 0 ? "text-coral" : totalChange < 0 ? "text-blue-600" : "text-text-primary"}`}>
               {totalChange > 0 ? "+" : ""}{totalChange}<span className="text-[12px] font-normal">원</span>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">30일 평균</div>
             <div className="text-[20px] font-extrabold text-text-primary">{avgPrice.toLocaleString()}<span className="text-[12px] font-normal">원</span></div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">최저↔최고</div>
             <div className="text-[14px] font-bold text-text-primary">
               {minPrice.toLocaleString()} ~ {maxPrice.toLocaleString()}
@@ -170,7 +170,7 @@ export default function PriceHistoryPage() {
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
               selectedFuel === "gasoline"
                 ? "bg-coral text-white border-coral"
-                : "bg-white text-text-secondary border-border hover:border-text-secondary"
+                : "bg-surface-raised text-text-secondary border-border hover:border-text-secondary"
             }`}
           >
             휘발유
@@ -180,7 +180,7 @@ export default function PriceHistoryPage() {
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
               selectedFuel === "diesel"
                 ? "bg-navy text-white border-navy"
-                : "bg-white text-text-secondary border-border hover:border-text-secondary"
+                : "bg-surface-raised text-text-secondary border-border hover:border-text-secondary"
             }`}
           >
             경유
@@ -188,7 +188,7 @@ export default function PriceHistoryPage() {
         </div>
 
         {/* 메인 차트 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="text-[16px] font-bold text-text-primary">
               {selectedFuel === "gasoline" ? "휘발유" : "경유"} 가격 추이
@@ -208,13 +208,13 @@ export default function PriceHistoryPage() {
           </div>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
               <XAxis
                 dataKey="date"
                 fontSize={11}
                 tick={{ fill: "#9BA8B7" }}
                 interval="preserveStartEnd"
-                axisLine={{ stroke: "#E8EBF0" }}
+                axisLine={{ stroke: "#26282F" }}
                 tickLine={false}
               />
               <YAxis
@@ -270,7 +270,7 @@ export default function PriceHistoryPage() {
 
         {/* 경쟁사 오버레이 선택 */}
         {competitors.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
             <div className="text-[13px] font-bold text-text-primary mb-3">경쟁사 가격 비교 (차트에 오버레이)</div>
             <div className="flex flex-wrap gap-2">
               {competitors.map((c) => (
@@ -280,7 +280,7 @@ export default function PriceHistoryPage() {
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors cursor-pointer ${
                     overlayIds.has(c.id)
                       ? "border-emerald bg-emerald-light text-emerald"
-                      : "border-border bg-white text-text-secondary hover:border-text-secondary"
+                      : "border-border bg-surface-raised text-text-secondary hover:border-text-secondary"
                   }`}
                 >
                   <span
@@ -296,7 +296,7 @@ export default function PriceHistoryPage() {
         )}
 
         {/* 가격 변경 이력 테이블 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border">
           <div className="text-[13px] font-bold text-text-primary mb-4">가격 변경 이력</div>
           {changeHistory.length === 0 ? (
             <div className="text-[13px] text-text-tertiary text-center py-8">

@@ -185,7 +185,7 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
             {showUserMenu && (
               <>
                 <div className="fixed inset-0 z-[1300]" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-white rounded-xl shadow-xl z-[1301] overflow-hidden border border-border">
+                <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-surface-raised rounded-xl shadow-xl z-[1301] overflow-hidden border border-border">
                   <div className="px-4 py-3 border-b border-border">
                     <p className="text-[13px] font-semibold text-text-primary m-0">{profile?.nickname || "사용자"}</p>
                     <p className="text-[11px] text-text-tertiary m-0 mt-0.5">{user.email}</p>
@@ -565,15 +565,15 @@ function MapContent() {
               onCloseClick={() => setSelectedEvCharger(null)}
             >
               <div style={{ minWidth: 180, padding: 0 }}>
-                <div className="font-semibold text-[13px] text-gray-900 mb-1">{ev.station_name}</div>
+                <div className="font-semibold text-[13px] text-text-primary mb-1">{ev.station_name}</div>
                 <div className="flex gap-3 mb-1">
                   <span className="text-[12px] text-orange-600 font-medium">급속 {ev.fast_count}대</span>
                   {ev.slow_count > 0 && (
-                    <span className="text-[12px] text-gray-600">완속 {ev.slow_count}대</span>
+                    <span className="text-[12px] text-text-secondary">완속 {ev.slow_count}대</span>
                   )}
                 </div>
                 {ev.operator && (
-                  <div className="text-[11px] text-gray-600">{ev.operator}</div>
+                  <div className="text-[11px] text-text-secondary">{ev.operator}</div>
                 )}
               </div>
             </InfoWindow>
@@ -610,19 +610,19 @@ function MapContent() {
                 {(stationDetail.hasCarWash || stationDetail.hasCvs || stationDetail.hasLpg) && (
                   <div className="flex gap-1 mb-3 flex-wrap">
                     {stationDetail.hasCarWash && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-950/30 text-blue-400 text-[10px] font-medium rounded-full">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v6M6 8l1.5 1.5M18 8l-1.5 1.5M4 14h16M6 22V14M18 22V14"/></svg>
                         세차
                       </span>
                     )}
                     {stationDetail.hasCvs && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-medium rounded-full">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-950/30 text-amber-600 text-[10px] font-medium rounded-full">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                         편의점
                       </span>
                     )}
                     {stationDetail.hasLpg && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-medium rounded-full">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-950/30 text-emerald-400 text-[10px] font-medium rounded-full">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                         LPG
                       </span>
@@ -659,7 +659,7 @@ function MapContent() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all"
                             style={{ width: `${ratio * 100}%`, background: color }}
@@ -678,7 +678,7 @@ function MapContent() {
                 <div className="bg-surface rounded-[10px] p-3 mb-3">
                   {stationDetail.prices.map((p) => (
                     <div key={p.product} className="flex justify-between items-center py-1.5 first:pt-0 last:pb-0">
-                      <span className="text-[12px] font-medium text-gray-800">{PROD_LABELS[p.product] || p.product}</span>
+                      <span className="text-[12px] font-medium text-text-primary">{PROD_LABELS[p.product] || p.product}</span>
                       <span className="text-[15px] font-bold text-text-primary">
                         {p.price.toLocaleString()}
                         <span className="text-[11px] font-normal text-text-tertiary ml-0.5">원</span>
@@ -690,9 +690,9 @@ function MapContent() {
                 {/* 유가 반영 인사이트 (주유소별 맞춤) */}
                 {stationDetail.oilReflection && (
                   <div className={`rounded-[10px] px-3 py-2 mb-3 ${
-                    stationDetail.oilReflection.direction === "up" ? "bg-red-50"
-                      : stationDetail.oilReflection.direction === "down" ? "bg-blue-50"
-                      : "bg-slate-50"
+                    stationDetail.oilReflection.direction === "up" ? "bg-red-950/30"
+                      : stationDetail.oilReflection.direction === "down" ? "bg-blue-950/30"
+                      : "bg-slate-900/60"
                   }`}>
                     <div className="flex items-center gap-1.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" stroke={
@@ -703,15 +703,15 @@ function MapContent() {
                         <path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/>
                       </svg>
                       <span className={`text-[11px] font-medium ${
-                        stationDetail.oilReflection.direction === "up" ? "text-red-700"
-                          : stationDetail.oilReflection.direction === "down" ? "text-blue-700"
-                          : "text-slate-600"
+                        stationDetail.oilReflection.direction === "up" ? "text-red-300"
+                          : stationDetail.oilReflection.direction === "down" ? "text-blue-300"
+                          : "text-slate-400"
                       }`}>
                         {stationDetail.oilReflection.message}
                       </span>
                     </div>
                     {stationDetail.oilReflection.priceChange !== null && (
-                      <div className="text-[10px] font-medium text-gray-800 mt-1 ml-[18px]">
+                      <div className="text-[10px] font-medium text-text-primary mt-1 ml-[18px]">
                         소매가 2주간 {stationDetail.oilReflection.priceChange >= 0 ? "+" : ""}{stationDetail.oilReflection.priceChange}원
                       </div>
                     )}
@@ -722,10 +722,10 @@ function MapContent() {
                 {stationDetail.evNearby && stationDetail.evNearby.stations > 0 && (() => {
                   const fs = stationDetail.evNearby!.fastStations;
                   const threat = fs <= 5
-                    ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-500", bar: "bg-emerald-100" }
+                    ? { label: "EV 전환 영향 적음", color: "text-emerald-400", bg: "bg-emerald-500", bar: "bg-emerald-100" }
                     : fs <= 20
                       ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-400", bar: "bg-amber-100" }
-                      : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-500", bar: "bg-red-100" };
+                      : { label: "EV 충전 밀집 지역", color: "text-red-400", bg: "bg-red-500", bar: "bg-red-100" };
                   const barPct = Math.min(fs / 30 * 100, 100);
                   return (
                     <div className="bg-surface rounded-[10px] p-3 mb-3">
@@ -734,7 +734,7 @@ function MapContent() {
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={threat.color}>
                             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                           </svg>
-                          <span className="text-[11px] font-bold text-gray-800">EV 충전 경쟁 환경</span>
+                          <span className="text-[11px] font-bold text-text-primary">EV 충전 경쟁 환경</span>
                         </div>
                         <span className={`text-[10px] font-bold ${threat.color}`}>{threat.label}</span>
                       </div>
@@ -744,12 +744,12 @@ function MapContent() {
                       </div>
                       {/* 급속 메인 */}
                       <div className="flex items-baseline gap-1.5 mb-1">
-                        <span className="text-[20px] font-extrabold text-gray-900">{fs}</span>
-                        <span className="text-[12px] font-semibold text-gray-700">급속 충전소</span>
-                        <span className="text-[11px] font-semibold text-gray-700">(충전기 {stationDetail.evNearby!.fast}대)</span>
+                        <span className="text-[20px] font-extrabold text-text-primary">{fs}</span>
+                        <span className="text-[12px] font-semibold text-text-secondary">급속 충전소</span>
+                        <span className="text-[11px] font-semibold text-text-secondary">(충전기 {stationDetail.evNearby!.fast}대)</span>
                       </div>
                       {/* 완속 부가정보 */}
-                      <div className="text-[11px] font-medium text-gray-700">
+                      <div className="text-[11px] font-medium text-text-secondary">
                         완속 {stationDetail.evNearby!.stations - fs}개소 (아파트·주거용)
                       </div>
                     </div>
@@ -801,7 +801,7 @@ function MapContent() {
           <input
             type="text"
             placeholder="주유소명, 지역 검색"
-            className="w-full h-10 pl-9 pr-3 bg-white text-[13px] text-text-primary placeholder-text-tertiary rounded-[12px] border border-border outline-none focus:border-navy transition-colors"
+            className="w-full h-10 pl-9 pr-3 bg-surface-raised text-[13px] text-text-primary placeholder-text-tertiary rounded-[12px] border border-border outline-none focus:border-navy transition-colors"
             style={{ boxShadow: "var(--shadow-md)" }}
           />
         </div>
@@ -901,7 +901,7 @@ function MapContent() {
           >
             <div className="text-[11px] font-semibold text-text-secondary mb-2">가격 히트맵</div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-blue-600">{minP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-blue-400">{minP.toLocaleString()}원</span>
               <div
                 className="h-3 rounded-full"
                 style={{
@@ -909,7 +909,7 @@ function MapContent() {
                   background: "linear-gradient(to right, rgba(0,100,255,0.8), rgba(0,200,100,0.8), rgba(255,255,0,0.9), rgba(255,150,0,0.95), rgba(255,0,0,1))",
                 }}
               />
-              <span className="text-[11px] font-medium text-red-600">{maxP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-red-400">{maxP.toLocaleString()}원</span>
             </div>
           </div>
         );
@@ -928,14 +928,14 @@ function MapContent() {
           >
             <div className="text-[11px] font-semibold text-text-secondary mb-2">가격 히트맵</div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-blue-600">{minP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-blue-400">{minP.toLocaleString()}원</span>
               <div
                 className="flex-1 h-3 rounded-full"
                 style={{
                   background: "linear-gradient(to right, rgba(0,100,255,0.8), rgba(0,200,100,0.8), rgba(255,255,0,0.9), rgba(255,150,0,0.95), rgba(255,0,0,1))",
                 }}
               />
-              <span className="text-[11px] font-medium text-red-600">{maxP.toLocaleString()}원</span>
+              <span className="text-[11px] font-medium text-red-400">{maxP.toLocaleString()}원</span>
             </div>
           </div>
         );
@@ -945,7 +945,7 @@ function MapContent() {
       <button
         onClick={goToMyLocation}
         disabled={locatingUser}
-        className="fixed bottom-6 right-6 z-[1100] w-10 h-10 bg-white border border-border rounded-xl cursor-pointer flex items-center justify-center hover:bg-surface transition-colors disabled:cursor-wait"
+        className="fixed bottom-6 right-6 z-[1100] w-10 h-10 bg-surface-raised border border-border rounded-xl cursor-pointer flex items-center justify-center hover:bg-surface transition-colors disabled:cursor-wait"
         style={{ boxShadow: "var(--shadow-md)" }}
         title="내 위치로 이동"
       >
@@ -977,8 +977,8 @@ function MapContent() {
       )}
 
       {loading && (
-        <div className="fixed top-[72px] left-1/2 -translate-x-1/2 bg-white text-text-secondary px-4 py-2 rounded-full text-[12px] font-medium z-[1100] border border-border flex items-center gap-2" style={{ boxShadow: "var(--shadow-md)" }}>
-          <div className="w-3.5 h-3.5 border-2 border-gray-200 border-t-emerald rounded-full animate-spin" />
+        <div className="fixed top-[72px] left-1/2 -translate-x-1/2 bg-surface-raised text-text-secondary px-4 py-2 rounded-full text-[12px] font-medium z-[1100] border border-border flex items-center gap-2" style={{ boxShadow: "var(--shadow-md)" }}>
+          <div className="w-3.5 h-3.5 border-2 border-border border-t-emerald rounded-full animate-spin" />
           검색 중
         </div>
       )}

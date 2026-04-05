@@ -68,7 +68,7 @@ export default function OilPriceChart({ onClose }: OilPriceChartProps) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[20px] w-full max-w-[600px] max-h-[80vh] overflow-auto"
+        className="bg-surface-raised rounded-[20px] w-full max-w-[600px] max-h-[80vh] overflow-auto"
         style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -124,13 +124,13 @@ export default function OilPriceChart({ onClose }: OilPriceChartProps) {
           {!loading && !error && data.length > 0 && (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
                 <XAxis
                   dataKey="date"
                   fontSize={11}
                   tick={{ fill: "#9BA8B7" }}
                   interval="preserveStartEnd"
-                  axisLine={{ stroke: "#E8EBF0" }}
+                  axisLine={{ stroke: "#26282F" }}
                   tickLine={false}
                 />
                 <YAxis
@@ -189,8 +189,8 @@ export default function OilPriceChart({ onClose }: OilPriceChartProps) {
 
         {/* 하단 설명 */}
         <div className="px-6 pb-5">
-          <div className="bg-slate-50 rounded-[10px] px-3 py-2.5 text-[11px] text-slate-500 leading-relaxed">
-            국제유가 변동은 약 <strong className="text-slate-700">2주 후</strong> 주유소 소매가에 반영됩니다.
+          <div className="bg-slate-900/60 rounded-[10px] px-3 py-2.5 text-[11px] text-slate-500 leading-relaxed">
+            국제유가 변동은 약 <strong className="text-slate-300">2주 후</strong> 주유소 소매가에 반영됩니다.
             빨간 점선(2주 전) 기준의 유가가 현재 소매가에 영향을 주는 시점입니다.
           </div>
         </div>

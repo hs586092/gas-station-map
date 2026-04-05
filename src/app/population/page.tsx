@@ -245,7 +245,7 @@ export default function PopulationPage() {
         <SiteHeader />
         <div className="max-w-6xl mx-auto p-6 space-y-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-xl h-32 animate-pulse" />
+            <div key={i} className="bg-surface-raised rounded-xl h-32 animate-pulse" />
           ))}
         </div>
       </div>
@@ -295,7 +295,7 @@ export default function PopulationPage() {
         </div>
 
         {/* 2. 산점도 */}
-        <div className="bg-white rounded-xl border border-border p-5">
+        <div className="bg-surface-raised rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-[15px] font-bold text-text-primary m-0">유동인구 vs 주유가격 (4분면 분석)</h2>
             <FuelToggle fuelType={fuelType} setFuelType={setFuelType} />
@@ -347,7 +347,7 @@ export default function PopulationPage() {
                     const d = payload[0].payload;
                     const q = getQuadrant(d.raw.population.avg_pop, d.y, seoulAvgPop, summary.avg_gasoline_seoul);
                     return (
-                      <div className="bg-white border border-border rounded-lg p-3 shadow-lg text-[12px]">
+                      <div className="bg-surface-raised border border-border rounded-lg p-3 shadow-lg text-[12px]">
                         <p className="font-bold m-0 mb-1">{d.name}</p>
                         <p className="m-0 text-text-secondary">유동인구: {d.x}만 명</p>
                         <p className="m-0 text-text-secondary">{fuelType === "gasoline" ? "휘발유" : "경유"}: {d.y.toLocaleString()}원</p>
@@ -386,7 +386,7 @@ export default function PopulationPage() {
 
         {/* 3. 시간대별 히트맵 */}
         {heatmapGrid && (
-          <div className="bg-white rounded-xl border border-border p-5">
+          <div className="bg-surface-raised rounded-xl border border-border p-5">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-[15px] font-bold text-text-primary m-0">시간대별 유동인구 히트맵</h2>
               <span className="text-[12px] text-text-tertiary">
@@ -475,7 +475,7 @@ export default function PopulationPage() {
               {/* 툴팁 */}
               {hoveredCell && (
                 <div
-                  className="fixed z-50 bg-white border border-border rounded-lg px-3 py-2 shadow-lg text-[12px] pointer-events-none"
+                  className="fixed z-50 bg-surface-raised border border-border rounded-lg px-3 py-2 shadow-lg text-[12px] pointer-events-none"
                   style={{
                     left: hoveredCell.x,
                     top: hoveredCell.y - 8,
@@ -518,7 +518,7 @@ export default function PopulationPage() {
         )}
 
         {/* 4. 주유소당 인구 랭킹 */}
-        <div className="bg-white rounded-xl border border-border p-5">
+        <div className="bg-surface-raised rounded-xl border border-border p-5">
           <h2 className="text-[15px] font-bold text-text-primary m-0 mb-1">주유소 1개당 유동인구 (높을수록 유리한 입지)</h2>
           <p className="text-[12px] text-text-tertiary m-0 mb-4">막대 색상 = 경쟁 강도 (빨강: 경쟁 치열, 초록: 경쟁 낮음)</p>
           <ResponsiveContainer width="100%" height={barData.length * 32 + 40}>
@@ -540,7 +540,7 @@ export default function PopulationPage() {
         </div>
 
         {/* 4. 상세 테이블 */}
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
+        <div className="bg-surface-raised rounded-xl border border-border overflow-hidden">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
             <h2 className="text-[15px] font-bold text-text-primary m-0">자치구별 상세</h2>
             <FuelToggle fuelType={fuelType} setFuelType={setFuelType} />
@@ -609,7 +609,7 @@ export default function PopulationPage() {
 
         {/* 5. 인사이트 */}
         {insights.length > 0 && (
-          <div className="bg-white rounded-xl border border-border p-5">
+          <div className="bg-surface-raised rounded-xl border border-border p-5">
             <h2 className="text-[15px] font-bold text-text-primary m-0 mb-3">핵심 인사이트</h2>
             <div className="space-y-2.5">
               {insights.map((text, i) => (
@@ -632,7 +632,7 @@ function SummaryCard({ icon, label, value, small, valueColor }: {
   icon: React.ReactNode; label: string; value: string; small?: boolean; valueColor?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-border p-4">
+    <div className="bg-surface-raised rounded-xl border border-border p-4">
       <div className="flex items-center gap-2 mb-2">{icon}<span className="text-[11px] font-medium text-text-tertiary">{label}</span></div>
       <p className={`font-bold m-0 ${small ? "text-[13px] leading-snug" : "text-[20px]"}`} style={{ color: valueColor || "#1B2838" }}>
         {value}

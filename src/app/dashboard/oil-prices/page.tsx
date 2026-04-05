@@ -125,13 +125,13 @@ export default function OilPricesPage() {
       <main className="px-5 pb-10">
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">Brent 현재</div>
             <div className="text-[20px] font-extrabold text-text-primary">
               ${brentLatest.toFixed(1)}
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">2주 변동</div>
             <div className={`text-[20px] font-extrabold ${
               (summary?.brentChange ?? 0) > 0 ? "text-coral" : (summary?.brentChange ?? 0) < 0 ? "text-blue-600" : "text-text-primary"
@@ -139,11 +139,11 @@ export default function OilPricesPage() {
               {(summary?.brentChange ?? 0) > 0 ? "+" : ""}${(summary?.brentChange ?? 0).toFixed(1)}
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">60일 평균</div>
             <div className="text-[20px] font-extrabold text-text-primary">${brentAvg.toFixed(1)}</div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">60일 범위</div>
             <div className="text-[14px] font-bold text-text-primary">
               ${brentMin.toFixed(1)} ~ ${brentMax.toFixed(1)}
@@ -152,7 +152,7 @@ export default function OilPricesPage() {
         </div>
 
         {/* 메인 차트: WTI / Brent */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="text-[16px] font-bold text-text-primary">국제유가 60일 추이</div>
             <div className="flex gap-3 text-[12px]">
@@ -169,8 +169,8 @@ export default function OilPricesPage() {
           </div>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={oilData.map((p) => ({ ...p, date: p.date.slice(5) }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
-              <XAxis dataKey="date" fontSize={11} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" axisLine={{ stroke: "#E8EBF0" }} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+              <XAxis dataKey="date" fontSize={11} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" axisLine={{ stroke: "#26282F" }} tickLine={false} />
               <YAxis fontSize={11} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 3", "dataMax + 3"]} tickFormatter={(v: number) => `$${v}`} axisLine={false} tickLine={false} width={50} />
               <Tooltip
                 formatter={(value, name) => [`$${Number(value).toFixed(2)}/BBL`, name === "wti" ? "WTI" : "Brent"]}
@@ -185,14 +185,14 @@ export default function OilPricesPage() {
               <Line type="monotone" dataKey="brent" stroke="#3b82f6" strokeWidth={2} dot={false} name="brent" connectNulls />
             </LineChart>
           </ResponsiveContainer>
-          <div className="mt-3 bg-slate-50 rounded-lg px-3 py-2.5 text-[13px] text-slate-500 leading-relaxed">
+          <div className="mt-3 bg-slate-900/60 rounded-lg px-3 py-2.5 text-[13px] text-slate-500 leading-relaxed">
             국제유가 변동은 약 <strong className="text-slate-700">2주 후</strong> 주유소 소매가에 반영됩니다.
             빨간 점선(2주 전) 기준의 유가가 현재 소매가에 영향을 주는 시점입니다.
           </div>
         </div>
 
         {/* 유가-소매가 시차 오버레이 차트 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="text-[16px] font-bold text-text-primary">유가 → 소매가 시차 분석</div>
@@ -205,7 +205,7 @@ export default function OilPricesPage() {
               className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
                 showRetail
                   ? "bg-emerald-light text-emerald border-emerald"
-                  : "bg-white text-text-secondary border-border"
+                  : "bg-surface-raised text-text-secondary border-border"
               }`}
             >
               소매가 {showRetail ? "ON" : "OFF"}
@@ -213,8 +213,8 @@ export default function OilPricesPage() {
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={overlayData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
-              <XAxis dataKey="date" fontSize={11} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" axisLine={{ stroke: "#E8EBF0" }} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+              <XAxis dataKey="date" fontSize={11} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" axisLine={{ stroke: "#26282F" }} tickLine={false} />
               <YAxis yAxisId="oil" fontSize={11} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 3", "dataMax + 3"]} tickFormatter={(v: number) => `$${v}`} axisLine={false} tickLine={false} width={50} />
               {showRetail && (
                 <YAxis yAxisId="retail" orientation="right" fontSize={11} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 20", "dataMax + 20"]} tickFormatter={(v: number) => `${v}`} axisLine={false} tickLine={false} width={50} />
@@ -244,7 +244,7 @@ export default function OilPricesPage() {
         </div>
 
         {/* 상관관계 분석 카드 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[16px] font-bold text-text-primary mb-4">유가-소매가 상관관계</div>
           <div className="flex items-center gap-6">
             <div className="text-center">
@@ -254,7 +254,7 @@ export default function OilPricesPage() {
               <div className="text-[13px] text-text-secondary mt-1">Pearson 상관계수</div>
             </div>
             <div className="flex-1">
-              <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-2">
+              <div className="h-3 bg-slate-800 rounded-full overflow-hidden mb-2">
                 <div
                   className={`h-full rounded-full transition-all ${
                     correlation >= 0.7 ? "bg-emerald-500"
@@ -277,10 +277,10 @@ export default function OilPricesPage() {
 
         {/* 향후 전망 */}
         {summary && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <div className="text-[16px] font-bold text-text-primary mb-3">향후 2주 소매가 전망</div>
             <div className={`rounded-xl px-4 py-4 ${
-              (summary.brentChange ?? 0) > 0 ? "bg-red-50" : (summary.brentChange ?? 0) < 0 ? "bg-blue-50" : "bg-slate-50"
+              (summary.brentChange ?? 0) > 0 ? "bg-red-950/30" : (summary.brentChange ?? 0) < 0 ? "bg-blue-950/30" : "bg-slate-900/60"
             }`}>
               <div className="text-[14px] font-semibold text-text-primary leading-relaxed">
                 {(summary.brentChange ?? 0) > 2

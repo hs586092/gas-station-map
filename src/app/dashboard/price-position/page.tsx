@@ -130,27 +130,27 @@ export default function PricePositionPage() {
       <main className="px-5 pb-10">
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">내 {selectedFuel === "gasoline" ? "휘발유" : "경유"}</div>
             <div className="text-[22px] font-extrabold text-text-primary">
               {myPrice?.toLocaleString() || "-"}<span className="text-[12px] font-normal">원</span>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">현재 순위</div>
             <div className="text-[22px] font-extrabold text-emerald">
               {selectedFuel === "gasoline" ? competitors.stats.my_gasoline_rank : competitors.stats.my_diesel_rank}위
               <span className="text-[12px] font-normal text-text-secondary"> / {competitors.stats.total_count}개</span>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">지역 평균</div>
             <div className="text-[20px] font-extrabold text-text-primary">
               {(selectedFuel === "gasoline" ? competitors.stats.avg_gasoline : competitors.stats.avg_diesel)?.toLocaleString() || "-"}
               <span className="text-[12px] font-normal">원</span>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">평균 대비</div>
             {(() => {
               const avg = selectedFuel === "gasoline" ? competitors.stats.avg_gasoline : competitors.stats.avg_diesel;
@@ -170,7 +170,7 @@ export default function PricePositionPage() {
         {/* 순위 변동 인사이트 */}
         {activeRankInfo && activeRankInfo.diff !== null && activeRankInfo.diff !== 0 && (
           <div className={`mb-6 rounded-2xl px-5 py-4 ${
-            activeRankInfo.diff < 0 ? "bg-emerald-light" : "bg-red-50"
+            activeRankInfo.diff < 0 ? "bg-emerald-light" : "bg-red-950/30"
           }`}>
             <div className="text-[16px] font-bold text-text-primary">
               어제 {activeRankInfo.yesterday?.rank}위 → 오늘 {activeRankInfo.today?.rank}위
@@ -188,7 +188,7 @@ export default function PricePositionPage() {
             <button
               onClick={() => setSelectedFuel("gasoline")}
               className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-                selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-white text-text-secondary border-border"
+                selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-surface-raised text-text-secondary border-border"
               }`}
             >
               휘발유
@@ -196,7 +196,7 @@ export default function PricePositionPage() {
             <button
               onClick={() => setSelectedFuel("diesel")}
               className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-                selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-white text-text-secondary border-border"
+                selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border"
               }`}
             >
               경유
@@ -208,7 +208,7 @@ export default function PricePositionPage() {
                 key={s}
                 onClick={() => setSortBy(s)}
                 className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-                  sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-white text-text-secondary border-border"
+                  sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-surface-raised text-text-secondary border-border"
                 }`}
               >
                 {s === "price" ? "가격순" : s === "distance" ? "거리순" : "차이순"}
@@ -219,7 +219,7 @@ export default function PricePositionPage() {
 
         {/* 가격 분포 바 */}
         {priceDistribution.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
             <div className="text-[13px] font-bold text-text-primary mb-3">가격 분포 (저가 → 고가)</div>
             <div className="flex items-end gap-px h-16">
               {priceDistribution.map((d, i) => (
@@ -247,7 +247,7 @@ export default function PricePositionPage() {
         )}
 
         {/* 경쟁사 가격 테이블 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[13px] font-bold text-text-primary mb-4">
             경쟁사 전체 ({competitors.competitors.length}개)
           </div>
@@ -315,7 +315,7 @@ export default function PricePositionPage() {
 
         {/* 가격 시뮬레이터 */}
         {myPrice && simulations.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <div className="text-[13px] font-bold text-text-primary mb-1">가격 시뮬레이터</div>
             <div className="text-[13px] text-text-tertiary mb-4">
               현재 {selectedFuel === "gasoline" ? "휘발유" : "경유"} {myPrice.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위 변화 예측
@@ -324,7 +324,7 @@ export default function PricePositionPage() {
               {simulations.map(({ delta, simPrice, simRank, total, rankChange }) => {
                 const isUp = delta > 0;
                 return (
-                  <div key={delta} className={`rounded-xl p-3 text-center ${isUp ? "bg-red-50" : "bg-blue-50"}`}>
+                  <div key={delta} className={`rounded-xl p-3 text-center ${isUp ? "bg-red-950/30" : "bg-blue-950/30"}`}>
                     <div className={`text-[12px] font-bold ${isUp ? "text-coral" : "text-blue-600"}`}>
                       {delta > 0 ? "+" : ""}{delta}원
                     </div>

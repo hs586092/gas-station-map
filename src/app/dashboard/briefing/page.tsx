@@ -124,10 +124,10 @@ function deriveFactors(d: Insights): Factor[] {
 
 // ─── 컴포넌트 ───
 const recColor: Record<string, string> = {
-  hold: "border-emerald-500 bg-emerald-50 text-emerald-800",
-  raise: "border-coral bg-red-50 text-red-800",
-  lower: "border-blue-500 bg-blue-50 text-blue-800",
-  watch: "border-amber-500 bg-amber-50 text-amber-800",
+  hold: "border-emerald-500 bg-emerald-950/30 text-emerald-800",
+  raise: "border-coral bg-red-950/30 text-red-800",
+  lower: "border-blue-500 bg-blue-950/30 text-blue-800",
+  watch: "border-amber-500 bg-amber-950/30 text-amber-800",
 };
 const recIcon: Record<string, string> = {
   hold: "✅", raise: "📈", lower: "📉", watch: "👀",
@@ -204,9 +204,9 @@ export default function BriefingPage() {
         {/* ── 3. 찬반 요약 테이블 ── */}
         <section>
           <h2 className="text-[16px] font-bold text-text-primary m-0 mb-3">찬반 요약</h2>
-          <div className="rounded-xl border border-border overflow-hidden bg-white">
+          <div className="rounded-xl border border-border overflow-hidden bg-surface-raised">
             {/* 헤더 */}
-            <div className="grid grid-cols-3 text-[13px] font-semibold text-text-secondary bg-gray-50 border-b border-border">
+            <div className="grid grid-cols-3 text-[13px] font-semibold text-text-secondary bg-slate-900/60 border-b border-border">
               <div className="px-3 py-2">항목</div>
               <div className="px-3 py-2 text-red-600">🔺 인상 찬성</div>
               <div className="px-3 py-2 text-blue-600">🔻 인상 반대</div>
@@ -224,7 +224,7 @@ export default function BriefingPage() {
               </div>
             ))}
             {/* 종합 */}
-            <div className="grid grid-cols-3 text-[12px] font-bold bg-gray-50 border-t border-border">
+            <div className="grid grid-cols-3 text-[12px] font-bold bg-slate-900/60 border-t border-border">
               <div className="px-3 py-2.5 text-text-primary">종합</div>
               <div className="px-3 py-2.5 text-red-600 col-span-2">
                 찬성 {proCount} vs 반대 {conCount} → {recLabel[rec.type]}
@@ -235,7 +235,7 @@ export default function BriefingPage() {
 
         {/* ── 4. 금액 범위 ── */}
         {rec.suggestedRange && (
-          <section className="rounded-xl border border-border bg-white p-4">
+          <section className="rounded-xl border border-border bg-surface-raised p-4">
             <h2 className="text-[16px] font-bold text-text-primary m-0 mb-2">
               {rec.type === "raise" ? "📈 인상" : rec.type === "lower" ? "📉 인하" : "💡"} 검토 금액
             </h2>
@@ -269,11 +269,11 @@ function FactorCard({ factor, index, insights }: { factor: Factor; index: number
   const labels = ["A", "B", "C", "D"];
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="rounded-xl border border-border bg-surface-raised p-4">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[13px] font-bold text-text-secondary">
+          <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-[13px] font-bold text-text-secondary">
             {labels[index]}
           </span>
           <span className="text-[16px] font-bold text-text-primary">{factor.label}</span>
@@ -336,7 +336,7 @@ function FactorCard({ factor, index, insights }: { factor: Factor; index: number
       </div>
 
       {/* 판단 요약 */}
-      <div className={`text-[12px] font-medium ${stanceColor[factor.stance]} bg-gray-50 rounded-lg px-3 py-2`}>
+      <div className={`text-[12px] font-medium ${stanceColor[factor.stance]} bg-slate-900/60 rounded-lg px-3 py-2`}>
         → {factor.summary}
       </div>
     </div>

@@ -115,7 +115,7 @@ export default function BenchmarkPage() {
           <button
             onClick={() => setSelectedFuel("gasoline")}
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-              selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-white text-text-secondary border-border"
+              selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-surface-raised text-text-secondary border-border"
             }`}
           >
             휘발유
@@ -123,7 +123,7 @@ export default function BenchmarkPage() {
           <button
             onClick={() => setSelectedFuel("diesel")}
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-              selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-white text-text-secondary border-border"
+              selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border"
             }`}
           >
             경유
@@ -131,14 +131,14 @@ export default function BenchmarkPage() {
         </div>
 
         {/* 적정가 범위 카드 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[16px] font-bold text-text-primary mb-1">적정 가격 범위</div>
           <div className="text-[13px] text-text-secondary mb-4">{refBenchmark.label} 기준 Q1~Q3 범위</div>
 
           {/* 범위 시각화 */}
           <div className="relative h-12 mb-3">
             {/* 전체 바 */}
-            <div className="absolute top-4 left-0 right-0 h-4 bg-gray-100 rounded-full" />
+            <div className="absolute top-4 left-0 right-0 h-4 bg-slate-800 rounded-full" />
             {/* 적정 범위 */}
             {(() => {
               const range = dMax - dMin || 1;
@@ -170,7 +170,7 @@ export default function BenchmarkPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-blue-50 rounded-xl p-3">
+            <div className="bg-blue-950/30 rounded-xl p-3">
               <div className="text-[12px] text-text-secondary mb-1">Q1 (하위 25%)</div>
               <div className="text-[16px] font-bold text-blue-600">{fairMin.toLocaleString()}</div>
             </div>
@@ -178,7 +178,7 @@ export default function BenchmarkPage() {
               <div className="text-[12px] text-text-secondary mb-1">중앙값</div>
               <div className="text-[16px] font-bold text-emerald">{fairMedian.toLocaleString()}</div>
             </div>
-            <div className="bg-red-50 rounded-xl p-3">
+            <div className="bg-red-950/30 rounded-xl p-3">
               <div className="text-[12px] text-text-secondary mb-1">Q3 (상위 25%)</div>
               <div className="text-[16px] font-bold text-coral">{fairMax.toLocaleString()}</div>
             </div>
@@ -186,8 +186,8 @@ export default function BenchmarkPage() {
 
           {/* 내 가격 판정 */}
           <div className={`mt-4 rounded-lg px-4 py-3 text-[13px] font-medium ${
-            myPrice < fairMin ? "bg-blue-50 text-blue-700"
-              : myPrice > fairMax ? "bg-red-50 text-red-700"
+            myPrice < fairMin ? "bg-blue-950/30 text-blue-700"
+              : myPrice > fairMax ? "bg-red-950/30 text-red-700"
               : "bg-emerald-light text-emerald"
           }`}>
             {myPrice < fairMin
@@ -199,7 +199,7 @@ export default function BenchmarkPage() {
         </div>
 
         {/* 히스토그램 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[16px] font-bold text-text-primary mb-1">가격 분포 히스토그램</div>
           <div className="text-[13px] text-text-secondary mb-4">{distribution.source} · {distribution.prices.length}개</div>
           <div className="flex items-end gap-1 h-40">
@@ -226,7 +226,7 @@ export default function BenchmarkPage() {
         </div>
 
         {/* 5축 벤치마크 비교 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[16px] font-bold text-text-primary mb-4">다축 벤치마크 비교</div>
           <div className="space-y-4">
             {allBenchmarks.map((bm, i) => {
@@ -250,7 +250,7 @@ export default function BenchmarkPage() {
 
                   {/* 가격 범위 바 */}
                   <div className="relative h-6 mt-2">
-                    <div className="absolute top-2.5 left-0 right-0 h-1.5 bg-gray-100 rounded-full" />
+                    <div className="absolute top-2.5 left-0 right-0 h-1.5 bg-slate-800 rounded-full" />
                     {/* Q1~Q3 범위 */}
                     {(() => {
                       const range = bm.max - bm.min || 1;
@@ -291,12 +291,12 @@ export default function BenchmarkPage() {
 
         {/* 유동인구 비교 (있는 경우) */}
         {data.benchmarks.population && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <div className="text-[16px] font-bold text-text-primary mb-2">유동인구 유사 지역 비교</div>
             <div className="text-[13px] text-text-secondary mb-3">
               유동인구 {(data.benchmarks.population as PopulationTier).level} 수준 · {(data.benchmarks.population as PopulationTier).districts.join(", ")}
             </div>
-            <div className="bg-slate-50 rounded-lg px-4 py-3">
+            <div className="bg-slate-900/60 rounded-lg px-4 py-3">
               <div className="text-[12px] text-text-primary">
                 유동인구 수준이 비슷한 지역({(data.benchmarks.population as PopulationTier).districts.length}개 구)의 평균가는{" "}
                 <strong>{data.benchmarks.population.avg.toLocaleString()}원</strong>이며,

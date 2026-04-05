@@ -104,7 +104,7 @@ export default function CompetitorsPage() {
   });
 
   const typeLabel = (t: string) => t === "leader" ? "선제형" : t === "follower" ? "추종형" : t === "steady" ? "안정형" : "미분류";
-  const typeColor = (t: string) => t === "leader" ? "bg-red-100 text-red-700" : t === "follower" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600";
+  const typeColor = (t: string) => t === "leader" ? "bg-red-100 text-red-700" : t === "follower" ? "bg-amber-100 text-amber-700" : "bg-slate-800 text-slate-600";
 
   if (loading) {
     return (
@@ -124,19 +124,19 @@ export default function CompetitorsPage() {
       <main className="px-5 pb-10">
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">총 경쟁사</div>
             <div className="text-[22px] font-extrabold text-text-primary">{competitors.length}<span className="text-[12px] font-normal">개</span></div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">이번 주 인상</div>
             <div className="text-[22px] font-extrabold text-coral">{weeklyTrend?.risingCount ?? 0}<span className="text-[12px] font-normal">곳</span></div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">이번 주 인하</div>
             <div className="text-[22px] font-extrabold text-blue-600">{weeklyTrend?.fallingCount ?? 0}<span className="text-[12px] font-normal">곳</span></div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">선제형 경쟁사</div>
             <div className="text-[22px] font-extrabold text-text-primary">{profiles.filter((p) => p.type === "leader").length}<span className="text-[12px] font-normal">곳</span></div>
           </div>
@@ -145,7 +145,7 @@ export default function CompetitorsPage() {
         {/* 7일 추세 */}
         {weeklyTrend && (
           <div className={`mb-6 rounded-2xl px-5 py-4 ${
-            weeklyTrend.action === "rising" ? "bg-red-50" : weeklyTrend.action === "falling" ? "bg-blue-50" : "bg-slate-50"
+            weeklyTrend.action === "rising" ? "bg-red-950/30" : weeklyTrend.action === "falling" ? "bg-blue-950/30" : "bg-slate-900/60"
           }`}>
             <div className="text-[13px] font-semibold text-text-primary">{weeklyTrend.message}</div>
           </div>
@@ -154,12 +154,12 @@ export default function CompetitorsPage() {
         {/* 필터 */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-2">
-            <button onClick={() => setSelectedFuel("gasoline")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-white text-text-secondary border-border"}`}>휘발유</button>
-            <button onClick={() => setSelectedFuel("diesel")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-white text-text-secondary border-border"}`}>경유</button>
+            <button onClick={() => setSelectedFuel("gasoline")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-surface-raised text-text-secondary border-border"}`}>휘발유</button>
+            <button onClick={() => setSelectedFuel("diesel")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border"}`}>경유</button>
           </div>
           <div className="flex gap-1">
             {(["distance", "price", "changes"] as const).map((s) => (
-              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-white text-text-secondary border-border"}`}>
+              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-700 text-white border-slate-700" : "bg-surface-raised text-text-secondary border-border"}`}>
                 {s === "distance" ? "거리순" : s === "price" ? "가격순" : "변경순"}
               </button>
             ))}
@@ -177,7 +177,7 @@ export default function CompetitorsPage() {
             const isExpanded = expandedId === c.id;
 
             return (
-              <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
+              <div key={c.id} className="bg-surface-raised rounded-xl border border-border overflow-hidden">
                 <div
                   className="p-4 cursor-pointer hover:bg-surface/50 transition-colors"
                   onClick={() => toggleChart(c.id)}
@@ -253,7 +253,7 @@ export default function CompetitorsPage() {
 
         {/* 가격 연동성 */}
         {correlations.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
             <div className="text-[16px] font-bold text-text-primary mb-1">가격 연동성 분석</div>
             <div className="text-[13px] text-text-secondary mb-4">나와 가격이 같이 움직이는 경쟁사 (Pearson 상관계수, 30일 기준)</div>
             <div className="space-y-3">
@@ -280,7 +280,7 @@ export default function CompetitorsPage() {
                         </div>
                         <span className="text-[12px] font-bold text-text-primary shrink-0 ml-2">{val.toFixed(2)}</span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
+                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-1">
                         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(absVal * 100, 5)}%` }} />
                       </div>
                       <div className="text-[12px] text-text-secondary">{label} · 데이터 {c.data_points}일</div>
@@ -293,12 +293,12 @@ export default function CompetitorsPage() {
 
         {/* 프로파일 요약 */}
         {profiles.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <div className="text-[16px] font-bold text-text-primary mb-4">경쟁사 행동 프로파일</div>
             <div className="grid grid-cols-3 gap-3 mb-4">
               {(["leader", "follower", "steady"] as const).map((t) => {
                 const count = profiles.filter((p) => p.type === t).length;
-                const colors = { leader: "bg-red-50 text-red-700", follower: "bg-amber-50 text-amber-700", steady: "bg-slate-50 text-slate-600" };
+                const colors = { leader: "bg-red-950/30 text-red-700", follower: "bg-amber-950/30 text-amber-700", steady: "bg-slate-900/60 text-slate-600" };
                 return (
                   <div key={t} className={`rounded-xl p-3 text-center ${colors[t]}`}>
                     <div className="text-[20px] font-extrabold">{count}</div>

@@ -1,33 +1,65 @@
 @import "tailwindcss";
 
+/* ================================================================
+   SLP Analytics — Bloomberg Terminal Dark Theme
+   ================================================================
+   Philosophy:
+   - Near-black base (#0A0B0E), NOT pure #000, to reduce retinal fatigue
+   - Cards one step lighter (#15171C) with hairline borders (#26282F)
+   - Text: bone-white primary, cool gray secondary/tertiary
+   - Accent: S-OIL yellow (#FFD200) — used sparingly, brand-only
+   - Signal colors: green up (#00C073), red down (#FF5252)
+   - No drop shadows. Depth comes from hairline borders, not blur.
+   ================================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #0F172A;
-  --navy: #0F172A;
-  --navy-light: #1E293B;
-  --emerald: #00C073;
-  --emerald-light: #E6F9F0;
-  --coral: #FF5252;
-  --coral-light: #FFF0F0;
-  --surface: #F6F6F4;
-  --border: #EBEBEA;
-  --border-strong: #DCDCD8;
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-tertiary: #64748B;
+  /* ── Base surfaces (darkest → lightest) ── */
+  --background: #0A0B0E;        /* page background, near-black */
+  --foreground: #F0F2F5;        /* bone white */
+  --surface: #0E1015;           /* sections / main content region */
+  --surface-raised: #15171C;    /* cards (replaces bg-white) */
+  --surface-elevated: #1C1F26;  /* modals, elevated cards */
+  --surface-hover: #22262F;     /* hover state for cards */
+
+  /* ── Borders (hairlines) ── */
+  --border: #26282F;            /* default hairline */
+  --border-strong: #3A3D46;     /* stronger division */
+  --border-subtle: #1B1E24;     /* barely-there separator */
+
+  /* ── Text hierarchy ── */
+  --text-primary: #F0F2F5;      /* bone white */
+  --text-secondary: #A3A9B5;    /* cool mid gray */
+  --text-tertiary: #6B7280;     /* dim gray — labels, timestamps */
+  --text-disabled: #4B5058;
+
+  /* ── Brand & legacy color tokens (kept for compatibility) ── */
+  --navy: #0A0B0E;              /* headers — aligns with base */
+  --navy-light: #15171C;        /* header border divider */
+  --emerald: #00C073;           /* signal: up / hold / positive */
+  --emerald-light: #0A2A1C;     /* dark tinted bg for emerald badges */
+  --coral: #FF5252;             /* signal: down / warn / negative */
+  --coral-light: #2A0F0F;       /* dark tinted bg for red badges */
+
+  /* ── S-OIL Accent Yellow ── */
   --oil-yellow: #FFD200;
-  --oil-yellow-soft: #FFF7CC;
+  --oil-yellow-soft: #3A2E00;   /* dark tinted bg for yellow badges */
   --oil-yellow-border: #F5C400;
+
+  /* ── Layout ── */
   --header-height: 56px;
   --sidebar-width: 340px;
-  --radius: 10px;
-  --radius-sm: 8px;
-  --radius-lg: 14px;
+  --radius: 8px;                /* tighter than light theme — Bloomberg aesthetic */
+  --radius-sm: 6px;
+  --radius-lg: 12px;
   --radius-full: 9999px;
-  --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
-  --shadow-md: 0 2px 8px rgba(15,23,42,0.06);
-  --shadow-lg: 0 8px 24px rgba(15,23,42,0.10);
-  --shadow-xl: 0 12px 40px rgba(15,23,42,0.14);
+
+  /* ── Shadows: almost none, borders do the work ── */
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.4);
+  --shadow-md: 0 2px 0 rgba(0,0,0,0.5);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.6);
+  --shadow-xl: 0 8px 32px rgba(0,0,0,0.7);
+
+  /* ── Typography ── */
   --letter-tight: -0.01em;
   --letter-tighter: -0.02em;
 }
@@ -42,8 +74,12 @@
   --color-coral: var(--coral);
   --color-coral-light: var(--coral-light);
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+  --color-border-subtle: var(--border-subtle);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
@@ -51,6 +87,11 @@
   --color-oil-yellow-soft: var(--oil-yellow-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+html {
+  background: var(--background);
+  color-scheme: dark;
 }
 
 body {
@@ -73,28 +114,28 @@ body {
   font-feature-settings: "tnum";
 }
 
-/* 스크롤바 */
+/* 스크롤바 — dark theme */
 ::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: #2C2F36;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #3A3D46;
 }
 
 /* 트랜지션 유틸 */
 .transition-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 .transition-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
 }
 
 /* line-clamp */
@@ -111,13 +152,13 @@ body {
   overflow: hidden;
 }
 
-/* 스켈레톤 */
+/* 스켈레톤 — dark theme */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #F0F0F0 25%, #E0E0E0 50%, #F0F0F0 75%);
+  background: linear-gradient(90deg, #1C1F26 25%, #262A33 50%, #1C1F26 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);

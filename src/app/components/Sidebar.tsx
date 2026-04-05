@@ -143,7 +143,7 @@ export default function Sidebar({
           onClick={() => onFiltersChange({ ...filters, prodCd: p.code })}
           className={`flex-1 py-[7px] text-[12px] font-semibold rounded-[8px] border-none cursor-pointer transition-all ${
             filters.prodCd === p.code
-              ? "bg-white text-text-primary shadow-sm"
+              ? "bg-surface-raised text-text-primary shadow-sm"
               : "text-text-tertiary hover:text-text-secondary bg-transparent"
           }`}
         >
@@ -165,7 +165,7 @@ export default function Sidebar({
             className={`flex-1 h-[30px] text-[11px] font-medium rounded-full border cursor-pointer transition-all ${
               filters.radius === r.value
                 ? "bg-navy text-white border-navy"
-                : "bg-white text-text-secondary border-border hover:border-text-tertiary"
+                : "bg-surface-raised text-text-secondary border-border hover:border-text-tertiary"
             }`}
           >
             {r.label}
@@ -180,8 +180,8 @@ export default function Sidebar({
             onClick={() => toggleBrand(b.code)}
             className={`h-[30px] px-2.5 text-[11px] font-medium rounded-full border cursor-pointer transition-all flex items-center gap-1 ${
               filters.brands.has(b.code)
-                ? "bg-white text-text-primary border-text-tertiary"
-                : "bg-white text-text-tertiary border-border hover:border-text-tertiary opacity-50"
+                ? "bg-surface-raised text-text-primary border-text-tertiary"
+                : "bg-surface-raised text-text-tertiary border-border hover:border-text-tertiary opacity-50"
             }`}
           >
             <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: b.color }} />
@@ -198,7 +198,7 @@ export default function Sidebar({
             className={`h-[30px] px-2.5 text-[11px] font-medium rounded-full border cursor-pointer transition-all flex items-center gap-1 ${
               filters.congestion === c.value
                 ? "bg-navy text-white border-navy"
-                : "bg-white text-text-secondary border-border hover:border-text-tertiary"
+                : "bg-surface-raised text-text-secondary border-border hover:border-text-tertiary"
             }`}
           >
             {c.color && <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: c.color }} />}
@@ -230,7 +230,7 @@ export default function Sidebar({
   // ── 유가 티커 UI ──
   const oilTicker = oilSummary && (
     <div className="mx-4 mb-2">
-      <div className="bg-slate-50 rounded-[10px] px-3 py-2 cursor-pointer hover:bg-slate-100 transition-colors" onClick={onOilChartClick}>
+      <div className="bg-slate-900/60 rounded-[10px] px-3 py-2 cursor-pointer hover:bg-slate-800 transition-colors" onClick={onOilChartClick}>
         <div className="flex items-center gap-1 mb-1.5">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>
           <span className="text-[10px] font-semibold text-slate-500">국제유가</span>
@@ -240,7 +240,7 @@ export default function Sidebar({
           <div className="flex-1">
             <div className="text-[10px] text-slate-400 mb-0.5">WTI</div>
             <div className="flex items-baseline gap-1">
-              <span className="text-[13px] font-bold text-slate-700">${oilSummary.wti.toFixed(1)}</span>
+              <span className="text-[13px] font-bold text-slate-300">${oilSummary.wti.toFixed(1)}</span>
               {oilSummary.wtiChange != null && (
                 <span className={`text-[10px] font-semibold ${oilSummary.wtiChange >= 0 ? "text-red-500" : "text-blue-500"}`}>
                   {oilSummary.wtiChange >= 0 ? "▲" : "▼"}{Math.abs(oilSummary.wtiChange).toFixed(1)}
@@ -252,7 +252,7 @@ export default function Sidebar({
           <div className="flex-1">
             <div className="text-[10px] text-slate-400 mb-0.5">Brent <span className="text-[8px]">(Dubai유 참고)</span></div>
             <div className="flex items-baseline gap-1">
-              <span className="text-[13px] font-bold text-slate-700">${oilSummary.brent.toFixed(1)}</span>
+              <span className="text-[13px] font-bold text-slate-300">${oilSummary.brent.toFixed(1)}</span>
               {oilSummary.brentChange != null && (
                 <span className={`text-[10px] font-semibold ${oilSummary.brentChange >= 0 ? "text-red-500" : "text-blue-500"}`}>
                   {oilSummary.brentChange >= 0 ? "▲" : "▼"}{Math.abs(oilSummary.brentChange).toFixed(1)}
@@ -315,7 +315,7 @@ export default function Sidebar({
         : "h-[72px]";
 
     return (
-      <div className={`fixed bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-[20px] transition-all duration-300 ${heightClass}`} style={{ boxShadow: "0 -4px 24px rgba(0,0,0,0.1)" }}>
+      <div className={`fixed bottom-0 left-0 right-0 z-[1000] bg-surface-raised rounded-t-[20px] transition-all duration-300 ${heightClass}`} style={{ boxShadow: "0 -4px 24px rgba(0,0,0,0.1)" }}>
         {/* 드래그 핸들 */}
         <div
           className="flex justify-center pt-[10px] pb-1 cursor-pointer"
@@ -339,7 +339,7 @@ export default function Sidebar({
                   key={p.code}
                   onClick={(e) => { e.stopPropagation(); onFiltersChange({ ...filters, prodCd: p.code }); }}
                   className={`px-2 py-1 text-[10px] font-semibold rounded-[6px] border-none cursor-pointer ${
-                    filters.prodCd === p.code ? "bg-white text-text-primary shadow-sm" : "text-text-tertiary bg-transparent"
+                    filters.prodCd === p.code ? "bg-surface-raised text-text-primary shadow-sm" : "text-text-tertiary bg-transparent"
                   }`}
                 >
                   {p.label}
@@ -397,7 +397,7 @@ export default function Sidebar({
       {/* 토글 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-[72px] z-[1001] bg-white border border-border rounded-lg w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-surface transition-colors"
+        className="fixed top-[72px] z-[1001] bg-surface-raised border border-border rounded-lg w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-surface transition-colors"
         style={{
           left: isOpen ? "calc(var(--sidebar-width) + 4px)" : 12,
           boxShadow: "var(--shadow-sm)",
@@ -409,7 +409,7 @@ export default function Sidebar({
       </button>
 
       <div
-        className={`fixed top-[56px] left-0 bg-white z-[1000] flex flex-col transition-transform duration-300 ${
+        className={`fixed top-[56px] left-0 bg-surface-raised z-[1000] flex flex-col transition-transform duration-300 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{

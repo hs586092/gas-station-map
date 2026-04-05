@@ -175,12 +175,12 @@ function DataFreshness({ date, label }: { date: string | null; label?: string })
 
 // ─── 스켈레톤 ───
 function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />;
+  return <div className={`animate-pulse bg-slate-800 rounded-lg ${className}`} />;
 }
 
 function CardSkeleton() {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
+    <div className="bg-surface-raised rounded-xl p-5 border border-border">
       <Skeleton className="h-4 w-24 mb-4" />
       <Skeleton className="h-8 w-32 mb-2" />
       <Skeleton className="h-4 w-40" />
@@ -188,14 +188,14 @@ function CardSkeleton() {
   );
 }
 
-// ─── 인사이트 배지 ───
+// ─── 인사이트 배지 (다크 테마) ───
 function InsightBadge({ children, color = "slate" }: { children: React.ReactNode; color?: "slate" | "blue" | "red" | "emerald" | "amber" }) {
   const colors = {
-    slate: "bg-slate-50 text-slate-700 border-slate-200/70",
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-    red: "bg-red-50 text-red-700 border-red-100",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
+    slate: "bg-slate-900/60 text-slate-300 border-slate-800",
+    blue: "bg-blue-950/40 text-blue-300 border-blue-900/60",
+    red: "bg-red-950/40 text-red-300 border-red-900/60",
+    emerald: "bg-emerald-950/40 text-emerald-300 border-emerald-900/60",
+    amber: "bg-amber-950/40 text-amber-300 border-amber-900/60",
   };
   return (
     <div className={`mt-3 rounded-md border px-3 py-2 text-[13px] leading-relaxed ${colors[color]}`}>
@@ -266,9 +266,9 @@ function PriceRangeBar({ myPrice, avg, label, rank, count }: { myPrice: number; 
         <span className="text-[13px] text-text-secondary">{label}</span>
         <span className="text-[12px] text-text-tertiary">{count}개 중 {rank}위</span>
       </div>
-      <div className="relative h-3 rounded-full bg-gray-100">
+      <div className="relative h-3 rounded-full bg-slate-800">
         {/* 평균선 */}
-        <div className="absolute top-0 bottom-0 w-0.5 bg-gray-400 z-10" style={{ left: `${avgPct}%` }} />
+        <div className="absolute top-0 bottom-0 w-0.5 bg-slate-500 z-10" style={{ left: `${avgPct}%` }} />
         <div className="absolute -top-4 text-[9px] text-text-tertiary whitespace-nowrap" style={{ left: `${avgPct}%`, transform: "translateX(-50%)" }}>
           평균
         </div>
@@ -443,10 +443,10 @@ export default function DashboardPage() {
     hold: "✅", raise: "📈", lower: "📉", watch: "👀",
   };
   const recColor = {
-    hold: "border-border bg-white",
-    raise: "border-border bg-white",
-    lower: "border-border bg-white",
-    watch: "border-border bg-white",
+    hold: "border-border bg-surface-raised",
+    raise: "border-border bg-surface-raised",
+    lower: "border-border bg-surface-raised",
+    watch: "border-border bg-surface-raised",
   };
 
   // 2주 후 반영 시점 계산 (국제유가 차트용)
@@ -463,7 +463,7 @@ export default function DashboardPage() {
         {/* 주유소 정보 헤더 */}
         <div className="mb-6 pb-5 border-b border-border">
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-oil-yellow-soft border border-oil-yellow/40 text-[11px] font-bold text-navy tracking-wider uppercase">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-oil-yellow-soft border border-oil-yellow/40 text-[11px] font-bold text-oil-yellow tracking-wider uppercase">
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: BRAND_COLORS["SOL"] }} />
               {BRAND_LABELS["SOL"]}
             </span>
@@ -481,7 +481,7 @@ export default function DashboardPage() {
         {/* ⓪ 종합 추천 카드 — 최상단 */}
         {loading.insights ? (
           <div className="mb-5">
-            <div className="rounded-2xl p-5 border-2 border-gray-200 bg-white">
+            <div className="rounded-xl p-5 border border-border bg-surface-raised">
               <Skeleton className="h-5 w-32 mb-3" />
               <Skeleton className="h-6 w-full mb-2" />
               <Skeleton className="h-4 w-3/4" />
@@ -502,7 +502,7 @@ export default function DashboardPage() {
               <span className="text-[20px]">{recIcon[insights.recommendation.type]}</span>
               <span className="text-[11px] font-bold text-text-tertiary tracking-[0.15em] uppercase">오늘의 경영 브리핑</span>
               {aiBriefing?.aiBriefing && !aiBriefing.fallback && (
-                <span className="text-[10px] font-bold bg-oil-yellow-soft text-navy border border-oil-yellow/40 px-2 py-0.5 rounded tracking-wider uppercase">AI 분석</span>
+                <span className="text-[10px] font-bold bg-oil-yellow-soft text-oil-yellow border border-oil-yellow/40 px-2 py-0.5 rounded tracking-wider uppercase">AI 분석</span>
               )}
             </div>
 
@@ -554,7 +554,7 @@ export default function DashboardPage() {
                         .then((d) => { setAiBriefing(d); setAiLoading(false); })
                         .catch(() => setAiLoading(false));
                     }}
-                    className="text-[13px] font-bold text-navy bg-oil-yellow hover:bg-oil-yellow-soft border border-oil-yellow-border px-3 py-1.5 rounded-md transition-colors cursor-pointer shadow-sm"
+                    className="text-[13px] font-bold text-black bg-oil-yellow hover:brightness-110 border border-oil-yellow-border px-3 py-1.5 rounded-md transition-colors cursor-pointer"
                   >
                     AI 분석 요청
                   </button>
@@ -591,7 +591,7 @@ export default function DashboardPage() {
             else if (tmrClear) insight = { msg: "내일 맑음 · 세차 수요 증가 예상", color: "emerald" };
 
             return (
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
+              <div className="bg-surface-raised rounded-xl p-5 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">오늘 날씨 · 하남시</div>
                   <span className="text-[12px] text-text-tertiary">실시간</span>
@@ -643,7 +643,7 @@ export default function DashboardPage() {
             const rainy = weatherImpact.byIntensity.find((b) => b.key === "heavy");
             const confColor = f.confidence === "high" ? "emerald" : f.confidence === "medium" ? "amber" : "slate";
             return (
-              <ClickableCard href="/dashboard/weather-impact" className="bg-white rounded-xl p-5 shadow-sm border border-border">
+              <ClickableCard href="/dashboard/weather-impact" className="bg-surface-raised rounded-xl p-5 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">날씨 영향 · 판매량</div>
                   <span className="text-[12px] text-text-tertiary">오늘 예측</span>
@@ -666,7 +666,7 @@ export default function DashboardPage() {
                           {rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%
                         </span>
                         <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
-                          weatherImpact.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-gray-100 text-text-tertiary"
+                          weatherImpact.tTest.significant ? "bg-emerald/20 text-emerald" : "bg-slate-800 text-text-tertiary"
                         }`}>
                           {weatherImpact.tTest.label}
                         </span>
@@ -686,7 +686,7 @@ export default function DashboardPage() {
 
           {/* ① 가격 포지션 변화 */}
           {loading.competitors ? <CardSkeleton /> : competitors && (
-            <ClickableCard href="/dashboard/price-position" className="bg-white rounded-xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/price-position" className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">내 가격 · 포지션</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
@@ -749,7 +749,7 @@ export default function DashboardPage() {
 
           {/* ② 경쟁사 행동 패턴 */}
           {loading.changes ? <CardSkeleton /> : changes && (
-            <ClickableCard href="/dashboard/competitors" className="bg-white rounded-xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/competitors" className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">
                   경쟁사 가격 변동
@@ -783,7 +783,7 @@ export default function DashboardPage() {
                             </div>
                           )}
                           {total - rising - falling > 0 && (
-                            <div className="bg-gray-200 flex items-center justify-center text-text-tertiary text-[11px] font-bold" style={{ width: `${((total - rising - falling) / total) * 100}%` }}>
+                            <div className="bg-slate-700 flex items-center justify-center text-text-tertiary text-[11px] font-bold" style={{ width: `${((total - rising - falling) / total) * 100}%` }}>
                               유지 {total - rising - falling}
                             </div>
                           )}
@@ -804,7 +804,7 @@ export default function DashboardPage() {
                             <div className="flex-1 flex items-center">
                               {/* 0 기준선 중앙 배치 */}
                               <div className="flex-1 flex items-center relative h-4">
-                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-300" />
+                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
                                 {diff !== 0 && (
                                   <div
                                     className={`absolute h-3 rounded-sm ${diff > 0 ? "bg-red-400" : "bg-blue-400"}`}
@@ -845,7 +845,7 @@ export default function DashboardPage() {
 
           {/* ③ 적정가 벤치마크 */}
           {loading.benchmark ? <CardSkeleton /> : benchmark && (
-            <ClickableCard href="/dashboard/benchmark" className="bg-white rounded-xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/benchmark" className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">적정가 벤치마크</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
@@ -883,7 +883,7 @@ export default function DashboardPage() {
           {loading.detail ? (
             <div className="md:col-span-2"><CardSkeleton /></div>
           ) : detail?.oilReflection && (
-            <ClickableCard href="/dashboard/oil-reflection" className="md:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/oil-reflection" className="md:col-span-2 bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">유가 반영 분석</div>
                 <DataFreshness date={oilPrices?.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="유가 데이터" />
@@ -896,22 +896,22 @@ export default function DashboardPage() {
                 competitorAction={insights?.competitorPattern.action ?? "stable"}
               />
               {/* 상태 메시지 */}
-              <div className={`rounded-xl px-4 py-2.5 mt-3 ${
-                detail.oilReflection.direction === "up" ? "bg-red-50"
-                  : detail.oilReflection.direction === "down" ? "bg-blue-50"
-                  : "bg-slate-50"
+              <div className={`rounded-lg px-4 py-2.5 mt-3 border ${
+                detail.oilReflection.direction === "up" ? "bg-red-950/30 border-red-900/60"
+                  : detail.oilReflection.direction === "down" ? "bg-blue-950/30 border-blue-900/60"
+                  : "bg-slate-900/60 border-slate-800"
               }`}>
                 <span className={`text-[14px] font-semibold ${
-                  detail.oilReflection.direction === "up" ? "text-red-700"
-                    : detail.oilReflection.direction === "down" ? "text-blue-700"
-                    : "text-slate-700"
+                  detail.oilReflection.direction === "up" ? "text-red-300"
+                    : detail.oilReflection.direction === "down" ? "text-blue-300"
+                    : "text-slate-300"
                 }`}>
                   {detail.oilReflection.message}
                 </span>
               </div>
               {/* 유가→경쟁사→내 가격 연결 스토리 */}
               {insights?.oilStory && (
-                <div className="mt-3 rounded-lg bg-slate-50 px-4 py-3">
+                <div className="mt-3 rounded-lg bg-slate-900/60 border border-slate-800 px-4 py-3">
                   <div className="text-[14px] font-medium text-text-secondary mb-1">흐름 분석</div>
                   <div className="text-[12px] text-text-primary leading-relaxed">{insights.oilStory}</div>
                 </div>
@@ -930,7 +930,7 @@ export default function DashboardPage() {
             const refEndDate = oilChartData[oilChartData.length - 1]?.date;
             return (
             <ClickableCard href="/dashboard/oil-prices" className={`rounded-2xl p-5 shadow-sm border border-border ${
-              isOilUp ? "bg-gradient-to-b from-red-50 to-white" : isOilDown ? "bg-gradient-to-b from-blue-50 to-white" : "bg-white"
+              isOilUp ? "bg-gradient-to-b from-red-950/30 to-surface-raised" : isOilDown ? "bg-gradient-to-b from-blue-950/30 to-surface-raised" : "bg-surface-raised"
             }`}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
@@ -965,10 +965,15 @@ export default function DashboardPage() {
               )}
               <ResponsiveContainer width="100%" height={130}>
                 <LineChart data={oilChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                  <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9 }} tickFormatter={(v) => `$${v}`} width={40} />
-                  <Tooltip formatter={(value, name) => [`$${value}`, name]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#A3A9B5" }} interval="preserveStartEnd" />
+                  <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9, fill: "#A3A9B5" }} tickFormatter={(v) => `$${v}`} width={40} />
+                  <Tooltip
+                    formatter={(value, name) => [`$${value}`, name]}
+                    contentStyle={{ background: "#15171C", border: "1px solid #26282F", borderRadius: 6, fontSize: 12 }}
+                    labelStyle={{ color: "#F0F2F5" }}
+                    itemStyle={{ color: "#F0F2F5" }}
+                  />
                   {refStartDate && refEndDate && (
                     <ReferenceArea x1={refStartDate} x2={refEndDate} fill={isOilUp ? "#fecaca" : isOilDown ? "#bfdbfe" : "#e2e8f0"} fillOpacity={0.3} label={{ value: "반영 중", position: "insideTop", fontSize: 9, fill: "#94a3b8" }} />
                   )}
@@ -994,12 +999,12 @@ export default function DashboardPage() {
           {loading.detail ? <CardSkeleton /> : detail?.evNearby && detail.evNearby.stations > 0 && (() => {
             const fs = detail.evNearby.fastStations;
             const threat = fs <= 5
-              ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-50", signal: "🟢", barColor: "bg-emerald-500" }
+              ? { label: "EV 전환 영향 적음", color: "text-emerald-400", bg: "bg-emerald-950/40 border border-emerald-900/60", signal: "🟢", barColor: "bg-emerald-500" }
               : fs <= 20
-                ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50", signal: "🟡", barColor: "bg-amber-500" }
-                : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50", signal: "🔴", barColor: "bg-red-500" };
+                ? { label: "EV 인프라 확대 중", color: "text-amber-400", bg: "bg-amber-950/40 border border-amber-900/60", signal: "🟡", barColor: "bg-amber-500" }
+                : { label: "EV 충전 밀집 지역", color: "text-red-400", bg: "bg-red-950/40 border border-red-900/60", signal: "🔴", barColor: "bg-red-500" };
             return (
-              <ClickableCard href="/dashboard/ev-threat" className="bg-white rounded-xl p-5 shadow-sm border border-border relative overflow-hidden">
+              <ClickableCard href="/dashboard/ev-threat" className="bg-surface-raised rounded-xl p-5 border border-border relative overflow-hidden">
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${threat.barColor}`} />
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -1025,7 +1030,7 @@ export default function DashboardPage() {
 
           {/* ⑧ 경쟁사 프로파일링 */}
           {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
-            <div className="md:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-border">
+            <div className="md:col-span-2 bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
@@ -1033,10 +1038,10 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {insights.competitorProfiles.slice(0, 6).map((p) => {
                   const typeColors = {
-                    leader: { bg: "bg-red-50", text: "text-red-700", badge: "bg-red-100 text-red-700" },
-                    follower: { bg: "bg-amber-50", text: "text-amber-700", badge: "bg-amber-100 text-amber-700" },
-                    steady: { bg: "bg-slate-50", text: "text-slate-600", badge: "bg-slate-100 text-slate-600" },
-                    unknown: { bg: "bg-gray-50", text: "text-gray-500", badge: "bg-gray-100 text-gray-500" },
+                    leader: { bg: "bg-red-950/30 border border-red-900/50", text: "text-red-300", badge: "bg-red-900/50 text-red-300" },
+                    follower: { bg: "bg-amber-950/30 border border-amber-900/50", text: "text-amber-300", badge: "bg-amber-900/50 text-amber-300" },
+                    steady: { bg: "bg-slate-900/60 border border-slate-800", text: "text-slate-400", badge: "bg-slate-800 text-slate-300" },
+                    unknown: { bg: "bg-slate-900/40 border border-slate-800", text: "text-slate-500", badge: "bg-slate-800 text-slate-400" },
                   };
                   const tc = typeColors[p.type];
                   return (
@@ -1066,7 +1071,7 @@ export default function DashboardPage() {
 
           {/* ⑨ 가격 연동성 인사이트 */}
           {!loading.insights && insights && insights.correlationInsights.length > 0 && (
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
+            <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">가격 연동성</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
@@ -1076,7 +1081,7 @@ export default function DashboardPage() {
                   const absCorr = Math.abs(c.correlation);
                   const barColor = c.correlation >= 0.7 ? "bg-emerald-500"
                     : c.correlation >= 0.3 ? "bg-amber-400"
-                    : c.correlation >= -0.3 ? "bg-gray-300"
+                    : c.correlation >= -0.3 ? "bg-slate-600"
                     : "bg-red-400";
                   return (
                     <div key={c.id}>
@@ -1087,7 +1092,7 @@ export default function DashboardPage() {
                         </div>
                         <span className="text-[14px] font-bold text-text-primary shrink-0 ml-2">{c.correlation.toFixed(2)}</span>
                       </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-1">
+                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1">
                         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(absCorr * 100, 8)}%` }} />
                       </div>
                       <div className="text-[12px] text-text-secondary">{c.label} — {c.insight}</div>
@@ -1116,15 +1121,15 @@ export default function DashboardPage() {
             });
 
             return (
-              <div className="md:col-span-2 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm border border-border">
+              <div className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-1">가격 시뮬레이터</div>
                 <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위 변화 예측</div>
                 <div className="grid grid-cols-5 gap-2">
                   {simulations.map(({ delta, simPrice, simRank, total, rankChange }) => {
                     const isUp = delta > 0;
                     return (
-                      <div key={delta} className={`rounded-xl p-3 text-center ${isUp ? "bg-red-50" : "bg-blue-50"}`}>
-                        <div className={`text-[12px] font-bold ${isUp ? "text-coral" : "text-blue-600"}`}>
+                      <div key={delta} className={`rounded-lg p-3 text-center border ${isUp ? "bg-red-950/30 border-red-900/50" : "bg-blue-950/30 border-blue-900/50"}`}>
+                        <div className={`text-[12px] font-bold ${isUp ? "text-red-400" : "text-blue-400"}`}>
                           {delta > 0 ? "+" : ""}{delta}원
                         </div>
                         <div className="text-[16px] font-extrabold text-text-primary tnum tracking-tight mt-1">{simPrice.toLocaleString()}</div>
@@ -1151,7 +1156,7 @@ export default function DashboardPage() {
           {loading.priceHistory ? (
             <div className="md:col-span-2 lg:col-span-3"><CardSkeleton /></div>
           ) : priceHistory && priceHistory.history.length > 0 && (
-            <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">내 가격 추이 (30일)</div>
@@ -1162,18 +1167,23 @@ export default function DashboardPage() {
                     <span className="w-2.5 h-0.5 rounded bg-coral inline-block" /> 휘발유
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-0.5 rounded bg-navy inline-block" /> 경유
+                    <span className="w-2.5 h-0.5 rounded bg-text-primary inline-block" /> 경유
                   </span>
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={priceHistory.history.map((h) => ({ ...h, date: h.date.slice(5) }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
-                  <YAxis domain={["dataMin - 20", "dataMax + 20"]} tick={{ fontSize: 12 }} tickFormatter={(v) => v.toLocaleString()} width={45} />
-                  <Tooltip formatter={(value, name) => [`${Number(value).toLocaleString()}원`, name]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#A3A9B5" }} interval="preserveStartEnd" />
+                  <YAxis domain={["dataMin - 20", "dataMax + 20"]} tick={{ fontSize: 12, fill: "#A3A9B5" }} tickFormatter={(v) => v.toLocaleString()} width={45} />
+                  <Tooltip
+                    formatter={(value, name) => [`${Number(value).toLocaleString()}원`, name]}
+                    contentStyle={{ background: "#15171C", border: "1px solid #26282F", borderRadius: 6, fontSize: 12 }}
+                    labelStyle={{ color: "#F0F2F5" }}
+                    itemStyle={{ color: "#F0F2F5" }}
+                  />
                   <Line type="monotone" dataKey="gasoline" stroke="#FF5252" strokeWidth={2} dot={false} name="휘발유" connectNulls />
-                  <Line type="monotone" dataKey="diesel" stroke="#1B2838" strokeWidth={2} dot={false} name="경유" connectNulls />
+                  <Line type="monotone" dataKey="diesel" stroke="#F0F2F5" strokeWidth={2} dot={false} name="경유" connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </ClickableCard>
@@ -1181,7 +1191,7 @@ export default function DashboardPage() {
 
           {/* ⑧ 판매량·가격 분석 */}
           {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (
-            <ClickableCard href="/dashboard/sales-analysis" className="bg-white rounded-xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/sales-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">판매량 · 가격 분석</div>
               <div className="space-y-2">
                 {/* 일 평균 판매량 + 변동 화살표 */}
@@ -1235,14 +1245,14 @@ export default function DashboardPage() {
 
           {/* ⑨ 타이밍 분석 */}
           {loading.timingAnalysis ? <CardSkeleton /> : timingAnalysis && (
-            <ClickableCard href="/dashboard/timing-analysis" className="bg-white rounded-xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/timing-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center gap-2 mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">타이밍 분석</div>
                 {timingAnalysis.currentSituation.urgency !== "none" && (
                   <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full ${
-                    timingAnalysis.currentSituation.urgency === "high" ? "bg-red-100 text-red-600" :
-                    timingAnalysis.currentSituation.urgency === "medium" ? "bg-amber-100 text-amber-600" :
-                    "bg-blue-100 text-blue-600"
+                    timingAnalysis.currentSituation.urgency === "high" ? "bg-red-900/50 text-red-300 border border-red-900" :
+                    timingAnalysis.currentSituation.urgency === "medium" ? "bg-amber-900/50 text-amber-300 border border-amber-900" :
+                    "bg-blue-900/50 text-blue-300 border border-blue-900"
                   }`}>
                     {timingAnalysis.currentSituation.urgency === "high" ? "긴급" :
                      timingAnalysis.currentSituation.urgency === "medium" ? "주의" : "참고"}

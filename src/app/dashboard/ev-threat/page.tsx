@@ -56,10 +56,10 @@ export default function EvThreatPage() {
 
   // 위협 레벨
   const threatLevel = summary.fastStations <= 5
-    ? { label: "EV 전환 영향 적음", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" }
+    ? { label: "EV 전환 영향 적음", color: "text-emerald-700", bg: "bg-emerald-950/30", border: "border-emerald-900/60" }
     : summary.fastStations <= 20
-    ? { label: "EV 인프라 확대 중", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" }
-    : { label: "EV 충전 밀집 지역", color: "text-red-700", bg: "bg-red-50", border: "border-red-200" };
+    ? { label: "EV 인프라 확대 중", color: "text-amber-700", bg: "bg-amber-950/30", border: "border-amber-900/60" }
+    : { label: "EV 충전 밀집 지역", color: "text-red-700", bg: "bg-red-950/30", border: "border-red-900/60" };
 
   // 운영업체 색상
   const opColors = ["#3b82f6", "#f97316", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#f59e0b", "#ec4899"];
@@ -99,17 +99,17 @@ export default function EvThreatPage() {
 
         {/* 뷰 모드 전환 */}
         <div className="flex gap-2 mb-4">
-          <button onClick={() => setViewMode("map")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "map" ? "bg-navy text-white border-navy" : "bg-white text-text-secondary border-border"}`}>
+          <button onClick={() => setViewMode("map")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "map" ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border"}`}>
             지도
           </button>
-          <button onClick={() => setViewMode("list")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "list" ? "bg-navy text-white border-navy" : "bg-white text-text-secondary border-border"}`}>
+          <button onClick={() => setViewMode("list")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "list" ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border"}`}>
             목록
           </button>
         </div>
 
         {/* 지도 */}
         {viewMode === "map" && MAPS_KEY && (
-          <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden mb-6" style={{ height: 400 }}>
+          <div className="bg-surface-raised rounded-xl border border-border overflow-hidden mb-6" style={{ height: 400 }}>
             <APIProvider apiKey={MAPS_KEY}>
               <Map
                 defaultCenter={{ lat: station.lat, lng: station.lng }}
@@ -158,7 +158,7 @@ export default function EvThreatPage() {
 
         {/* 목록 뷰 또는 항상 표시되는 TOP 5 */}
         {viewMode === "list" && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
             <div className="text-[13px] font-bold text-text-primary mb-4">전체 충전소 ({chargers.length}개)</div>
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
@@ -189,7 +189,7 @@ export default function EvThreatPage() {
 
         {/* 가장 가까운 급속 충전소 TOP 5 */}
         {top5Fast.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
             <div className="text-[13px] font-bold text-text-primary mb-3">가장 가까운 급속 충전소 TOP 5</div>
             <div className="space-y-2">
               {top5Fast.map((c, i) => (
@@ -210,7 +210,7 @@ export default function EvThreatPage() {
 
         {/* 운영업체별 분류 */}
         {operators.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <div className="text-[13px] font-bold text-text-primary mb-4">운영업체별 충전소 수</div>
             <div className="space-y-2">
               {operators.slice(0, 8).map((op, i) => {
@@ -221,7 +221,7 @@ export default function EvThreatPage() {
                       <span className="text-[12px] text-text-primary">{op.name}</span>
                       <span className="text-[12px] font-bold text-text-primary">{op.count}개 ({pct}%)</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${pct}%`, background: opColors[i % opColors.length] }}

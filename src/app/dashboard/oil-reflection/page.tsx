@@ -160,10 +160,10 @@ export default function OilReflectionPage() {
       <main className="px-5 pb-10">
         {/* 현재 상태 */}
         {reflection && (
-          <div className={`mb-6 rounded-2xl p-5 shadow-sm border border-border ${
-            reflection.direction === "up" ? "bg-red-50 border-red-200"
-              : reflection.direction === "down" ? "bg-blue-50 border-blue-200"
-              : "bg-white"
+          <div className={`mb-6 rounded-xl p-5 border border-border ${
+            reflection.direction === "up" ? "bg-red-950/30 border-red-900/60"
+              : reflection.direction === "down" ? "bg-blue-950/30 border-blue-900/60"
+              : "bg-surface-raised"
           }`}>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[18px]">{reflection.direction === "up" ? "📈" : reflection.direction === "down" ? "📉" : "➡️"}</span>
@@ -180,17 +180,17 @@ export default function OilReflectionPage() {
 
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">감지된 유가 이벤트</div>
             <div className="text-[22px] font-extrabold text-text-primary">{events.length}<span className="text-[12px] font-normal">건</span></div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">평균 반영 속도</div>
             <div className="text-[22px] font-extrabold text-text-primary">
               {avgReflectDays != null ? <>{avgReflectDays}<span className="text-[12px] font-normal">일</span></> : <span className="text-[14px] text-text-tertiary">데이터 부족</span>}
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-border">
+          <div className="bg-surface-raised rounded-xl p-4 border border-border">
             <div className="text-[13px] text-text-secondary mb-1">반영 완료율</div>
             <div className="text-[22px] font-extrabold text-emerald">
               {events.length > 0
@@ -202,19 +202,19 @@ export default function OilReflectionPage() {
 
         {/* 흐름 분석 스토리 */}
         {oilStory && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+          <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
             <div className="text-[13px] font-bold text-text-primary mb-2">흐름 분석</div>
             <div className="text-[12px] text-text-secondary leading-relaxed">{oilStory}</div>
           </div>
         )}
 
         {/* Brent vs 소매가 시차 차트 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[16px] font-bold text-text-primary mb-1">Brent 유가 → 소매가 시차 비교</div>
           <div className="text-[13px] text-text-secondary mb-4">Brent 유가와 2주 후 내 소매가를 같은 시점에 겹쳐 표시</div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={overlayData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
               <XAxis dataKey="date" fontSize={12} tick={{ fill: "#9BA8B7" }} interval="preserveStartEnd" tickLine={false} />
               <YAxis yAxisId="oil" fontSize={12} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 3", "dataMax + 3"]} tickFormatter={(v: number) => `$${v}`} axisLine={false} tickLine={false} width={50} />
               <YAxis yAxisId="retail" orientation="right" fontSize={12} tick={{ fill: "#9BA8B7" }} domain={["dataMin - 20", "dataMax + 20"]} tickFormatter={(v: number) => `${v}`} axisLine={false} tickLine={false} width={50} />
@@ -236,7 +236,7 @@ export default function OilReflectionPage() {
         </div>
 
         {/* 유가 변동 이벤트 타임라인 */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+        <div className="bg-surface-raised rounded-xl p-5 border border-border">
           <div className="text-[16px] font-bold text-text-primary mb-1">유가 변동 이벤트</div>
           <div className="text-[13px] text-text-secondary mb-4">Brent 주간 변동 ±$3 이상 감지</div>
 
@@ -257,13 +257,13 @@ export default function OilReflectionPage() {
                       ev.direction === "up" ? "bg-coral" : "bg-blue-500"
                     }`} />
 
-                    <div className={`rounded-xl p-4 ${ev.direction === "up" ? "bg-red-50" : "bg-blue-50"}`}>
+                    <div className={`rounded-xl p-4 ${ev.direction === "up" ? "bg-red-950/30" : "bg-blue-950/30"}`}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="text-[12px] font-bold text-text-primary">
                           {ev.endDate.slice(5)} · Brent {ev.direction === "up" ? "▲" : "▼"}${Math.abs(ev.change).toFixed(1)}
                         </div>
                         <span className={`text-[12px] px-2 py-0.5 rounded-full font-bold ${
-                          ev.reflected ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-text-tertiary"
+                          ev.reflected ? "bg-emerald-900/50 text-emerald-700" : "bg-slate-800 text-text-tertiary"
                         }`}>
                           {ev.reflected ? "반영 완료" : "미반영"}
                         </span>

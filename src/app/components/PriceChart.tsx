@@ -69,7 +69,7 @@ export default function PriceChart({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[20px] w-full max-w-[560px] max-h-[80vh] overflow-auto"
+        className="bg-surface-raised rounded-[20px] w-full max-w-[560px] max-h-[80vh] overflow-auto"
         style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -121,13 +121,13 @@ export default function PriceChart({
           {!loading && !error && data.length > 0 && (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#26282F" vertical={false} />
                 <XAxis
                   dataKey="date"
                   fontSize={11}
                   tick={{ fill: "#9BA8B7" }}
                   interval="preserveStartEnd"
-                  axisLine={{ stroke: "#E8EBF0" }}
+                  axisLine={{ stroke: "#26282F" }}
                   tickLine={false}
                 />
                 <YAxis

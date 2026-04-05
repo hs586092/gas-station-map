@@ -16,11 +16,11 @@ const CATEGORIES = [
 ];
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
-  정유사정보: { bg: "bg-blue-50", text: "text-blue-600", dot: "#3B82F6" },
-  운영고민: { bg: "bg-amber-50", text: "text-amber-600", dot: "#F59E0B" },
-  장비추천: { bg: "bg-emerald-50", text: "text-emerald-600", dot: "#10B981" },
+  정유사정보: { bg: "bg-blue-950/30", text: "text-blue-600", dot: "#3B82F6" },
+  운영고민: { bg: "bg-amber-950/30", text: "text-amber-600", dot: "#F59E0B" },
+  장비추천: { bg: "bg-emerald-950/30", text: "text-emerald-600", dot: "#10B981" },
   구인구직: { bg: "bg-purple-50", text: "text-purple-600", dot: "#8B5CF6" },
-  자유: { bg: "bg-gray-50", text: "text-gray-500", dot: "#9CA3AF" },
+  자유: { bg: "bg-slate-900/60", text: "text-gray-500", dot: "#9CA3AF" },
 };
 
 interface Post {
@@ -216,7 +216,7 @@ export default function CommunityPage() {
             목록으로
           </button>
 
-          <article className="bg-white rounded-[16px] border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+          <article className="bg-surface-raised rounded-[16px] border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
             <div className="p-6">
               <div className="flex items-center gap-2 mb-3">
                 <CategoryBadge category={postDetail.post.category} />
@@ -244,7 +244,7 @@ export default function CommunityPage() {
           </article>
 
           {/* 댓글 */}
-          <section className="mt-4 bg-white rounded-[16px] border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+          <section className="mt-4 bg-surface-raised rounded-[16px] border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
             <div className="px-6 py-4 border-b border-border">
               <h3 className="text-[14px] font-bold text-text-primary m-0">댓글 <span className="text-emerald">{postDetail.comments.length}</span></h3>
             </div>
@@ -270,7 +270,7 @@ export default function CommunityPage() {
             ))}
 
             <div className="p-4 border-t border-border flex gap-2">
-              <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="댓글을 입력하세요" className="flex-1 h-10 px-3 text-[13px] border border-border rounded-[10px] outline-none focus:border-navy bg-white text-text-primary transition-colors" onKeyDown={(e) => e.key === "Enter" && addComment()} />
+              <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="댓글을 입력하세요" className="flex-1 h-10 px-3 text-[13px] border border-border rounded-[10px] outline-none focus:border-navy bg-surface-raised text-text-primary transition-colors" onKeyDown={(e) => e.key === "Enter" && addComment()} />
               <button onClick={addComment} disabled={!commentText.trim()} className="h-10 px-5 bg-navy text-white text-[12px] font-semibold rounded-[10px] border-none cursor-pointer hover:bg-navy-light disabled:opacity-30 transition-all">등록</button>
             </div>
           </section>
@@ -312,7 +312,7 @@ export default function CommunityPage() {
                 <div
                   key={post.id}
                   onClick={() => openPost(post)}
-                  className="shrink-0 w-[220px] bg-white rounded-[14px] p-4 border border-border cursor-pointer transition-lift"
+                  className="shrink-0 w-[220px] bg-surface-raised rounded-[14px] p-4 border border-border cursor-pointer transition-lift"
                 >
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="text-[18px] font-black text-coral/30">{i + 1}</span>
@@ -339,9 +339,9 @@ export default function CommunityPage() {
         <div className="flex items-center gap-2 mb-3">
           <div className="relative flex-1">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9BA8B7" strokeWidth="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input type="text" placeholder="검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full h-9 pl-9 pr-3 text-[13px] bg-white border border-border rounded-[10px] outline-none focus:border-navy text-text-primary transition-colors" />
+            <input type="text" placeholder="검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full h-9 pl-9 pr-3 text-[13px] bg-surface-raised border border-border rounded-[10px] outline-none focus:border-navy text-text-primary transition-colors" />
           </div>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as "latest" | "popular" | "comments")} className="h-9 px-2.5 text-[12px] bg-white border border-border rounded-[10px] outline-none text-text-secondary cursor-pointer">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as "latest" | "popular" | "comments")} className="h-9 px-2.5 text-[12px] bg-surface-raised border border-border rounded-[10px] outline-none text-text-secondary cursor-pointer">
             <option value="latest">최신순</option>
             <option value="popular">인기순</option>
             <option value="comments">댓글순</option>
@@ -351,7 +351,7 @@ export default function CommunityPage() {
         {/* 카테고리 칩 */}
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide mb-4 pb-0.5">
           {CATEGORIES.map((c) => (
-            <button key={c.key} onClick={() => setCategory(c.key)} className={`shrink-0 h-8 px-3.5 text-[12px] font-medium rounded-full border cursor-pointer transition-all ${category === c.key ? "bg-navy text-white border-navy" : "bg-white text-text-secondary border-border hover:border-text-tertiary"}`}>
+            <button key={c.key} onClick={() => setCategory(c.key)} className={`shrink-0 h-8 px-3.5 text-[12px] font-medium rounded-full border cursor-pointer transition-all ${category === c.key ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border hover:border-text-tertiary"}`}>
               {c.label}
             </button>
           ))}
@@ -366,7 +366,7 @@ export default function CommunityPage() {
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-[14px] p-4 border border-border">
+              <div key={i} className="bg-surface-raised rounded-[14px] p-4 border border-border">
                 <div className="skeleton h-3 w-16 mb-3" />
                 <div className="skeleton h-4 w-3/4 mb-2" />
                 <div className="skeleton h-3 w-full mb-3" />
@@ -383,7 +383,7 @@ export default function CommunityPage() {
         ) : (
           <div className="space-y-2">
             {posts.map((post) => (
-              <div key={post.id} onClick={() => openPost(post)} className="bg-white rounded-[14px] p-4 border border-border cursor-pointer transition-lift hover:border-gray-200">
+              <div key={post.id} onClick={() => openPost(post)} className="bg-surface-raised rounded-[14px] p-4 border border-border cursor-pointer transition-lift hover:border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
                   <CategoryBadge category={post.category} />
                   <span className="text-[11px] text-text-tertiary ml-auto">{timeAgo(post.created_at)}</span>
@@ -413,7 +413,7 @@ export default function CommunityPage() {
       {/* 글쓰기 모달 */}
       {showWrite && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowWrite(false)}>
-          <div className="bg-white rounded-[20px] w-full max-w-[500px] overflow-hidden" style={{ boxShadow: "var(--shadow-xl)" }} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface-raised rounded-[20px] w-full max-w-[500px] overflow-hidden" style={{ boxShadow: "var(--shadow-xl)" }} onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-5 flex items-center justify-between border-b border-border">
               <h2 className="text-[17px] font-bold text-text-primary m-0">새 글 작성</h2>
               <button onClick={() => setShowWrite(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface bg-transparent border-none cursor-pointer transition-colors">
@@ -425,12 +425,12 @@ export default function CommunityPage() {
                 <label className="text-[12px] font-semibold text-text-secondary mb-2 block">카테고리</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {CATEGORIES.filter((c) => c.key !== "all").map((c) => (
-                    <button key={c.key} onClick={() => setWriteCategory(c.key)} className={`h-8 px-3 text-[12px] font-medium rounded-full border cursor-pointer transition-all ${writeCategory === c.key ? "bg-navy text-white border-navy" : "bg-white text-text-secondary border-border hover:border-text-tertiary"}`}>{c.label}</button>
+                    <button key={c.key} onClick={() => setWriteCategory(c.key)} className={`h-8 px-3 text-[12px] font-medium rounded-full border cursor-pointer transition-all ${writeCategory === c.key ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border hover:border-text-tertiary"}`}>{c.label}</button>
                   ))}
                 </div>
               </div>
-              <input type="text" placeholder="제목을 입력하세요" value={writeTitle} onChange={(e) => setWriteTitle(e.target.value)} className="w-full h-11 px-4 text-[15px] font-semibold border border-border rounded-[12px] outline-none focus:border-navy bg-white text-text-primary transition-colors" />
-              <textarea placeholder="내용을 입력하세요" value={writeContent} onChange={(e) => setWriteContent(e.target.value)} className="w-full px-4 py-3 text-[14px] border border-border rounded-[12px] outline-none focus:border-navy bg-white text-text-primary resize-none leading-relaxed transition-colors" rows={8} />
+              <input type="text" placeholder="제목을 입력하세요" value={writeTitle} onChange={(e) => setWriteTitle(e.target.value)} className="w-full h-11 px-4 text-[15px] font-semibold border border-border rounded-[12px] outline-none focus:border-navy bg-surface-raised text-text-primary transition-colors" />
+              <textarea placeholder="내용을 입력하세요" value={writeContent} onChange={(e) => setWriteContent(e.target.value)} className="w-full px-4 py-3 text-[14px] border border-border rounded-[12px] outline-none focus:border-navy bg-surface-raised text-text-primary resize-none leading-relaxed transition-colors" rows={8} />
               <button onClick={handleWrite} disabled={writeLoading || !writeTitle.trim() || !writeContent.trim()} className="w-full h-11 bg-navy text-white text-[14px] font-semibold rounded-[12px] border-none cursor-pointer hover:bg-navy-light disabled:opacity-30 transition-all">{writeLoading ? "등록 중..." : "등록하기"}</button>
             </div>
           </div>

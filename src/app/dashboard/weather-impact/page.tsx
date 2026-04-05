@@ -157,12 +157,12 @@ export default function WeatherImpactPage() {
 
           {/* 본격 비 영향 */}
           {rainy && dry && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[13px] font-semibold text-text-secondary">본격 비 영향</div>
                 {data.tTest && (
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    data.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-gray-100 text-text-tertiary"
+                    data.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-slate-800 text-text-tertiary"
                   }`}>
                     {data.tTest.label}
                   </span>
@@ -182,7 +182,7 @@ export default function WeatherImpactPage() {
 
           {/* 건당 주유량 분해 */}
           {data.perTxnDecomposition.countDiffPct != null && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="text-[13px] font-semibold text-text-secondary mb-2">비 오는 날 행동 분해</div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -210,7 +210,7 @@ export default function WeatherImpactPage() {
         </div>
 
         {/* ── 강수강도별 판매량 막대 ── */}
-        <section className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <section className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <h2 className="text-[16px] font-bold text-text-primary mb-1">강수 강도별 평균 판매량</h2>
           <p className="text-[12px] text-text-secondary mb-4">
             강수량 실측 기준: 건조 (&lt;1mm) · 약한 비 (1~5mm) · 본격 비 (≥5mm)
@@ -230,14 +230,14 @@ export default function WeatherImpactPage() {
                       <span className="text-[14px] font-bold text-text-primary">{b.volumeMean.toLocaleString()}L</span>
                       <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded ${
                         b.adjustedDiffPct > 1 ? "bg-emerald/15 text-emerald"
-                        : b.adjustedDiffPct < -1 ? "bg-red-50 text-red-500"
-                        : "bg-gray-100 text-text-tertiary"
+                        : b.adjustedDiffPct < -1 ? "bg-red-950/30 text-red-500"
+                        : "bg-slate-800 text-text-tertiary"
                       }`}>
                         {b.adjustedDiffPct >= 0 ? "+" : ""}{b.adjustedDiffPct}%
                       </span>
                     </div>
                   </div>
-                  <div className="relative h-6 bg-gray-100 rounded-md overflow-hidden">
+                  <div className="relative h-6 bg-slate-800 rounded-md overflow-hidden">
                     <div
                       className={`absolute inset-y-0 left-0 rounded-md ${
                         b.key === "dry" ? "bg-emerald/70"
@@ -260,14 +260,14 @@ export default function WeatherImpactPage() {
         </section>
 
         {/* ── 요일 × 강수 히트맵 ── */}
-        <section className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <section className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-[16px] font-bold text-text-primary">요일 × 강수 히트맵</h2>
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+            <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-0.5">
               <button
                 onClick={() => setMode("additive")}
                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                  mode === "additive" ? "bg-white text-text-primary shadow-sm" : "text-text-tertiary"
+                  mode === "additive" ? "bg-surface-raised text-text-primary shadow-sm" : "text-text-tertiary"
                 }`}
               >
                 가법 모델
@@ -275,7 +275,7 @@ export default function WeatherImpactPage() {
               <button
                 onClick={() => setMode("observed")}
                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                  mode === "observed" ? "bg-white text-text-primary shadow-sm" : "text-text-tertiary"
+                  mode === "observed" ? "bg-surface-raised text-text-primary shadow-sm" : "text-text-tertiary"
                 }`}
               >
                 관측값
@@ -353,7 +353,7 @@ export default function WeatherImpactPage() {
         </section>
 
         {/* ── 상관계수 ── */}
-        <section className="bg-white rounded-2xl p-5 shadow-sm border border-border mb-6">
+        <section className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <h2 className="text-[16px] font-bold text-text-primary mb-3">상관계수 (Pearson r)</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -380,7 +380,7 @@ export default function WeatherImpactPage() {
         </section>
 
         {/* ── 하단 주의사항 ── */}
-        <section className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <section className="bg-amber-950/30 border border-amber-900/60 rounded-2xl p-5">
           <h3 className="text-[14px] font-bold text-amber-900 mb-2">📌 분석 한계</h3>
           <ul className="text-[12px] text-amber-900 space-y-1 list-disc pl-5">
             <li>데이터 범위: {data.dataRange.from} ~ {data.dataRange.to} ({data.dataRange.days}일). 여름(6~9월) 데이터 부재로 기온 분석은 1년 후 재평가 필요.</li>
