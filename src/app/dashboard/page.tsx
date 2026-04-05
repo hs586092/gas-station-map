@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import SiteHeader from "@/app/components/SiteHeader";
 import {
   LineChart,
   Line,
@@ -445,20 +446,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-surface h-screen overflow-y-auto">
-      {/* 헤더 */}
-      <header className="bg-navy text-white h-14 flex items-center px-6 sticky top-0 z-50 border-b border-navy-light">
-        <Link href="/" className="flex items-center gap-2.5 no-underline">
-          <span className="w-2.5 h-2.5 rounded-full bg-oil-yellow shadow-[0_0_8px_rgba(255,210,0,0.5)]" />
-          <span className="font-extrabold text-[15px] tracking-tight hidden sm:inline">주유소맵</span>
-          <span className="text-[10px] font-semibold text-oil-yellow/80 tracking-[0.15em] hidden md:inline ml-0.5">ANALYTICS</span>
-        </Link>
-        <div className="h-4 w-px bg-white/15 mx-4" />
-        <div className="flex items-center gap-5 text-[13px]">
-          <Link href="/dashboard" className="text-white font-semibold no-underline">대시보드</Link>
-          <Link href="/map" className="text-white/55 no-underline hover:text-white/90 transition-colors">지도</Link>
-          <Link href="/community" className="text-white/55 no-underline hover:text-white/90 transition-colors">커뮤니티</Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="w-full max-w-[1280px] mx-auto px-6 py-7">
         {/* 주유소 정보 헤더 */}

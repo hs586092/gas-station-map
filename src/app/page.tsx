@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import SiteHeader from "@/app/components/SiteHeader";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -18,28 +19,16 @@ export default function LandingPage() {
 
   return (
     <div className="h-screen overflow-y-auto bg-white text-text-primary">
-      {/* ── 헤더 ── */}
-      <header className="h-[60px] bg-navy flex items-center justify-between px-5 md:px-10 sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2 no-underline">
-          <div className="w-8 h-8 bg-emerald rounded-lg flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-            </svg>
-          </div>
-          <span className="text-white text-[17px] font-bold tracking-tight">주유소맵</span>
-        </Link>
-        <nav className="flex items-center gap-1 md:gap-2">
-          <Link href="/map" className="px-3 py-1.5 text-[13px] font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg no-underline transition-colors">
-            지도
-          </Link>
-          <Link href="/dashboard" className="px-3 py-1.5 text-[13px] font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg no-underline transition-colors">
-            대시보드
-          </Link>
-          <Link href="/dashboard" className="ml-1 px-4 py-1.5 text-[13px] font-bold bg-emerald hover:bg-emerald/90 text-white rounded-lg no-underline transition-colors">
+      <SiteHeader
+        rightSlot={
+          <Link
+            href="/dashboard"
+            className="px-4 py-1.5 text-[13px] font-bold bg-oil-yellow hover:bg-oil-yellow-soft text-navy rounded-md no-underline transition-colors border border-oil-yellow-border shadow-sm"
+          >
             무료 시작
           </Link>
-        </nav>
-      </header>
+        }
+      />
 
       {/* ── 히어로 ── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-navy via-navy to-[#0a1526] text-white">
