@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "대시보드 — 주유소맵",
+  title: "대시보드 — SLP Energy Analytics",
 };
 
 export default function DashboardLayout({

@@ -52,7 +52,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           <h2 className="text-[18px] font-bold text-text-primary m-0">
             {mode === "login" ? "로그인" : "회원가입"}
           </h2>
-          <p className="text-[13px] text-text-tertiary mt-1 m-0">주유소맵에 오신 것을 환영합니다</p>
+          <p className="text-[13px] text-text-tertiary mt-1 m-0">SLP Energy Analytics에 오신 것을 환영합니다</p>
         </div>
 
         <div className="px-6 pb-6">

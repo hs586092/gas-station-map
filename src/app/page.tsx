@@ -198,7 +198,7 @@ export default function LandingPage() {
       {/* ── 푸터 ── */}
       <footer className="bg-[#0a1526] text-gray-500 py-8">
         <div className="max-w-6xl mx-auto px-5 md:px-10 flex flex-col md:flex-row items-center justify-between gap-3 text-[12px]">
-          <div>© 2026 주유소맵 · 주유소 경영 데이터 플랫폼</div>
+          <div>© 2026 SLP Energy Analytics · 주유소 경영 데이터 플랫폼</div>
           <div className="flex items-center gap-4">
             <Link href="/map" className="hover:text-gray-300 no-underline">지도</Link>
             <Link href="/dashboard" className="hover:text-gray-300 no-underline">대시보드</Link>

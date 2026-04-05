@@ -118,13 +118,10 @@ function Header({ onLoginClick }: { onLoginClick: () => void }) {
   return (
     <header className="h-[56px] bg-navy flex items-center gap-4 px-4 md:px-5 shrink-0 z-[1200] relative">
       {/* 로고 */}
-      <Link href="/" className="flex items-center gap-2 no-underline shrink-0">
-        <div className="w-7 h-7 bg-emerald rounded-lg flex items-center justify-center">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-        </div>
-        <span className="text-white text-[16px] font-bold tracking-tight hidden md:block">주유소맵</span>
+      <Link href="/" className="flex items-center gap-2.5 no-underline shrink-0">
+        <span className="w-2.5 h-2.5 rounded-full bg-oil-yellow shadow-[0_0_8px_rgba(255,210,0,0.5)]" />
+        <span className="text-white text-[15px] font-extrabold tracking-tight hidden sm:inline">SLP</span>
+        <span className="text-[11px] font-semibold text-oil-yellow/90 tracking-[0.18em] hidden md:inline">ENERGY ANALYTICS</span>
       </Link>
 
       {/* 데스크톱 네비게이션 */}

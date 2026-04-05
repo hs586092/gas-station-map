@@ -14,16 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "주유소맵 - 유가와 도로 통행량으로 보는 똑똑한 주유소 찾기",
+  title: "SLP Energy Analytics — 주유소 경영 데이터 플랫폼",
   description:
-    "가격만 비교하는 건 옛날 방식. 도로 통행량과 유가를 함께 분석해서 가성비 최고의 주유소를 찾아드립니다. 주유소 사장님을 위한 입지 분석 도구.",
+    "유가 · 경쟁사 · 판매량 · 날씨를 하나로 묶은 주유소 경영 데이터 플랫폼. 사장님의 가격 결정을 데이터로 뒷받침합니다.",
   keywords: [
-    "주유소",
-    "유가",
-    "기름값",
-    "최저가 주유소",
-    "도로 통행량",
-    "주유소 입지 분석",
+    "SLP Energy Analytics",
+    "주유소 경영",
+    "주유소 데이터",
+    "유가 분석",
+    "경쟁사 가격",
+    "주유소 판매량",
+    "주유소 벤치마크",
     "휘발유 가격",
     "경유 가격",
   ],
@@ -31,18 +32,18 @@ export const metadata: Metadata = {
     icon: "/favicon.svg",
   },
   openGraph: {
-    title: "주유소맵 - 유가와 도로 통행량으로 보는 똑똑한 주유소 찾기",
+    title: "SLP Energy Analytics — 주유소 경영 데이터 플랫폼",
     description:
-      "가격만 비교하는 건 옛날 방식. 도로 통행량과 유가를 함께 분석해서 가성비 최고의 주유소를 찾아드립니다.",
+      "유가 · 경쟁사 · 판매량 · 날씨를 하나로 묶은 주유소 경영 데이터 플랫폼. 사장님의 가격 결정을 데이터로 뒷받침합니다.",
     type: "website",
     locale: "ko_KR",
-    siteName: "주유소맵",
+    siteName: "SLP Energy Analytics",
   },
   twitter: {
     card: "summary_large_image",
-    title: "주유소맵 - 유가와 도로 통행량으로 보는 똑똑한 주유소 찾기",
+    title: "SLP Energy Analytics — 주유소 경영 데이터 플랫폼",
     description:
-      "도로 통행량과 유가를 함께 분석해서 가성비 최고의 주유소를 찾아드립니다.",
+      "유가 · 경쟁사 · 판매량 · 날씨를 하나로 묶은 주유소 경영 데이터 플랫폼.",
   },
   robots: {
     index: true,
