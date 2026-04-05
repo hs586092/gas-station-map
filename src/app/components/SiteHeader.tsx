@@ -21,8 +21,8 @@ export default function SiteHeader({ rightSlot }: SiteHeaderProps) {
     <header className="bg-navy text-white h-14 flex items-center px-6 sticky top-0 z-50 border-b border-navy-light shrink-0">
       <Link href="/" className="flex items-center gap-2.5 no-underline">
         <span className="w-2.5 h-2.5 rounded-full bg-oil-yellow shadow-[0_0_8px_rgba(255,210,0,0.5)]" />
-        <span className="font-extrabold text-[15px] tracking-tight hidden sm:inline">주유소맵</span>
-        <span className="text-[10px] font-semibold text-oil-yellow/80 tracking-[0.15em] hidden md:inline ml-0.5">
+        <span className="font-extrabold text-[15px] tracking-tight hidden sm:inline">SLP</span>
+        <span className="text-[11px] font-semibold text-oil-yellow/90 tracking-[0.18em] hidden sm:inline">
           ENERGY ANALYTICS
         </span>
       </Link>
