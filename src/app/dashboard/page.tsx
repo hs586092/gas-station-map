@@ -168,7 +168,7 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 function CardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+    <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
       <Skeleton className="h-4 w-24 mb-4" />
       <Skeleton className="h-8 w-32 mb-2" />
       <Skeleton className="h-4 w-40" />
@@ -179,14 +179,14 @@ function CardSkeleton() {
 // ─── 인사이트 배지 ───
 function InsightBadge({ children, color = "slate" }: { children: React.ReactNode; color?: "slate" | "blue" | "red" | "emerald" | "amber" }) {
   const colors = {
-    slate: "bg-slate-50 text-slate-700",
-    blue: "bg-blue-50 text-blue-700",
-    red: "bg-red-50 text-red-700",
-    emerald: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
+    slate: "bg-slate-50 text-slate-700 border-slate-200/70",
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    red: "bg-red-50 text-red-700 border-red-100",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
   };
   return (
-    <div className={`mt-3 rounded-lg px-3 py-2 text-[14px] leading-relaxed ${colors[color]}`}>
+    <div className={`mt-3 rounded-md border px-3 py-2 text-[13px] leading-relaxed ${colors[color]}`}>
       {children}
     </div>
   );
@@ -198,15 +198,15 @@ function ClickableCard({ href, children, className = "" }: { href: string; child
   return (
     <div
       onClick={() => router.push(href)}
-      className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${className}`}
+      className={`cursor-pointer transition-all hover:border-border-strong hover:shadow-md ${className}`}
       role="link"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && router.push(href)}
     >
       {children}
-      <div className="flex items-center justify-end mt-2 text-[12px] text-text-tertiary gap-0.5">
-        <span>상세보기</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div className="flex items-center justify-end mt-3 pt-2 border-t border-border/60 text-[11px] font-semibold text-text-tertiary gap-0.5 tracking-wider uppercase">
+        <span>상세</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M9 18l6-6-6-6" />
         </svg>
       </div>
@@ -431,10 +431,10 @@ export default function DashboardPage() {
     hold: "✅", raise: "📈", lower: "📉", watch: "👀",
   };
   const recColor = {
-    hold: "border-emerald bg-emerald-light",
-    raise: "border-coral bg-coral-light",
-    lower: "border-blue-500 bg-blue-50",
-    watch: "border-amber-500 bg-amber-50",
+    hold: "border-border bg-white",
+    raise: "border-border bg-white",
+    lower: "border-border bg-white",
+    watch: "border-border bg-white",
   };
 
   // 2주 후 반영 시점 계산 (국제유가 차트용)
@@ -446,30 +446,36 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-surface h-screen overflow-y-auto">
       {/* 헤더 */}
-      <header className="bg-navy text-white h-14 flex items-center px-5 sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2 no-underline">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C073" strokeWidth="2.5">
-            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />
-          </svg>
-          <span className="font-bold text-sm hidden sm:inline">주유소맵</span>
+      <header className="bg-navy text-white h-14 flex items-center px-6 sticky top-0 z-50 border-b border-navy-light">
+        <Link href="/" className="flex items-center gap-2.5 no-underline">
+          <span className="w-2.5 h-2.5 rounded-full bg-oil-yellow shadow-[0_0_8px_rgba(255,210,0,0.5)]" />
+          <span className="font-extrabold text-[15px] tracking-tight hidden sm:inline">주유소맵</span>
+          <span className="text-[10px] font-semibold text-oil-yellow/80 tracking-[0.15em] hidden md:inline ml-0.5">ANALYTICS</span>
         </Link>
-        <div className="flex items-center gap-4 ml-6 text-[13px]">
+        <div className="h-4 w-px bg-white/15 mx-4" />
+        <div className="flex items-center gap-5 text-[13px]">
           <Link href="/dashboard" className="text-white font-semibold no-underline">대시보드</Link>
-          <Link href="/map" className="text-white/60 no-underline hover:text-white/90">지도</Link>
-          <Link href="/community" className="text-white/60 no-underline hover:text-white/90">커뮤니티</Link>
+          <Link href="/map" className="text-white/55 no-underline hover:text-white/90 transition-colors">지도</Link>
+          <Link href="/community" className="text-white/55 no-underline hover:text-white/90 transition-colors">커뮤니티</Link>
         </div>
       </header>
 
-      <main className="w-full px-5 py-6">
+      <main className="w-full max-w-[1280px] mx-auto px-6 py-7">
         {/* 주유소 정보 헤더 */}
-        <div className="mb-5">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-3 h-3 rounded-full shrink-0" style={{ background: BRAND_COLORS["SOL"] }} />
-            <span className="text-[12px] font-medium text-text-secondary">{BRAND_LABELS["SOL"]}</span>
+        <div className="mb-6 pb-5 border-b border-border">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-oil-yellow-soft border border-oil-yellow/40 text-[11px] font-bold text-navy tracking-wider uppercase">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: BRAND_COLORS["SOL"] }} />
+              {BRAND_LABELS["SOL"]}
+            </span>
+            <span className="text-[11px] font-semibold text-text-tertiary tracking-wider uppercase">ID · {STATION_ID}</span>
           </div>
-          <h1 className="text-[22px] font-bold text-text-primary m-0">셀프광장주유소</h1>
+          <h1 className="text-[26px] font-extrabold text-text-primary tnum tracking-tight m-0 tracking-tight">셀프광장주유소</h1>
           {!loading.detail && detail?.newAddress && (
-            <p className="text-[14px] text-text-secondary m-0 mt-1">{detail.newAddress}</p>
+            <p className="text-[13px] text-text-secondary m-0 mt-1.5 flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {detail.newAddress}
+            </p>
           )}
         </div>
 
@@ -483,19 +489,21 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : insights && (
-          <div className={`mb-5 rounded-2xl p-5 pl-7 border-2 ${recColor[insights.recommendation.type]} shadow-sm relative overflow-hidden`}>
+          <div className={`mb-6 rounded-xl p-6 pl-7 border ${recColor[insights.recommendation.type]} shadow-sm relative overflow-hidden`}>
             {/* 왼쪽 상태 색상 바 */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${
               insights.recommendation.type === "hold" ? "bg-emerald-500"
               : insights.recommendation.type === "raise" ? "bg-red-500"
               : insights.recommendation.type === "lower" ? "bg-blue-500"
               : "bg-amber-500"
             }`} />
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[24px]">{recIcon[insights.recommendation.type]}</span>
-              <span className="text-[14px] font-bold text-text-primary">오늘의 경영 브리핑</span>
+            {/* 우상단 S-OIL 옐로우 액센트 글로우 */}
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-oil-yellow/8 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center gap-2 mb-3 relative">
+              <span className="text-[20px]">{recIcon[insights.recommendation.type]}</span>
+              <span className="text-[11px] font-bold text-text-tertiary tracking-[0.15em] uppercase">오늘의 경영 브리핑</span>
               {aiBriefing?.aiBriefing && !aiBriefing.fallback && (
-                <span className="text-[12px] font-bold bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">AI 분석</span>
+                <span className="text-[10px] font-bold bg-oil-yellow-soft text-navy border border-oil-yellow/40 px-2 py-0.5 rounded tracking-wider uppercase">AI 분석</span>
               )}
             </div>
 
@@ -547,7 +555,7 @@ export default function DashboardPage() {
                         .then((d) => { setAiBriefing(d); setAiLoading(false); })
                         .catch(() => setAiLoading(false));
                     }}
-                    className="text-[14px] font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="text-[13px] font-bold text-navy bg-oil-yellow hover:bg-oil-yellow-soft border border-oil-yellow-border px-3 py-1.5 rounded-md transition-colors cursor-pointer shadow-sm"
                   >
                     AI 분석 요청
                   </button>
@@ -568,7 +576,7 @@ export default function DashboardPage() {
         )}
 
         {/* 카드 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
           {/* 🌤️ 오늘 날씨 (하남시) */}
           {weather && weather.today && (() => {
@@ -584,9 +592,9 @@ export default function DashboardPage() {
             else if (tmrClear) insight = { msg: "내일 맑음 · 세차 수요 증가 예상", color: "emerald" };
 
             return (
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[15px] font-semibold text-text-secondary">오늘 날씨 · 하남시</div>
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">오늘 날씨 · 하남시</div>
                   <span className="text-[12px] text-text-tertiary">실시간</span>
                 </div>
                 <div className="flex items-center gap-4 mb-3">
@@ -594,7 +602,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="text-[14px] font-semibold text-text-primary">{todayW.label}</div>
                     {weather.current.temperature != null && (
-                      <div className="text-[28px] font-extrabold text-text-primary leading-tight">
+                      <div className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-tight">
                         {Math.round(weather.current.temperature)}°
                       </div>
                     )}
@@ -636,13 +644,13 @@ export default function DashboardPage() {
             const rainy = weatherImpact.byIntensity.find((b) => b.key === "heavy");
             const confColor = f.confidence === "high" ? "emerald" : f.confidence === "medium" ? "amber" : "slate";
             return (
-              <ClickableCard href="/dashboard/weather-impact" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+              <ClickableCard href="/dashboard/weather-impact" className="bg-white rounded-xl p-5 shadow-sm border border-border">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[15px] font-semibold text-text-secondary">날씨 영향 · 판매량</div>
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">날씨 영향 · 판매량</div>
                   <span className="text-[12px] text-text-tertiary">오늘 예측</span>
                 </div>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-[28px] font-extrabold text-text-primary leading-none">
+                  <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none">
                     {f.expectedVolume.toLocaleString()}
                   </span>
                   <span className="text-[14px] text-text-secondary">L 예상</span>
@@ -679,9 +687,9 @@ export default function DashboardPage() {
 
           {/* ① 가격 포지션 변화 */}
           {loading.competitors ? <CardSkeleton /> : competitors && (
-            <ClickableCard href="/dashboard/price-position" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/price-position" className="bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">내 가격 · 포지션</div>
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">내 가격 · 포지션</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
               </div>
               <div className="space-y-3">
@@ -690,7 +698,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-[12px] text-text-secondary">휘발유</span>
-                        <div className="text-[22px] font-extrabold text-text-primary">
+                        <div className="text-[22px] font-extrabold text-text-primary tnum tracking-tight">
                           {competitors.baseStation.gasoline_price.toLocaleString()}
                           <span className="text-[14px] font-normal text-text-secondary ml-0.5">원</span>
                         </div>
@@ -709,7 +717,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-[12px] text-text-secondary">경유</span>
-                        <div className="text-[22px] font-extrabold text-text-primary">
+                        <div className="text-[22px] font-extrabold text-text-primary tnum tracking-tight">
                           {competitors.baseStation.diesel_price.toLocaleString()}
                           <span className="text-[14px] font-normal text-text-secondary ml-0.5">원</span>
                         </div>
@@ -742,9 +750,9 @@ export default function DashboardPage() {
 
           {/* ② 경쟁사 행동 패턴 */}
           {loading.changes ? <CardSkeleton /> : changes && (
-            <ClickableCard href="/dashboard/competitors" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/competitors" className="bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">
                   경쟁사 가격 변동
                   <span className="text-[12px] font-normal text-text-tertiary ml-1">오늘</span>
                 </div>
@@ -838,9 +846,9 @@ export default function DashboardPage() {
 
           {/* ③ 적정가 벤치마크 */}
           {loading.benchmark ? <CardSkeleton /> : benchmark && (
-            <ClickableCard href="/dashboard/benchmark" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/benchmark" className="bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">적정가 벤치마크</div>
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">적정가 벤치마크</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
               </div>
               <div className="space-y-4">
@@ -876,9 +884,9 @@ export default function DashboardPage() {
           {loading.detail ? (
             <div className="md:col-span-2"><CardSkeleton /></div>
           ) : detail?.oilReflection && (
-            <ClickableCard href="/dashboard/oil-reflection" className="md:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/oil-reflection" className="md:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">유가 반영 분석</div>
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">유가 반영 분석</div>
                 <DataFreshness date={oilPrices?.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="유가 데이터" />
               </div>
               {/* 3단계 프로그레스 */}
@@ -927,7 +935,7 @@ export default function DashboardPage() {
             }`}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <div className="text-[15px] font-semibold text-text-secondary">국제유가 · 전망</div>
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">국제유가 · 전망</div>
                   {oilTrend != null && oilTrend !== 0 && (
                     <span className={`text-[18px] font-extrabold ${isOilUp ? "text-red-500" : "text-blue-500"}`}>
                       {isOilUp ? "↗" : "↘"}
@@ -992,19 +1000,19 @@ export default function DashboardPage() {
                 ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50", signal: "🟡", barColor: "bg-amber-500" }
                 : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50", signal: "🔴", barColor: "bg-red-500" };
             return (
-              <ClickableCard href="/dashboard/ev-threat" className="bg-white rounded-2xl p-5 shadow-sm border border-border relative overflow-hidden">
+              <ClickableCard href="/dashboard/ev-threat" className="bg-white rounded-xl p-5 shadow-sm border border-border relative overflow-hidden">
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${threat.barColor}`} />
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[18px]">{threat.signal}</span>
-                    <div className="text-[15px] font-semibold text-text-secondary">EV 충전소 현황</div>
+                    <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">EV 충전소 현황</div>
                   </div>
                   <DataFreshness date={new Date().toISOString().split("T")[0]} label="기준" />
                 </div>
                 <div className={`rounded-xl px-4 py-3 ${threat.bg}`}>
                   <div className={`text-[14px] font-bold ${threat.color} mb-2`}>{threat.label}</div>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-[22px] font-extrabold text-text-primary">{fs}</span>
+                    <span className="text-[22px] font-extrabold text-text-primary tnum tracking-tight">{fs}</span>
                     <span className="text-[12px] font-semibold text-text-secondary">급속 충전소</span>
                     <span className="text-[14px] text-text-secondary">(충전기 {detail.evNearby.fast}대)</span>
                   </div>
@@ -1018,9 +1026,9 @@ export default function DashboardPage() {
 
           {/* ⑧ 경쟁사 프로파일링 */}
           {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
-            <div className="md:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <div className="md:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">경쟁사 프로파일</div>
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1059,9 +1067,9 @@ export default function DashboardPage() {
 
           {/* ⑨ 가격 연동성 인사이트 */}
           {!loading.insights && insights && insights.correlationInsights.length > 0 && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">가격 연동성</div>
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">가격 연동성</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
               </div>
               <div className="space-y-2.5">
@@ -1109,8 +1117,8 @@ export default function DashboardPage() {
             });
 
             return (
-              <div className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-border">
-                <div className="text-[15px] font-semibold text-text-secondary mb-1">가격 시뮬레이터</div>
+              <div className="md:col-span-2 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm border border-border">
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-1">가격 시뮬레이터</div>
                 <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위 변화 예측</div>
                 <div className="grid grid-cols-5 gap-2">
                   {simulations.map(({ delta, simPrice, simRank, total, rankChange }) => {
@@ -1120,7 +1128,7 @@ export default function DashboardPage() {
                         <div className={`text-[12px] font-bold ${isUp ? "text-coral" : "text-blue-600"}`}>
                           {delta > 0 ? "+" : ""}{delta}원
                         </div>
-                        <div className="text-[16px] font-extrabold text-text-primary mt-1">{simPrice.toLocaleString()}</div>
+                        <div className="text-[16px] font-extrabold text-text-primary tnum tracking-tight mt-1">{simPrice.toLocaleString()}</div>
                         <div className="text-[14px] text-text-secondary mt-1">
                           {total}개 중 <span className="font-bold">{simRank}위</span>
                         </div>
@@ -1144,10 +1152,10 @@ export default function DashboardPage() {
           {loading.priceHistory ? (
             <div className="md:col-span-2 lg:col-span-3"><CardSkeleton /></div>
           ) : priceHistory && priceHistory.history.length > 0 && (
-            <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="text-[15px] font-semibold text-text-secondary">내 가격 추이 (30일)</div>
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">내 가격 추이 (30일)</div>
                   <DataFreshness date={priceHistory.history[priceHistory.history.length - 1]?.date ?? null} label="최종" />
                 </div>
                 <div className="flex gap-3 text-[12px]">
@@ -1174,14 +1182,14 @@ export default function DashboardPage() {
 
           {/* ⑧ 판매량·가격 분석 */}
           {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (
-            <ClickableCard href="/dashboard/sales-analysis" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
-              <div className="text-[15px] font-semibold text-text-secondary mb-3">판매량 · 가격 분석</div>
+            <ClickableCard href="/dashboard/sales-analysis" className="bg-white rounded-xl p-5 shadow-sm border border-border">
+              <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">판매량 · 가격 분석</div>
               <div className="space-y-2">
                 {/* 일 평균 판매량 + 변동 화살표 */}
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[18px] font-extrabold text-text-primary">
+                    <span className="text-[18px] font-extrabold text-text-primary tnum tracking-tight">
                       {salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L
                     </span>
                     {salesAnalysis.events.length > 0 && (
@@ -1228,9 +1236,9 @@ export default function DashboardPage() {
 
           {/* ⑨ 타이밍 분석 */}
           {loading.timingAnalysis ? <CardSkeleton /> : timingAnalysis && (
-            <ClickableCard href="/dashboard/timing-analysis" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+            <ClickableCard href="/dashboard/timing-analysis" className="bg-white rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center gap-2 mb-3">
-                <div className="text-[15px] font-semibold text-text-secondary">타이밍 분석</div>
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">타이밍 분석</div>
                 {timingAnalysis.currentSituation.urgency !== "none" && (
                   <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full ${
                     timingAnalysis.currentSituation.urgency === "high" ? "bg-red-100 text-red-600" :

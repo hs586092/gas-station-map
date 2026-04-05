@@ -2,27 +2,34 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --navy: #1B2838;
-  --navy-light: #2A3A4E;
+  --foreground: #0F172A;
+  --navy: #0F172A;
+  --navy-light: #1E293B;
   --emerald: #00C073;
   --emerald-light: #E6F9F0;
   --coral: #FF5252;
   --coral-light: #FFF0F0;
-  --surface: #F5F6F8;
-  --border: #E8EBF0;
-  --text-primary: #1B2838;
-  --text-secondary: #4A5568;
-  --text-tertiary: #5A6B7D;
+  --surface: #F6F6F4;
+  --border: #EBEBEA;
+  --border-strong: #DCDCD8;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #64748B;
+  --oil-yellow: #FFD200;
+  --oil-yellow-soft: #FFF7CC;
+  --oil-yellow-border: #F5C400;
   --header-height: 56px;
   --sidebar-width: 340px;
-  --radius: 12px;
+  --radius: 10px;
   --radius-sm: 8px;
+  --radius-lg: 14px;
   --radius-full: 9999px;
-  --shadow-sm: 0 1px 3px rgba(27,40,56,0.06);
-  --shadow-md: 0 4px 12px rgba(27,40,56,0.08);
-  --shadow-lg: 0 8px 24px rgba(27,40,56,0.12);
-  --shadow-xl: 0 12px 40px rgba(27,40,56,0.16);
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md: 0 2px 8px rgba(15,23,42,0.06);
+  --shadow-lg: 0 8px 24px rgba(15,23,42,0.10);
+  --shadow-xl: 0 12px 40px rgba(15,23,42,0.14);
+  --letter-tight: -0.01em;
+  --letter-tighter: -0.02em;
 }
 
 @theme inline {
@@ -36,9 +43,12 @@
   --color-coral-light: var(--coral-light);
   --color-surface: var(--surface);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
+  --color-oil-yellow: var(--oil-yellow);
+  --color-oil-yellow-soft: var(--oil-yellow-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -51,8 +61,16 @@ body {
     "Noto Sans KR", "Malgun Gothic", sans-serif;
   margin: 0;
   overflow: hidden;
+  letter-spacing: var(--letter-tight);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular numerals for data-dense dashboard */
+.tnum,
+.font-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
 /* 스크롤바 */
