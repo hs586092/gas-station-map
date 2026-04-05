@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+function isWeekendKST(dateStr: string): boolean {
+  // 0=일, 6=토 → 주말
+  const dow = new Date(dateStr + "T00:00:00+09:00").getDay();
+  return dow === 0 || dow === 6;
+}
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -114,6 +120,7 @@ export async function GET(
     recoveryRate: number | null;
     priceSource: "price_history" | "sales_unit_price";
     elasticity: number | null;
+    isWeekend: boolean;
   }
 
   const events: PriceEvent[] = [];
@@ -166,6 +173,7 @@ export async function GET(
       recoveryRate: recoveryRate != null ? Math.round(recoveryRate * 10) / 10 : null,
       priceSource: days[i].price_source === "price_history" ? "price_history" : "sales_unit_price",
       elasticity,
+      isWeekend: isWeekendKST(days[i].date),
     });
   }
 
@@ -215,6 +223,122 @@ export async function GET(
       ? Math.round(b.diesel.reduce((s, v) => s + v, 0) / b.diesel.length)
       : 0,
   }));
+
+  // ── 6-2. 주중/주말 비교 ──
+  interface WeekPartStats {
+    days: number;
+    avgGasolineVolume: number;
+    avgDieselVolume: number;
+    avgGasolinePerTx: number | null;   // volume/count
+    avgDieselPerTx: number | null;
+    avgGasolineUnitPrice: number | null; // amount/volume
+    avgDieselUnitPrice: number | null;
+  }
+
+  function calcWeekPartStats(subset: DayData[]): WeekPartStats {
+    if (subset.length === 0) {
+      return {
+        days: 0,
+        avgGasolineVolume: 0,
+        avgDieselVolume: 0,
+        avgGasolinePerTx: null,
+        avgDieselPerTx: null,
+        avgGasolineUnitPrice: null,
+        avgDieselUnitPrice: null,
+      };
+    }
+    const sumGVol = subset.reduce((s, d) => s + d.gasoline_volume, 0);
+    const sumDVol = subset.reduce((s, d) => s + d.diesel_volume, 0);
+    const sumGCnt = subset.reduce((s, d) => s + d.gasoline_count, 0);
+    const sumDCnt = subset.reduce((s, d) => s + d.diesel_count, 0);
+    const sumGAmt = subset.reduce((s, d) => s + d.gasoline_amount, 0);
+    const sumDAmt = subset.reduce((s, d) => s + d.diesel_amount, 0);
+    return {
+      days: subset.length,
+      avgGasolineVolume: Math.round(sumGVol / subset.length),
+      avgDieselVolume: Math.round(sumDVol / subset.length),
+      avgGasolinePerTx: sumGCnt > 0 ? Math.round((sumGVol / sumGCnt) * 10) / 10 : null,
+      avgDieselPerTx: sumDCnt > 0 ? Math.round((sumDVol / sumDCnt) * 10) / 10 : null,
+      avgGasolineUnitPrice: sumGVol > 0 ? Math.round(sumGAmt / sumGVol) : null,
+      avgDieselUnitPrice: sumDVol > 0 ? Math.round(sumDAmt / sumDVol) : null,
+    };
+  }
+
+  const weekdayDays = days.filter((d) => !isWeekendKST(d.date));
+  const weekendDays = days.filter((d) => isWeekendKST(d.date));
+  const weekdayStats = calcWeekPartStats(weekdayDays);
+  const weekendStats = calcWeekPartStats(weekendDays);
+
+  function pctDiff(a: number, b: number): number | null {
+    if (!b) return null;
+    return Math.round(((a - b) / b) * 1000) / 10;
+  }
+
+  const weekdayWeekendComparison = {
+    weekday: weekdayStats,
+    weekend: weekendStats,
+    diff: {
+      gasolineVolumePct: pctDiff(weekendStats.avgGasolineVolume, weekdayStats.avgGasolineVolume),
+      dieselVolumePct: pctDiff(weekendStats.avgDieselVolume, weekdayStats.avgDieselVolume),
+      gasolinePerTxDiff:
+        weekendStats.avgGasolinePerTx != null && weekdayStats.avgGasolinePerTx != null
+          ? Math.round((weekendStats.avgGasolinePerTx - weekdayStats.avgGasolinePerTx) * 10) / 10
+          : null,
+      dieselPerTxDiff:
+        weekendStats.avgDieselPerTx != null && weekdayStats.avgDieselPerTx != null
+          ? Math.round((weekendStats.avgDieselPerTx - weekdayStats.avgDieselPerTx) * 10) / 10
+          : null,
+      gasolineUnitPriceDiff:
+        weekendStats.avgGasolineUnitPrice != null && weekdayStats.avgGasolineUnitPrice != null
+          ? weekendStats.avgGasolineUnitPrice - weekdayStats.avgGasolineUnitPrice
+          : null,
+      dieselUnitPriceDiff:
+        weekendStats.avgDieselUnitPrice != null && weekdayStats.avgDieselUnitPrice != null
+          ? weekendStats.avgDieselUnitPrice - weekdayStats.avgDieselUnitPrice
+          : null,
+    },
+  };
+
+  // ── 6-3. 탄력성 주중/주말 분할 (가격 변경 일자 기준, 최소 2건) ──
+  const weekdayElasticities = events
+    .filter((e) => !e.isWeekend && e.elasticity != null)
+    .map((e) => e.elasticity!);
+  const weekendElasticities = events
+    .filter((e) => e.isWeekend && e.elasticity != null)
+    .map((e) => e.elasticity!);
+
+  const splitElasticity = {
+    weekday: {
+      avg:
+        weekdayElasticities.length >= 2
+          ? Math.round((weekdayElasticities.reduce((s, v) => s + v, 0) / weekdayElasticities.length) * 100) / 100
+          : null,
+      count: weekdayElasticities.length,
+      avgVolumeChangeRate:
+        weekdayElasticities.length >= 2
+          ? Math.round(
+              (events.filter((e) => !e.isWeekend && e.elasticity != null).reduce((s, e) => s + e.volumeChangeRate, 0) /
+                weekdayElasticities.length) *
+                10
+            ) / 10
+          : null,
+    },
+    weekend: {
+      avg:
+        weekendElasticities.length >= 2
+          ? Math.round((weekendElasticities.reduce((s, v) => s + v, 0) / weekendElasticities.length) * 100) / 100
+          : null,
+      count: weekendElasticities.length,
+      avgVolumeChangeRate:
+        weekendElasticities.length >= 2
+          ? Math.round(
+              (events.filter((e) => e.isWeekend && e.elasticity != null).reduce((s, e) => s + e.volumeChangeRate, 0) /
+                weekendElasticities.length) *
+                10
+            ) / 10
+          : null,
+    },
+  };
 
   // ── 7. 차트용 일별 데이터 (최근 90일) ──
   const dailySales = days.slice(-90).map((d) => ({
@@ -412,6 +536,7 @@ export async function GET(
     date: string;
     gap: number;
     gasoline_volume: number;
+    isWeekend: boolean;
   }
 
   interface KeyCompAnalysis {
@@ -420,7 +545,26 @@ export async function GET(
     points: KeyCompPoint[];
     buckets: Array<{ range: string; avgVolume: number; count: number }>;
     correlation: number | null;
+    weekdayCorrelation: number | null;
+    weekendCorrelation: number | null;
+    weekdayDays: number;
+    weekendDays: number;
     totalDays: number;
+  }
+
+  function pearson(points: { gap: number; gasoline_volume: number }[]): number | null {
+    if (points.length < 3) return null;
+    const xs = points.map((p) => p.gap);
+    const ys = points.map((p) => p.gasoline_volume);
+    const n = xs.length;
+    const sumX = xs.reduce((a, b) => a + b, 0);
+    const sumY = ys.reduce((a, b) => a + b, 0);
+    const sumXY = xs.reduce((a, b, i) => a + b * ys[i], 0);
+    const sumX2 = xs.reduce((a, b) => a + b * b, 0);
+    const sumY2 = ys.reduce((a, b) => a + b * b, 0);
+    const denom = Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2));
+    if (denom <= 0) return null;
+    return Math.round(((n * sumXY - sumX * sumY) / denom) * 100) / 100;
   }
 
   const keyCompetitorAnalysis: {
@@ -475,6 +619,7 @@ export async function GET(
           date,
           gap: myPh.gasoline - compPrice,
           gasoline_volume: myDay.gasoline_volume,
+          isWeekend: isWeekendKST(date),
         });
       }
 
@@ -496,22 +641,14 @@ export async function GET(
         };
       });
 
-      // 피어슨 상관계수: 가격 차이 vs 판매량
-      let correlation: number | null = null;
-      if (points.length >= 5) {
-        const xs = points.map((p) => p.gap);
-        const ys = points.map((p) => p.gasoline_volume);
-        const n = xs.length;
-        const sumX = xs.reduce((a, b) => a + b, 0);
-        const sumY = ys.reduce((a, b) => a + b, 0);
-        const sumXY = xs.reduce((a, b, i) => a + b * ys[i], 0);
-        const sumX2 = xs.reduce((a, b) => a + b * b, 0);
-        const sumY2 = ys.reduce((a, b) => a + b * b, 0);
-        const denom = Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2));
-        if (denom > 0) {
-          correlation = Math.round(((n * sumXY - sumX * sumY) / denom) * 100) / 100;
-        }
-      }
+      // 피어슨 상관계수: 가격 차이 vs 판매량 (전체)
+      const correlation = points.length >= 5 ? pearson(points) : null;
+
+      // 주중/주말 분할 상관계수 (각 최소 3일)
+      const weekdayPoints = points.filter((p) => !p.isWeekend);
+      const weekendPoints = points.filter((p) => p.isWeekend);
+      const weekdayCorrelation = weekdayPoints.length >= 3 ? pearson(weekdayPoints) : null;
+      const weekendCorrelation = weekendPoints.length >= 3 ? pearson(weekendPoints) : null;
 
       keyCompetitorAnalysis.competitors.push({
         stationId: comp.id,
@@ -519,6 +656,10 @@ export async function GET(
         points,
         buckets,
         correlation,
+        weekdayCorrelation,
+        weekendCorrelation,
+        weekdayDays: weekdayPoints.length,
+        weekendDays: weekendPoints.length,
         totalDays: points.length,
       });
     }
@@ -564,6 +705,8 @@ export async function GET(
       dailySales,
       eventDates,
       weekdayPattern,
+      weekdayWeekendComparison,
+      splitElasticity,
       competitorGap,
       keyCompetitorAnalysis,
     },
