@@ -38,6 +38,10 @@
     {
       "path": "/api/collect-oil-prices",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/collect-weather",
+      "schedule": "30 2 * * *"
     }
   ]
 }

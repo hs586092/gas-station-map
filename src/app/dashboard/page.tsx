@@ -73,6 +73,30 @@ interface StationDetail {
   } | null;
 }
 
+interface WeatherData {
+  location: string;
+  current: { temperature: number | null; weatherCode: number | null; precipitation: number | null };
+  today: { date: string; weatherCode: number | null; tempMax: number | null; tempMin: number | null; precipProbMax: number | null; precipSum: number | null } | null;
+  tomorrow: { date: string; weatherCode: number | null; tempMax: number | null; tempMin: number | null; precipProbMax: number | null; precipSum: number | null } | null;
+}
+
+// WMO weather code → 한글 라벨 + 이모지
+function weatherCodeLabel(code: number | null): { label: string; icon: string } {
+  if (code == null) return { label: "-", icon: "❓" };
+  if (code === 0) return { label: "맑음", icon: "☀️" };
+  if (code <= 2) return { label: "대체로 맑음", icon: "🌤️" };
+  if (code === 3) return { label: "흐림", icon: "☁️" };
+  if (code <= 48) return { label: "안개", icon: "🌫️" };
+  if (code <= 57) return { label: "이슬비", icon: "🌦️" };
+  if (code <= 65) return { label: "비", icon: "🌧️" };
+  if (code <= 67) return { label: "진눈깨비", icon: "🌨️" };
+  if (code <= 77) return { label: "눈", icon: "❄️" };
+  if (code <= 82) return { label: "소나기", icon: "🌦️" };
+  if (code <= 86) return { label: "눈 소나기", icon: "🌨️" };
+  if (code <= 99) return { label: "뇌우", icon: "⛈️" };
+  return { label: "-", icon: "❓" };
+}
+
 interface OilPriceData {
   prices: Array<{ date: string; wti: number | null; brent: number | null }>;
   summary: {
@@ -304,6 +328,7 @@ export default function DashboardPage() {
   const [benchmark, setBenchmark] = useState<BenchmarkData | null>(null);
   const [detail, setDetail] = useState<StationDetail | null>(null);
   const [oilPrices, setOilPrices] = useState<OilPriceData | null>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryData | null>(null);
   const [insights, setInsights] = useState<Insights | null>(null);
 
@@ -354,6 +379,11 @@ export default function DashboardPage() {
     fetch("/api/oil-prices?days=30")
       .then((r) => r.json())
       .then((d) => { setOilPrices(d); setLoading((p) => ({ ...p, oilPrices: false })); });
+
+    fetch("/api/weather")
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setWeather(d); })
+      .catch(() => {});
 
     fetch(`/api/price-history/${STATION_ID}`)
       .then((r) => r.json())
@@ -522,6 +552,66 @@ export default function DashboardPage() {
 
         {/* 카드 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+          {/* 🌤️ 오늘 날씨 (하남시) */}
+          {weather && weather.today && (() => {
+            const todayW = weatherCodeLabel(weather.today.weatherCode);
+            const tmrW = weather.tomorrow ? weatherCodeLabel(weather.tomorrow.weatherCode) : null;
+            const todayRainy = (weather.today.precipProbMax ?? 0) >= 60 || (weather.today.precipSum ?? 0) >= 1;
+            const tmrClear = weather.tomorrow && [0, 1].includes(weather.tomorrow.weatherCode ?? -1);
+            const tmrRainy = weather.tomorrow && ((weather.tomorrow.precipProbMax ?? 0) >= 60 || (weather.tomorrow.precipSum ?? 0) >= 1);
+
+            let insight: { msg: string; color: "blue" | "emerald" | "amber" | "slate" } | null = null;
+            if (todayRainy) insight = { msg: "비 예보 · 주유 수요 감소 가능성, 가격 인하는 신중히", color: "blue" };
+            else if (tmrRainy) insight = { msg: "내일 비 예보 · 오늘 중 수요 선확보 기회", color: "amber" };
+            else if (tmrClear) insight = { msg: "내일 맑음 · 세차 수요 증가 예상", color: "emerald" };
+
+            return (
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[15px] font-semibold text-text-secondary">오늘 날씨 · 하남시</div>
+                  <span className="text-[12px] text-text-tertiary">실시간</span>
+                </div>
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="text-[48px] leading-none">{todayW.icon}</div>
+                  <div>
+                    <div className="text-[14px] font-semibold text-text-primary">{todayW.label}</div>
+                    {weather.current.temperature != null && (
+                      <div className="text-[28px] font-extrabold text-text-primary leading-tight">
+                        {Math.round(weather.current.temperature)}°
+                      </div>
+                    )}
+                    <div className="text-[12px] text-text-tertiary">
+                      {weather.today.tempMin != null && weather.today.tempMax != null
+                        ? `${Math.round(weather.today.tempMin)}° / ${Math.round(weather.today.tempMax)}°`
+                        : "-"}
+                      {weather.today.precipProbMax != null && ` · 강수 ${weather.today.precipProbMax}%`}
+                    </div>
+                  </div>
+                </div>
+                {weather.tomorrow && tmrW && (
+                  <div className="flex items-center justify-between text-[12px] text-text-secondary border-t border-border pt-2">
+                    <span>내일</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[16px]">{tmrW.icon}</span>
+                      <span>{tmrW.label}</span>
+                      {weather.tomorrow.tempMin != null && weather.tomorrow.tempMax != null && (
+                        <span className="text-text-tertiary">
+                          {Math.round(weather.tomorrow.tempMin)}°/{Math.round(weather.tomorrow.tempMax)}°
+                        </span>
+                      )}
+                      {weather.tomorrow.precipProbMax != null && weather.tomorrow.precipProbMax > 0 && (
+                        <span className="text-blue-500">{weather.tomorrow.precipProbMax}%</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                {insight && (
+                  <InsightBadge color={insight.color}>{insight.msg}</InsightBadge>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ① 가격 포지션 변화 */}
           {loading.competitors ? <CardSkeleton /> : competitors && (

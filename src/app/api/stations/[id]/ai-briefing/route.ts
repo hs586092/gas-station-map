@@ -12,6 +12,7 @@ const SYSTEM_PROMPT = `당신은 주유소 경영 분석 전문가입니다. 사
 - 이후: 판단 근거 3~4가지를 각각 1~2문장으로
 - 구체적 숫자(가격, 판매량, 순위)를 반드시 포함
 - 경쟁사 이름을 언급하며 구체적으로 설명
+- 날씨가 비/눈/뇌우이면 주유 수요 감소 가능성을 언급 (인하 신중 권고)
 - 마지막에 "주의할 점" 또는 "내일 확인할 것" 1줄
 - 전체 길이: 150~250자 이내
 - 이모지 사용하지 마세요
@@ -29,17 +30,20 @@ export async function GET(
   let insights: Record<string, unknown> | null = null;
   let salesAnalysis: Record<string, unknown> | null = null;
   let timingData: Record<string, unknown> | null = null;
+  let weatherData: Record<string, unknown> | null = null;
 
   try {
-    const [insightsRes, salesRes, timingRes] = await Promise.all([
+    const [insightsRes, salesRes, timingRes, weatherRes] = await Promise.all([
       fetch(`${baseUrl}/api/stations/${id}/dashboard-insights`, { next: { revalidate: 1800 } }),
       fetch(`${baseUrl}/api/stations/${id}/sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/timing-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
+      fetch(`${baseUrl}/api/weather`, { next: { revalidate: 600 } }).catch(() => null),
     ]);
 
     if (insightsRes.ok) insights = await insightsRes.json();
     if (salesRes?.ok) salesAnalysis = await salesRes.json();
     if (timingRes?.ok) timingData = await timingRes.json();
+    if (weatherRes?.ok) weatherData = await weatherRes.json();
   } catch {
     // 데이터 수집 실패 시 insights 없이 진행
   }
@@ -105,6 +109,31 @@ export async function GET(
 
   if (timing?.currentSituation?.urgency && timing.currentSituation.urgency !== "none") {
     dataPrompt += `타이밍경고: ${timing.currentSituation.message}\n`;
+  }
+
+  // 날씨 정보 (하남시)
+  const wx = weatherData as Record<string, any> | null;
+  if (wx?.today) {
+    const codeMap: Record<number, string> = {
+      0: "맑음", 1: "대체로 맑음", 2: "부분 흐림", 3: "흐림",
+      45: "안개", 48: "안개", 51: "이슬비", 53: "이슬비", 55: "이슬비",
+      61: "비", 63: "비", 65: "강한 비", 71: "눈", 73: "눈", 75: "폭설",
+      80: "소나기", 81: "소나기", 82: "강한 소나기", 95: "뇌우",
+    };
+    const todayLabel = codeMap[wx.today.weatherCode] || "-";
+    dataPrompt += `날씨: 하남시 오늘 ${todayLabel}`;
+    if (wx.today.tempMin != null && wx.today.tempMax != null) {
+      dataPrompt += ` ${Math.round(wx.today.tempMin)}°~${Math.round(wx.today.tempMax)}°`;
+    }
+    if (wx.today.precipProbMax != null) {
+      dataPrompt += ` 강수확률 ${wx.today.precipProbMax}%`;
+    }
+    if (wx.tomorrow) {
+      const tmrLabel = codeMap[wx.tomorrow.weatherCode] || "-";
+      dataPrompt += ` / 내일 ${tmrLabel}`;
+      if (wx.tomorrow.precipProbMax != null) dataPrompt += ` ${wx.tomorrow.precipProbMax}%`;
+    }
+    dataPrompt += `\n`;
   }
 
   dataPrompt += `\n기존규칙기반추천: ${rec.message || "없음"} (타입: ${rec.type || "?"})`;
