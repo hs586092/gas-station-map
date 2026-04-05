@@ -14,17 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SLP Energy Analytics — 주유소 경영 데이터 플랫폼",
+  title: "감이 아닌 데이터로, 가격을 결정합니다 | SLP Analytics",
   description:
-    "유가 · 경쟁사 · 판매량 · 날씨를 하나로 묶은 주유소 경영 데이터 플랫폼. 사장님의 가격 결정을 데이터로 뒷받침합니다.",
+    "AI 적정가 분석, 경쟁사 모니터링, 판매량 탄력성 — 운영의 모든 판단 근거",
   keywords: [
-    "SLP Energy Analytics",
+    "SLP Analytics",
     "주유소 경영",
     "주유소 데이터",
+    "AI 적정가",
+    "경쟁사 모니터링",
+    "판매량 탄력성",
     "유가 분석",
-    "경쟁사 가격",
-    "주유소 판매량",
-    "주유소 벤치마크",
     "휘발유 가격",
     "경유 가격",
   ],
@@ -32,18 +32,18 @@ export const metadata: Metadata = {
     icon: "/favicon.svg",
   },
   openGraph: {
-    title: "SLP Energy Analytics — 주유소 경영 데이터 플랫폼",
+    title: "감이 아닌 데이터로, 가격을 결정합니다 | SLP Analytics",
     description:
-      "유가 · 경쟁사 · 판매량 · 날씨를 하나로 묶은 주유소 경영 데이터 플랫폼. 사장님의 가격 결정을 데이터로 뒷받침합니다.",
+      "AI 적정가 분석, 경쟁사 모니터링, 판매량 탄력성 — 운영의 모든 판단 근거",
     type: "website",
     locale: "ko_KR",
-    siteName: "SLP Energy Analytics",
+    siteName: "SLP Analytics",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SLP Energy Analytics — 주유소 경영 데이터 플랫폼",
+    title: "감이 아닌 데이터로, 가격을 결정합니다 | SLP Analytics",
     description:
-      "유가 · 경쟁사 · 판매량 · 날씨를 하나로 묶은 주유소 경영 데이터 플랫폼.",
+      "AI 적정가 분석, 경쟁사 모니터링, 판매량 탄력성 — 운영의 모든 판단 근거",
   },
   robots: {
     index: true,

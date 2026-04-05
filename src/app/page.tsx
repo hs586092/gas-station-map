@@ -41,10 +41,17 @@ export default function LandingPage() {
           <div className="inline-block px-3 py-1 mb-6 text-[12px] font-semibold text-emerald bg-emerald/15 border border-emerald/30 rounded-full">
             주유소 경영 데이터 플랫폼
           </div>
-          <h1 className="text-[34px] md:text-[54px] font-extrabold leading-tight mb-5 tracking-tight">
-            감(感)이 아닌 데이터로<br />
-            <span className="text-emerald">가격을 결정합니다</span>
+          <h1 className="text-[32px] md:text-[52px] font-extrabold leading-[1.15] mb-6 tracking-tight">
+            감이 아닌 데이터로,<br className="md:hidden" /> 가격을 결정합니다.
           </h1>
+          {/* SLP Analytics — 브랜드 로고마크 */}
+          <div className="inline-flex items-center gap-2.5 mb-7">
+            <span className="w-2 h-2 rounded-full bg-oil-yellow shadow-[0_0_10px_rgba(255,210,0,0.7)]" />
+            <span className="text-[18px] md:text-[22px] font-extrabold tracking-tight text-white">SLP</span>
+            <span className="text-[12px] md:text-[14px] font-semibold text-oil-yellow tracking-[0.22em] uppercase">
+              Analytics
+            </span>
+          </div>
           <p className="text-[16px] md:text-[19px] text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
             경쟁사 실시간 모니터링부터 AI 적정가 분석, 국제유가 반영 타이밍까지 —<br className="hidden md:inline" />
             매일 아침, 오늘의 가격 판단 근거를 브리핑으로 받아보세요.
