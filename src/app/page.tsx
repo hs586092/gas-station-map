@@ -17,7 +17,7 @@ export default function LandingPage() {
   }, [loading, user, router]);
 
   return (
-    <div className="min-h-screen bg-white text-text-primary">
+    <div className="h-screen overflow-y-auto bg-white text-text-primary">
       {/* ── 헤더 ── */}
       <header className="h-[60px] bg-navy flex items-center justify-between px-5 md:px-10 sticky top-0 z-50">
         <Link href="/" className="flex items-center gap-2 no-underline">

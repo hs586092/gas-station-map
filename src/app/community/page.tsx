@@ -201,7 +201,7 @@ export default function CommunityPage() {
   // ── 비로그인 ──
   if (!user) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col">
+      <div className="h-screen overflow-y-auto bg-surface flex flex-col">
         <PageHeader rightSlot={
           <button onClick={() => setShowAuth(true)} className="h-8 px-4 text-[13px] font-semibold text-white bg-emerald hover:bg-emerald/90 rounded-lg border-none cursor-pointer transition-colors">로그인</button>
         } />
@@ -223,7 +223,7 @@ export default function CommunityPage() {
   // ── 게시글 상세 ──
   if (selectedPost && postDetail) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col">
+      <div className="h-screen overflow-y-auto bg-surface flex flex-col">
         <PageHeader rightSlot={
           <div className="flex items-center gap-2">
             <span className="text-[12px] text-gray-400 hidden md:inline">{profile?.nickname}</span>
