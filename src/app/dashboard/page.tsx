@@ -329,6 +329,18 @@ export default function DashboardPage() {
   const [detail, setDetail] = useState<StationDetail | null>(null);
   const [oilPrices, setOilPrices] = useState<OilPriceData | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherImpact, setWeatherImpact] = useState<{
+    byIntensity: Array<{ key: string; label: string; n: number; adjustedDiffPct: number }>;
+    tTest: { significant: boolean; label: string } | null;
+    todayForecast: {
+      intensity: "dry" | "light" | "heavy";
+      intensityLabel: string;
+      expectedVolume: number;
+      diffVsDryPct: number;
+      confidence: "high" | "medium" | "low";
+      explanation: string;
+    } | null;
+  } | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryData | null>(null);
   const [insights, setInsights] = useState<Insights | null>(null);
 
@@ -383,6 +395,11 @@ export default function DashboardPage() {
     fetch("/api/weather")
       .then((r) => r.json())
       .then((d) => { if (!d.error) setWeather(d); })
+      .catch(() => {});
+
+    fetch(`${base}/weather-sales-analysis`)
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setWeatherImpact(d); })
       .catch(() => {});
 
     fetch(`/api/price-history/${STATION_ID}`)
@@ -610,6 +627,53 @@ export default function DashboardPage() {
                   <InsightBadge color={insight.color}>{insight.msg}</InsightBadge>
                 )}
               </div>
+            );
+          })()}
+
+          {/* 🌧️ 날씨 영향 (판매량 예측) */}
+          {weatherImpact?.todayForecast && (() => {
+            const f = weatherImpact.todayForecast!;
+            const rainy = weatherImpact.byIntensity.find((b) => b.key === "heavy");
+            const confColor = f.confidence === "high" ? "emerald" : f.confidence === "medium" ? "amber" : "slate";
+            return (
+              <ClickableCard href="/dashboard/weather-impact" className="bg-white rounded-2xl p-5 shadow-sm border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[15px] font-semibold text-text-secondary">날씨 영향 · 판매량</div>
+                  <span className="text-[12px] text-text-tertiary">오늘 예측</span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-[28px] font-extrabold text-text-primary leading-none">
+                    {f.expectedVolume.toLocaleString()}
+                  </span>
+                  <span className="text-[14px] text-text-secondary">L 예상</span>
+                </div>
+                <div className="text-[12px] text-text-tertiary mb-3">
+                  {f.explanation}
+                </div>
+                {rainy && weatherImpact.tTest && (
+                  <div className="border-t border-border pt-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-text-secondary">본격 비 영향</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[14px] font-bold text-red-500">
+                          {rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%
+                        </span>
+                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                          weatherImpact.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-gray-100 text-text-tertiary"
+                        }`}>
+                          {weatherImpact.tTest.label}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-text-tertiary">
+                      요일 효과 보정 · 과거 {rainy.n}일 기준
+                    </div>
+                  </div>
+                )}
+                <InsightBadge color={confColor as "emerald" | "amber" | "slate"}>
+                  신뢰도 {f.confidence === "high" ? "높음" : f.confidence === "medium" ? "중간" : "낮음"} · 클릭하면 다차원 분석
+                </InsightBadge>
+              </ClickableCard>
             );
           })()}
 

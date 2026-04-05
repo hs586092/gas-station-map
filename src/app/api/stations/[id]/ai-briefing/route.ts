@@ -13,6 +13,7 @@ const SYSTEM_PROMPT = `당신은 주유소 경영 분석 전문가입니다. 사
 - 구체적 숫자(가격, 판매량, 순위)를 반드시 포함
 - 경쟁사 이름을 언급하며 구체적으로 설명
 - 날씨가 비/눈/뇌우이면 주유 수요 감소 가능성을 언급 (인하 신중 권고)
+- "날씨기반예상판매량"이 제공되면 오늘 기대 판매량을 숫자로 직접 인용 (예: "오늘 예상 판매량 약 9,500L")
 - 마지막에 "주의할 점" 또는 "내일 확인할 것" 1줄
 - 전체 길이: 150~250자 이내
 - 이모지 사용하지 마세요
@@ -31,19 +32,22 @@ export async function GET(
   let salesAnalysis: Record<string, unknown> | null = null;
   let timingData: Record<string, unknown> | null = null;
   let weatherData: Record<string, unknown> | null = null;
+  let weatherImpactData: Record<string, unknown> | null = null;
 
   try {
-    const [insightsRes, salesRes, timingRes, weatherRes] = await Promise.all([
+    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes] = await Promise.all([
       fetch(`${baseUrl}/api/stations/${id}/dashboard-insights`, { next: { revalidate: 1800 } }),
       fetch(`${baseUrl}/api/stations/${id}/sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/timing-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/weather`, { next: { revalidate: 600 } }).catch(() => null),
+      fetch(`${baseUrl}/api/stations/${id}/weather-sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
     ]);
 
     if (insightsRes.ok) insights = await insightsRes.json();
     if (salesRes?.ok) salesAnalysis = await salesRes.json();
     if (timingRes?.ok) timingData = await timingRes.json();
     if (weatherRes?.ok) weatherData = await weatherRes.json();
+    if (weatherImpactRes?.ok) weatherImpactData = await weatherImpactRes.json();
   } catch {
     // 데이터 수집 실패 시 insights 없이 진행
   }
@@ -134,6 +138,22 @@ export async function GET(
       if (wx.tomorrow.precipProbMax != null) dataPrompt += ` ${wx.tomorrow.precipProbMax}%`;
     }
     dataPrompt += `\n`;
+  }
+
+  // 날씨 기반 판매량 예측 (weather-sales-analysis)
+  const wsa = weatherImpactData as Record<string, any> | null;
+  if (wsa?.todayForecast) {
+    const f = wsa.todayForecast;
+    dataPrompt += `날씨기반예상판매량: ${f.expectedVolume?.toLocaleString()}L (${f.explanation})`;
+    if (f.confidence) dataPrompt += ` [신뢰도:${f.confidence}]`;
+    dataPrompt += `\n`;
+    // 본격 비 영향 (과거 관측)
+    const heavy = (wsa.byIntensity as Array<any> | undefined)?.find((b) => b.key === "heavy");
+    if (heavy && heavy.n >= 10) {
+      dataPrompt += `과거 본격비(≥5mm) 영향: 판매량 ${heavy.adjustedDiffPct >= 0 ? "+" : ""}${heavy.adjustedDiffPct}% (n=${heavy.n}, 요일보정)`;
+      if (wsa.tTest?.significant) dataPrompt += ` [통계 유의]`;
+      dataPrompt += `\n`;
+    }
   }
 
   dataPrompt += `\n기존규칙기반추천: ${rec.message || "없음"} (타입: ${rec.type || "?"})`;
