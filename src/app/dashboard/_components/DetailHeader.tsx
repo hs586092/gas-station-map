@@ -20,7 +20,7 @@ export default function DetailHeader({ title, description }: DetailHeaderProps) 
         </Link>
         <div className="flex items-center gap-4 ml-6 text-[13px]">
           <Link href="/dashboard" className="text-white font-semibold no-underline">대시보드</Link>
-          <Link href="/" className="text-white/60 no-underline hover:text-white/90">지도</Link>
+          <Link href="/map" className="text-white/60 no-underline hover:text-white/90">지도</Link>
           <Link href="/community" className="text-white/60 no-underline hover:text-white/90">커뮤니티</Link>
         </div>
       </header>
