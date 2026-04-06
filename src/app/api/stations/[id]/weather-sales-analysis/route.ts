@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+function dowFromDateStr(dateStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
 /**
  * GET /api/stations/[id]/weather-sales-analysis
  *
@@ -85,7 +90,7 @@ export async function GET(
 
     joined.push({
       date: s.date,
-      dow: new Date(s.date + "T00:00:00+09:00").getDay(),
+      dow: dowFromDateStr(s.date),
       totalVol,
       totalCnt,
       perTxn: totalCnt > 0 ? totalVol / totalCnt : null,
@@ -296,7 +301,7 @@ export async function GET(
       const intensity: "dry" | "light" | "heavy" =
         todayPrecip < 1 ? "dry" : todayPrecip < 5 ? "light" : "heavy";
       const todayDate = wx.today?.date || new Date().toISOString().slice(0, 10);
-      const dow = new Date(todayDate + "T00:00:00+09:00").getDay();
+      const dow = dowFromDateStr(todayDate);
 
       const expected = dowMean[dow] + weatherEffectResid[intensity];
       const expectedCount = dowMeanCount[dow] + weatherEffectResidCount[intensity];

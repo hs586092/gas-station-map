@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+function dowFromDateStr(dateStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
 function isWeekendKST(dateStr: string): boolean {
-  // 0=일, 6=토 → 주말
-  const dow = new Date(dateStr + "T00:00:00+09:00").getDay();
+  const dow = dowFromDateStr(dateStr);
   return dow === 0 || dow === 6;
 }
 
@@ -208,7 +212,7 @@ export async function GET(
     Array.from({ length: 7 }, () => ({ gasoline: [], diesel: [] }));
 
   for (const d of days) {
-    const dow = new Date(d.date + "T00:00:00+09:00").getDay();
+    const dow = dowFromDateStr(d.date);
     weekdayBuckets[dow].gasoline.push(d.gasoline_volume);
     weekdayBuckets[dow].diesel.push(d.diesel_volume);
   }

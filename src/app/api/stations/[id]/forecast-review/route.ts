@@ -10,6 +10,12 @@ import { supabase } from "@/lib/supabase";
  * - price_history + weather_daily에서 오차 원인
  */
 
+// ── YYYY-MM-DD → 요일 (타임존 무관, 서버가 UTC여도 정확) ──
+function dowFromDateStr(dateStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
 // ── Haversine ──
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
@@ -130,7 +136,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // ── 5. 오차 요인 분해 ──
     const causes: Cause[] = [];
-    const ydow = new Date(yesterdayStr + "T00:00:00+09:00").getDay();
+    const ydow = dowFromDateStr(yesterdayStr);
     const dowNames = ["일", "월", "화", "수", "목", "금", "토"];
 
     // 5-pre. 요일별·날씨별 기준 데이터 (sales_data + weather_daily 교집합)
@@ -162,7 +168,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         precip == null || precip < 1 ? "dry" : precip < 5 ? "light" : "heavy";
       allDays.push({
         date: s.date,
-        dow: new Date(s.date + "T00:00:00+09:00").getDay(),
+        dow: dowFromDateStr(s.date),
         vol: gVol + dVol,
         intensity,
       });
