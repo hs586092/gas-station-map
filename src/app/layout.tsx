@@ -29,8 +29,14 @@ export const metadata: Metadata = {
     "경유 가격",
   ],
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
+  manifest: "/manifest.json",
   openGraph: {
     title: "감이 아닌 데이터로, 가격을 결정합니다 | SLP Analytics",
     description:
