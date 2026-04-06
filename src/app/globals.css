@@ -32,9 +32,9 @@
      elements (hero, footer). But inside white cards, we need dark text.
      Tailwind utilities `text-text-primary` etc. are assigned to CARD context
      (the dominant case), and page-level overrides use `text-white` directly. */
-  --text-primary: #1A1A1A;      /* dark ink — for card interiors */
-  --text-secondary: #666666;    /* mid gray — for card interiors */
-  --text-tertiary: #9CA3AF;     /* light gray — for card interiors */
+  --text-primary: #111111;      /* dark ink — for card interiors */
+  --text-secondary: #333333;    /* mid gray — for card interiors */
+  --text-tertiary: #555555;     /* light gray — for card interiors */
   --text-disabled: #D1D5DB;
 
   /* Page-level text (dark background contexts) */
