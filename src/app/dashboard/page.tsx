@@ -384,10 +384,24 @@ export default function DashboardPage() {
     } | null;
   } | null>(null);
 
+  const [forecastReview, setForecastReview] = useState<{
+    status: string;
+    yesterday: {
+      date: string; predicted: number; actual: number | null;
+      error: number | null; errorPct: number | null;
+      causes: Array<{ type: string; icon: string; message: string }>;
+    } | null;
+    accuracy: {
+      days7: { avgErrorPct: number; accuracy: number; count: number } | null;
+      days30: { avgErrorPct: number; accuracy: number; count: number } | null;
+      trend: "improving" | "declining" | "stable" | null;
+    } | null;
+  } | null>(null);
+
   const [loading, setLoading] = useState({
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
-    salesAnalysis: true, timingAnalysis: true,
+    salesAnalysis: true, timingAnalysis: true, forecastReview: true,
   });
 
   useEffect(() => {
@@ -438,6 +452,14 @@ export default function DashboardPage() {
         setLoading((p) => ({ ...p, salesAnalysis: false }));
       })
       .catch(() => setLoading((p) => ({ ...p, salesAnalysis: false })));
+
+    fetch(`${base}/forecast-review`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.error) setForecastReview(d);
+        setLoading((p) => ({ ...p, forecastReview: false }));
+      })
+      .catch(() => setLoading((p) => ({ ...p, forecastReview: false })));
 
     fetch(`${base}/timing-analysis`)
       .then((r) => r.json())
@@ -652,6 +674,224 @@ export default function DashboardPage() {
 
         {/* 카드 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+          {/* 🌧️ 날씨 영향 (판매량 예측) */}
+          {weatherImpact?.todayForecast && (() => {
+            const f = weatherImpact.todayForecast!;
+            const rainy = weatherImpact.byIntensity.find((b) => b.key === "heavy");
+            const confColor = f.confidence === "high" ? "emerald" : f.confidence === "medium" ? "amber" : "slate";
+            return (
+              <ClickableCard href="/dashboard/weather-impact" className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">날씨 영향 · 판매량</div>
+                  <span className="text-[12px] text-text-tertiary">오늘 예측</span>
+                </div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none">
+                    {f.expectedVolume.toLocaleString()}
+                  </span>
+                  <span className="text-[14px] text-text-secondary">L 예상</span>
+                </div>
+                <div className="text-[12px] text-text-tertiary mb-3">{f.explanation}</div>
+                {rainy && weatherImpact.tTest && (
+                  <div className="border-t border-border pt-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-text-secondary">본격 비 영향</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[14px] font-bold text-red-500">{rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%</span>
+                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${weatherImpact.tTest.significant ? "bg-emerald/20 text-emerald" : "bg-slate-100 text-text-tertiary"}`}>{weatherImpact.tTest.label}</span>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-text-tertiary">요일 효과 보정 · 과거 {rainy.n}일 기준</div>
+                  </div>
+                )}
+                <InsightBadge color={confColor as "emerald" | "amber" | "slate"}>
+                  {f.diffVsDryPct <= -5 ? "수요 감소 예상 → 가격 변동 보류 권장. 인하 시 회복 어려움"
+                    : f.diffVsDryPct >= 5 ? "수요 증가 예상 → 소폭 인상 기회. 경쟁사 대비 가격 여력 확인"
+                    : f.diffVsDryPct <= -2 ? "소폭 수요 감소 예상 → 가격 유지하며 관망 권장"
+                    : "날씨 영향 미미 → 시장 상황 중심으로 판단"}
+                  <span className="text-text-tertiary ml-1">(신뢰도 {f.confidence === "high" ? "높음" : f.confidence === "medium" ? "중간" : "낮음"})</span>
+                </InsightBadge>
+              </ClickableCard>
+            );
+          })()}
+
+          {/* 📊 예측 복기 · 어제 */}
+          {loading.forecastReview ? <CardSkeleton /> : forecastReview && (() => {
+            const y = forecastReview.yesterday;
+            const acc = forecastReview.accuracy;
+            if (forecastReview.status === "no_data") {
+              return (
+                <div className="bg-surface-raised rounded-xl p-5 border border-border">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">예측 복기</div>
+                  <p className="text-[14px] text-text-tertiary m-0">예측 데이터 축적 중 — 내일부터 복기 시작</p>
+                </div>
+              );
+            }
+            return (
+              <div className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">예측 복기 · 어제</div>
+                  {y && <span className="text-[12px] text-text-tertiary">{y.date.slice(5)}</span>}
+                </div>
+                {y ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[12px] text-text-secondary">
+                        예측 <span className="font-bold text-text-primary">{y.predicted.toLocaleString()}L</span>
+                        <span className="mx-1.5">→</span>
+                        실제 <span className="font-bold text-text-primary">{y.actual != null ? `${y.actual.toLocaleString()}L` : "대기 중"}</span>
+                      </div>
+                      {y.errorPct != null && (
+                        <span className={`text-[14px] font-bold ${Math.abs(y.errorPct) <= 5 ? "text-emerald-600" : Math.abs(y.errorPct) <= 15 ? "text-amber-500" : "text-red-500"}`}>
+                          {y.errorPct > 0 ? "+" : ""}{y.errorPct}%
+                        </span>
+                      )}
+                    </div>
+                    {y.causes.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-[11px] font-bold text-text-tertiary">오차 원인</div>
+                        {y.causes.map((c, i) => (
+                          <div key={i} className="text-[12px] text-text-secondary flex items-start gap-1.5">
+                            <span className="shrink-0">{c.icon}</span>
+                            <span>{c.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {acc?.days7 && (
+                      <div className="pt-2 border-t border-border flex items-center justify-between text-[12px]">
+                        <span className="text-text-secondary">7일 평균 정확도</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-bold ${acc.days7.accuracy >= 90 ? "text-emerald-600" : acc.days7.accuracy >= 80 ? "text-amber-500" : "text-red-500"}`}>
+                            {acc.days7.accuracy}%
+                          </span>
+                          <span className="text-text-tertiary">(±{acc.days7.avgErrorPct}%)</span>
+                          {acc.trend && (
+                            <span className={`text-[11px] font-bold ${acc.trend === "improving" ? "text-emerald-600" : acc.trend === "declining" ? "text-red-500" : "text-text-tertiary"}`}>
+                              {acc.trend === "improving" ? "↗ 개선" : acc.trend === "declining" ? "↘ 악화" : "→ 유지"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[14px] text-text-tertiary m-0">어제 예측 데이터 없음</p>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ⑧ 판매량·가격 분석 */}
+          {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (
+            <ClickableCard href="/dashboard/sales-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
+              <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">판매량 · 가격 분석</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[18px] font-extrabold text-text-primary tnum tracking-tight">{salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L</span>
+                    {salesAnalysis.events.length > 0 && (
+                      <span className={`text-[16px] font-extrabold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-500"}`}>
+                        {salesAnalysis.events[0].volumeChangeRate >= 0 ? "↗" : "↘"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {salesAnalysis.events.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-text-secondary">최근 가격 변경</span>
+                      <span className="text-[12px] font-semibold text-text-primary">{salesAnalysis.events[0].date.slice(5)} {salesAnalysis.events[0].priceChange > 0 ? "+" : ""}{salesAnalysis.events[0].priceChange}원</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] text-text-secondary">판매량 영향</span>
+                      <span className={`text-[14px] font-bold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                        {salesAnalysis.events[0].volumeChangeRate > 0 ? "+" : ""}{salesAnalysis.events[0].volumeChangeRate}%
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[14px] text-text-tertiary m-0">가격 변경 이벤트 감지 대기 중</p>
+                )}
+                <div className="pt-2 border-t border-border flex items-center justify-between">
+                  <span className="text-[14px] text-text-secondary">가격 탄력성</span>
+                  {salesAnalysis.summary.elasticity != null ? (
+                    <span className={`text-[14px] font-bold ${salesAnalysis.summary.elasticityLabel === "민감" ? "text-red-500" : salesAnalysis.summary.elasticityLabel === "둔감" ? "text-emerald-600" : "text-amber-500"}`}>
+                      {salesAnalysis.summary.elasticity} ({salesAnalysis.summary.elasticityLabel})
+                    </span>
+                  ) : (
+                    <span className="text-[14px] text-text-tertiary">데이터 축적 중</span>
+                  )}
+                </div>
+                {salesAnalysis.summary.elasticity != null && salesAnalysis.events.length > 0 && (() => {
+                  const lastEvent = salesAnalysis.events[0];
+                  const pctPer10 = lastEvent.priceChange !== 0 ? (lastEvent.volumeChangeRate / Math.abs(lastEvent.priceChange)) * 10 : null;
+                  return pctPer10 != null ? (
+                    <div className="mt-1.5 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-text-secondary">
+                      10원 인상 시 예상 판매 변동: <span className={`font-bold ${pctPer10 <= 0 ? "text-red-500" : "text-emerald-600"}`}>{pctPer10 > 0 ? "+" : ""}{pctPer10.toFixed(1)}%</span>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            </ClickableCard>
+          )}
+
+          {/* 🌤️ 오늘 날씨 (하남시) */}
+          {weather && weather.today && (() => {
+            const todayW = weatherCodeLabel(weather.today.weatherCode);
+            const tmrW = weather.tomorrow ? weatherCodeLabel(weather.tomorrow.weatherCode) : null;
+            const todayRainy = (weather.today.precipProbMax ?? 0) >= 60 || (weather.today.precipSum ?? 0) >= 1;
+            const tmrClear = weather.tomorrow && [0, 1].includes(weather.tomorrow.weatherCode ?? -1);
+            const tmrRainy = weather.tomorrow && ((weather.tomorrow.precipProbMax ?? 0) >= 60 || (weather.tomorrow.precipSum ?? 0) >= 1);
+            let insight: { msg: string; color: "blue" | "emerald" | "amber" | "slate" } | null = null;
+            if (todayRainy) insight = { msg: "비 예보 · 주유 수요 감소 가능성, 가격 인하는 신중히", color: "blue" };
+            else if (tmrRainy) insight = { msg: "내일 비 예보 · 오늘 중 수요 선확보 기회", color: "amber" };
+            else if (tmrClear) insight = { msg: "내일 맑음 · 세차 수요 증가 예상", color: "emerald" };
+            return (
+              <div className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">오늘 날씨 · 하남시</div>
+                  <span className="text-[12px] text-text-tertiary">실시간</span>
+                </div>
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="text-[48px] leading-none">{todayW.icon}</div>
+                  <div>
+                    <div className="text-[14px] font-semibold text-text-primary">{todayW.label}</div>
+                    {weather.current.temperature != null && (
+                      <div className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-tight">{Math.round(weather.current.temperature)}°</div>
+                    )}
+                    <div className="text-[12px] text-text-tertiary">
+                      {weather.today.tempMin != null && weather.today.tempMax != null ? `${Math.round(weather.today.tempMin)}° / ${Math.round(weather.today.tempMax)}°` : "-"}
+                      {weather.today.precipProbMax != null && ` · 강수 ${weather.today.precipProbMax}%`}
+                    </div>
+                  </div>
+                </div>
+                {weather.tomorrow && tmrW && (
+                  <div className="flex items-center justify-between text-[12px] text-text-secondary border-t border-border pt-2">
+                    <span>내일</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[16px]">{tmrW.icon}</span>
+                      <span>{tmrW.label}</span>
+                      {weather.tomorrow.tempMin != null && weather.tomorrow.tempMax != null && (
+                        <span className="text-text-tertiary">{Math.round(weather.tomorrow.tempMin)}°/{Math.round(weather.tomorrow.tempMax)}°</span>
+                      )}
+                      {weather.tomorrow.precipProbMax != null && weather.tomorrow.precipProbMax > 0 && (
+                        <span className="text-blue-500">{weather.tomorrow.precipProbMax}%</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                {weatherImpact?.todayForecast && (
+                  <div className={`mt-2 text-[12px] font-semibold ${weatherImpact.todayForecast.diffVsDryPct < -3 ? "text-red-500" : weatherImpact.todayForecast.diffVsDryPct > 3 ? "text-emerald-600" : "text-text-secondary"}`}>
+                    예상 판매 영향: {weatherImpact.todayForecast.diffVsDryPct > 0 ? "+" : ""}{weatherImpact.todayForecast.diffVsDryPct}% (맑은날 대비)
+                  </div>
+                )}
+                {insight && <InsightBadge color={insight.color}>{insight.msg}</InsightBadge>}
+              </div>
+            );
+          })()}
 
           {/* ② 경쟁사 행동 패턴 */}
           {loading.changes ? <CardSkeleton /> : changes && (
@@ -878,196 +1118,6 @@ export default function DashboardPage() {
               )}
             </ClickableCard>
           )}
-
-          {/* ⑧ 판매량·가격 분석 */}
-          {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (
-            <ClickableCard href="/dashboard/sales-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">판매량 · 가격 분석</div>
-              <div className="space-y-2">
-                {/* 일 평균 판매량 + 변동 화살표 */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[18px] font-extrabold text-text-primary tnum tracking-tight">
-                      {salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L
-                    </span>
-                    {salesAnalysis.events.length > 0 && (
-                      <span className={`text-[16px] font-extrabold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-500"}`}>
-                        {salesAnalysis.events[0].volumeChangeRate >= 0 ? "↗" : "↘"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {salesAnalysis.events.length > 0 ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-text-secondary">최근 가격 변경</span>
-                      <span className="text-[12px] font-semibold text-text-primary">
-                        {salesAnalysis.events[0].date.slice(5)} {salesAnalysis.events[0].priceChange > 0 ? "+" : ""}{salesAnalysis.events[0].priceChange}원
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-text-secondary">판매량 영향</span>
-                      <span className={`text-[14px] font-bold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                        {salesAnalysis.events[0].volumeChangeRate > 0 ? "+" : ""}{salesAnalysis.events[0].volumeChangeRate}%
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-[14px] text-text-tertiary m-0">가격 변경 이벤트 감지 대기 중</p>
-                )}
-                <div className="pt-2 border-t border-border flex items-center justify-between">
-                  <span className="text-[14px] text-text-secondary">가격 탄력성</span>
-                  {salesAnalysis.summary.elasticity != null ? (
-                    <span className={`text-[14px] font-bold ${
-                      salesAnalysis.summary.elasticityLabel === "민감" ? "text-red-500" :
-                      salesAnalysis.summary.elasticityLabel === "둔감" ? "text-emerald-600" : "text-amber-500"
-                    }`}>
-                      {salesAnalysis.summary.elasticity} ({salesAnalysis.summary.elasticityLabel})
-                    </span>
-                  ) : (
-                    <span className="text-[14px] text-text-tertiary">데이터 축적 중</span>
-                  )}
-                </div>
-                {salesAnalysis.summary.elasticity != null && salesAnalysis.events.length > 0 && (() => {
-                  const lastEvent = salesAnalysis.events[0];
-                  const pctPer10 = lastEvent.priceChange !== 0
-                    ? (lastEvent.volumeChangeRate / Math.abs(lastEvent.priceChange)) * 10
-                    : null;
-                  return pctPer10 != null ? (
-                    <div className="mt-1.5 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-text-secondary">
-                      10원 인상 시 예상 판매 변동: <span className={`font-bold ${pctPer10 <= 0 ? "text-red-500" : "text-emerald-600"}`}>
-                        {pctPer10 > 0 ? "+" : ""}{pctPer10.toFixed(1)}%
-                      </span>
-                    </div>
-                  ) : null;
-                })()}
-              </div>
-            </ClickableCard>
-          )}
-
-          {/* 🌤️ 오늘 날씨 (하남시) */}
-          {weather && weather.today && (() => {
-            const todayW = weatherCodeLabel(weather.today.weatherCode);
-            const tmrW = weather.tomorrow ? weatherCodeLabel(weather.tomorrow.weatherCode) : null;
-            const todayRainy = (weather.today.precipProbMax ?? 0) >= 60 || (weather.today.precipSum ?? 0) >= 1;
-            const tmrClear = weather.tomorrow && [0, 1].includes(weather.tomorrow.weatherCode ?? -1);
-            const tmrRainy = weather.tomorrow && ((weather.tomorrow.precipProbMax ?? 0) >= 60 || (weather.tomorrow.precipSum ?? 0) >= 1);
-
-            let insight: { msg: string; color: "blue" | "emerald" | "amber" | "slate" } | null = null;
-            if (todayRainy) insight = { msg: "비 예보 · 주유 수요 감소 가능성, 가격 인하는 신중히", color: "blue" };
-            else if (tmrRainy) insight = { msg: "내일 비 예보 · 오늘 중 수요 선확보 기회", color: "amber" };
-            else if (tmrClear) insight = { msg: "내일 맑음 · 세차 수요 증가 예상", color: "emerald" };
-
-            return (
-              <div className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">오늘 날씨 · 하남시</div>
-                  <span className="text-[12px] text-text-tertiary">실시간</span>
-                </div>
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="text-[48px] leading-none">{todayW.icon}</div>
-                  <div>
-                    <div className="text-[14px] font-semibold text-text-primary">{todayW.label}</div>
-                    {weather.current.temperature != null && (
-                      <div className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-tight">
-                        {Math.round(weather.current.temperature)}°
-                      </div>
-                    )}
-                    <div className="text-[12px] text-text-tertiary">
-                      {weather.today.tempMin != null && weather.today.tempMax != null
-                        ? `${Math.round(weather.today.tempMin)}° / ${Math.round(weather.today.tempMax)}°`
-                        : "-"}
-                      {weather.today.precipProbMax != null && ` · 강수 ${weather.today.precipProbMax}%`}
-                    </div>
-                  </div>
-                </div>
-                {weather.tomorrow && tmrW && (
-                  <div className="flex items-center justify-between text-[12px] text-text-secondary border-t border-border pt-2">
-                    <span>내일</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[16px]">{tmrW.icon}</span>
-                      <span>{tmrW.label}</span>
-                      {weather.tomorrow.tempMin != null && weather.tomorrow.tempMax != null && (
-                        <span className="text-text-tertiary">
-                          {Math.round(weather.tomorrow.tempMin)}°/{Math.round(weather.tomorrow.tempMax)}°
-                        </span>
-                      )}
-                      {weather.tomorrow.precipProbMax != null && weather.tomorrow.precipProbMax > 0 && (
-                        <span className="text-blue-500">{weather.tomorrow.precipProbMax}%</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-                {weatherImpact?.todayForecast && (
-                  <div className={`mt-2 text-[12px] font-semibold ${
-                    weatherImpact.todayForecast.diffVsDryPct < -3 ? "text-red-500"
-                    : weatherImpact.todayForecast.diffVsDryPct > 3 ? "text-emerald-600"
-                    : "text-text-secondary"
-                  }`}>
-                    예상 판매 영향: {weatherImpact.todayForecast.diffVsDryPct > 0 ? "+" : ""}{weatherImpact.todayForecast.diffVsDryPct}% (맑은날 대비)
-                  </div>
-                )}
-                {insight && (
-                  <InsightBadge color={insight.color}>{insight.msg}</InsightBadge>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* 🌧️ 날씨 영향 (판매량 예측) */}
-          {weatherImpact?.todayForecast && (() => {
-            const f = weatherImpact.todayForecast!;
-            const rainy = weatherImpact.byIntensity.find((b) => b.key === "heavy");
-            const confColor = f.confidence === "high" ? "emerald" : f.confidence === "medium" ? "amber" : "slate";
-            return (
-              <ClickableCard href="/dashboard/weather-impact" className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">날씨 영향 · 판매량</div>
-                  <span className="text-[12px] text-text-tertiary">오늘 예측</span>
-                </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none">
-                    {f.expectedVolume.toLocaleString()}
-                  </span>
-                  <span className="text-[14px] text-text-secondary">L 예상</span>
-                </div>
-                <div className="text-[12px] text-text-tertiary mb-3">
-                  {f.explanation}
-                </div>
-                {rainy && weatherImpact.tTest && (
-                  <div className="border-t border-border pt-3 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-text-secondary">본격 비 영향</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[14px] font-bold text-red-500">
-                          {rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%
-                        </span>
-                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
-                          weatherImpact.tTest.significant ? "bg-emerald/20 text-emerald" : "bg-slate-100 text-text-tertiary"
-                        }`}>
-                          {weatherImpact.tTest.label}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-[10px] text-text-tertiary">
-                      요일 효과 보정 · 과거 {rainy.n}일 기준
-                    </div>
-                  </div>
-                )}
-                <InsightBadge color={confColor as "emerald" | "amber" | "slate"}>
-                  {f.diffVsDryPct <= -5
-                    ? "수요 감소 예상 → 가격 변동 보류 권장. 인하 시 회복 어려움"
-                    : f.diffVsDryPct >= 5
-                    ? "수요 증가 예상 → 소폭 인상 기회. 경쟁사 대비 가격 여력 확인"
-                    : f.diffVsDryPct <= -2
-                    ? "소폭 수요 감소 예상 → 가격 유지하며 관망 권장"
-                    : "날씨 영향 미미 → 시장 상황 중심으로 판단"}
-                  <span className="text-text-tertiary ml-1">(신뢰도 {f.confidence === "high" ? "높음" : f.confidence === "medium" ? "중간" : "낮음"})</span>
-                </InsightBadge>
-              </ClickableCard>
-            );
-          })()}
 
           {/* ⑨ 타이밍 분석 */}
           {loading.timingAnalysis ? <CardSkeleton /> : timingAnalysis && (

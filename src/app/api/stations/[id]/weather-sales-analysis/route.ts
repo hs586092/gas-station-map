@@ -314,6 +314,22 @@ export async function GET(
         confidence,
         explanation,
       };
+
+      // forecast_history에 예측값 자동 저장 (upsert, fire-and-forget)
+      supabase
+        .from("forecast_history")
+        .upsert(
+          {
+            station_id: id,
+            forecast_date: todayDate,
+            predicted_volume: Math.round(expected),
+            weather_intensity: intensity,
+            day_of_week: dow,
+            confidence,
+          },
+          { onConflict: "station_id,forecast_date", ignoreDuplicates: false }
+        )
+        .then(() => {});
     }
   } catch {
     // weather API 실패 시 forecast 생략
