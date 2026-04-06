@@ -519,7 +519,7 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : insights && (
-          <div className={`mb-6 rounded-xl p-6 pl-7 border ${recColor[insights.recommendation.type]} shadow-sm relative overflow-hidden`}>
+          <div className={`mb-6 rounded-xl p-6 pl-7 border ${recColor[insights.recommendation.type]} shadow-sm relative overflow-hidden text-text-primary`}>
             {/* 왼쪽 상태 색상 바 */}
             <div className={`absolute left-0 top-0 bottom-0 w-1 ${
               insights.recommendation.type === "hold" ? "bg-emerald-500"
@@ -673,7 +673,7 @@ export default function DashboardPage() {
         )}
 
         {/* 카드 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-text-primary">
 
           {/* 🌧️ 날씨 영향 (판매량 예측) */}
           {weatherImpact?.todayForecast && (() => {
