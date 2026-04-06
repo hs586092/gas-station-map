@@ -372,7 +372,11 @@ export default function DashboardPage() {
     currentSituation: { pendingReaction: boolean; message: string; urgency: "high" | "medium" | "low" | "none" };
     competitorSpeed: Array<{ name: string; avgDaysToReact: number | null; rank: number }>;
     dataStatus: { totalEvents: number; isReliable: boolean };
-    timingImpact: { optimalDays: number | null } | null;
+    timingImpact: {
+      earlyResponse: { avgSalesChange: number; count: number };
+      lateResponse: { avgSalesChange: number; count: number };
+      optimalDays: number | null;
+    } | null;
   } | null>(null);
 
   const [loading, setLoading] = useState({
@@ -627,9 +631,12 @@ export default function DashboardPage() {
                         const barWidth = Math.max(Math.abs(diff) / maxDiff * 45, 2);
                         return (
                           <div key={c.id} className="flex items-center gap-2 h-6">
-                            <div className="flex items-center gap-1 w-[80px] shrink-0 min-w-0">
+                            <div className="flex items-center gap-1 w-[110px] shrink-0 min-w-0">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
                               <span className="text-[11px] text-text-primary truncate">{c.name}</span>
+                              {(() => { const prof = insights?.competitorProfiles.find(p => p.id === c.id); return prof && prof.type !== "unknown" ? (
+                                <span className={`text-[8px] font-bold px-1 py-0 rounded-full shrink-0 ${prof.type === "leader" ? "bg-red-100 text-red-600" : prof.type === "follower" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500"}`}>{prof.typeLabel}</span>
+                              ) : null; })()}
                             </div>
                             <div className="flex-1 flex items-center">
                               {/* 0 기준선 중앙 배치 */}
@@ -668,6 +675,16 @@ export default function DashboardPage() {
                   {insights.competitorPattern.fastestResponder && (
                     <><br />가격 변경 가장 잦은 곳: {insights.competitorPattern.fastestResponder.name} ({insights.competitorPattern.fastestResponder.changeCount}회/18일)</>
                   )}
+                  {(() => {
+                    const movedLeaders = changes.changes.filter(ch => {
+                      const prof = insights!.competitorProfiles.find(p => p.id === ch.id);
+                      return prof?.type === "leader" && (ch.gasoline_diff ?? 0) !== 0;
+                    });
+                    const followerCount = insights!.competitorProfiles.filter(p => p.type === "follower").length;
+                    return movedLeaders.length > 0 && followerCount > 0 ? (
+                      <><br />→ 선제형 {movedLeaders.map(l => l.name).join(", ")} 변동 · 추종형 {followerCount}곳 1~2일 내 반응 예상</>
+                    ) : null;
+                  })()}
                 </InsightBadge>
               )}
             </ClickableCard>
@@ -681,13 +698,16 @@ export default function DashboardPage() {
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="업데이트" />
               </div>
               <div className="space-y-3">
-                {competitors.baseStation.gasoline_price && competitors.stats.my_gasoline_rank && (
+                {competitors.baseStation.gasoline_price && competitors.stats.my_gasoline_rank && (() => {
+                  const cheapestGas = Math.min(...competitors.competitors.map(c => c.gasoline_price).filter((p): p is number => p != null && p > 0));
+                  const gapToFirst = competitors.baseStation.gasoline_price! - cheapestGas;
+                  return (
                   <div>
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-[12px] text-text-secondary">휘발유</span>
                         <div className="text-[22px] font-extrabold text-text-primary tnum tracking-tight">
-                          {competitors.baseStation.gasoline_price.toLocaleString()}
+                          {competitors.baseStation.gasoline_price!.toLocaleString()}
                           <span className="text-[14px] font-normal text-text-secondary ml-0.5">원</span>
                         </div>
                       </div>
@@ -698,8 +718,12 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <RankGauge rank={competitors.stats.my_gasoline_rank} total={competitors.stats.total_count} label="휘발유" />
+                    {gapToFirst > 0 && competitors.stats.my_gasoline_rank > 1 && (
+                      <div className="text-[12px] font-semibold text-blue-600 mt-0.5 text-center">1위까지 -{gapToFirst}원</div>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
                 {competitors.baseStation.diesel_price && competitors.stats.my_diesel_rank && (
                   <div>
                     <div className="flex items-center justify-between">
@@ -822,6 +846,19 @@ export default function DashboardPage() {
                     <span className="text-[14px] text-text-tertiary">데이터 축적 중</span>
                   )}
                 </div>
+                {salesAnalysis.summary.elasticity != null && salesAnalysis.events.length > 0 && (() => {
+                  const lastEvent = salesAnalysis.events[0];
+                  const pctPer10 = lastEvent.priceChange !== 0
+                    ? (lastEvent.volumeChangeRate / Math.abs(lastEvent.priceChange)) * 10
+                    : null;
+                  return pctPer10 != null ? (
+                    <div className="mt-1.5 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-text-secondary">
+                      10원 인상 시 예상 판매 변동: <span className={`font-bold ${pctPer10 <= 0 ? "text-red-500" : "text-emerald-600"}`}>
+                        {pctPer10 > 0 ? "+" : ""}{pctPer10.toFixed(1)}%
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </ClickableCard>
           )}
@@ -877,6 +914,15 @@ export default function DashboardPage() {
                         <span className="text-blue-500">{weather.tomorrow.precipProbMax}%</span>
                       )}
                     </span>
+                  </div>
+                )}
+                {weatherImpact?.todayForecast && (
+                  <div className={`mt-2 text-[12px] font-semibold ${
+                    weatherImpact.todayForecast.diffVsDryPct < -3 ? "text-red-500"
+                    : weatherImpact.todayForecast.diffVsDryPct > 3 ? "text-emerald-600"
+                    : "text-text-secondary"
+                  }`}>
+                    예상 판매 영향: {weatherImpact.todayForecast.diffVsDryPct > 0 ? "+" : ""}{weatherImpact.todayForecast.diffVsDryPct}% (맑은날 대비)
                   </div>
                 )}
                 {insight && (
@@ -1039,6 +1085,17 @@ export default function DashboardPage() {
                   {detail.oilReflection.message}
                 </span>
               </div>
+              {/* 타이밍 연결 */}
+              {timingAnalysis?.timingImpact?.optimalDays != null && timingAnalysis.currentSituation.pendingReaction && (
+                <div className={`rounded-lg px-3 py-2 mt-2 border text-[12px] ${
+                  timingAnalysis.currentSituation.urgency === "high" ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"
+                }`}>
+                  <span className={`font-bold ${timingAnalysis.currentSituation.urgency === "high" ? "text-red-700" : "text-amber-700"}`}>
+                    ⏱ 최적 반응 시점: {timingAnalysis.timingImpact.optimalDays}일 이내
+                  </span>
+                  {timingAnalysis.currentSituation.urgency === "high" && <span className="text-red-600 font-bold ml-1">· 긴급</span>}
+                </div>
+              )}
               {/* 유가→경쟁사→내 가격 연결 스토리 */}
               {insights?.oilStory && (
                 <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
@@ -1116,6 +1173,22 @@ export default function DashboardPage() {
                   최적 대응: 경쟁사 반응 후 <span className="font-bold text-text-primary">{timingAnalysis.timingImpact.optimalDays}일 이내</span>
                 </div>
               )}
+              {timingAnalysis.timingImpact?.earlyResponse && timingAnalysis.timingImpact?.lateResponse && (
+                <div className="mt-2 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 space-y-1">
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-text-secondary">빠른 반응 시 판매량</span>
+                    <span className={`font-bold ${timingAnalysis.timingImpact.earlyResponse.avgSalesChange >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {timingAnalysis.timingImpact.earlyResponse.avgSalesChange > 0 ? "+" : ""}{timingAnalysis.timingImpact.earlyResponse.avgSalesChange.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-text-secondary">느린 반응 시 판매량</span>
+                    <span className={`font-bold ${timingAnalysis.timingImpact.lateResponse.avgSalesChange >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {timingAnalysis.timingImpact.lateResponse.avgSalesChange > 0 ? "+" : ""}{timingAnalysis.timingImpact.lateResponse.avgSalesChange.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              )}
             </ClickableCard>
           )}
 
@@ -1139,6 +1212,12 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
                           <span className="text-[14px] text-text-primary truncate">{c.name}</span>
+                          {(() => { const prof = insights.competitorProfiles.find(p => p.id === c.id); return prof && prof.type !== "unknown" ? (
+                            <span className={`text-[8px] font-bold px-1 py-0 rounded-full shrink-0 ${prof.type === "leader" ? "bg-red-100 text-red-600" : prof.type === "follower" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500"}`}>{prof.typeLabel}</span>
+                          ) : null; })()}
+                          {(() => { const prof = insights.competitorProfiles.find(p => p.id === c.id); return c.correlation >= 0.7 && prof?.type === "leader" ? (
+                            <span className="text-[8px] font-bold text-red-600 bg-red-50 px-1 py-0 rounded-full">핵심 추적</span>
+                          ) : null; })()}
                         </div>
                         <span className="text-[14px] font-bold text-text-primary shrink-0 ml-2">{c.correlation.toFixed(2)}</span>
                       </div>
@@ -1161,7 +1240,7 @@ export default function DashboardPage() {
             <div className="md:col-span-2 lg:col-span-3"><CardSkeleton /></div>
           ) : priceHistory && priceHistory.history.length > 0 && (
             <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">내 가격 추이 (30일)</div>
                   <DataFreshness date={priceHistory.history[priceHistory.history.length - 1]?.date ?? null} label="최종" />
@@ -1175,6 +1254,26 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
+              {(() => {
+                const hist = priceHistory.history;
+                const recent14 = hist.slice(-14);
+                let chgCnt = 0, totalChg = 0;
+                for (let i = 1; i < recent14.length; i++) {
+                  const prev = recent14[i - 1].gasoline, curr = recent14[i].gasoline;
+                  if (prev && curr && prev !== curr) { chgCnt++; totalChg += Math.abs(curr - prev); }
+                }
+                const avgChg = chgCnt > 0 ? Math.round(totalChg / chgCnt) : 0;
+                const first = recent14[0]?.gasoline, last = recent14[recent14.length - 1]?.gasoline;
+                const trend = first && last ? (last > first ? "상승" : last < first ? "하락" : "보합") : null;
+                const trendIcon = trend === "상승" ? "↗" : trend === "하락" ? "↘" : "→";
+                const trendColor = trend === "상승" ? "text-red-500" : trend === "하락" ? "text-blue-500" : "text-slate-400";
+                return (
+                  <div className="text-[12px] text-text-secondary mb-2">
+                    최근 2주: 변경 {chgCnt}회{avgChg > 0 && <>, 평균 ±{avgChg}원</>}
+                    {trend && <span className={`font-bold ml-1.5 ${trendColor}`}>{trendIcon} {trend}</span>}
+                  </div>
+                );
+              })()}
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={priceHistory.history.map((h) => ({ ...h, date: h.date.slice(5) }))}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
@@ -1219,6 +1318,11 @@ export default function DashboardPage() {
                         <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tc.badge}`}>
                           {p.type === "leader" ? "선제형" : p.type === "follower" ? "추종형" : "안정형"}
                         </span>
+                        {(() => { const ch = changes?.changes.find(c => c.id === p.id); const diff = ch?.gasoline_diff ?? 0; return diff !== 0 ? (
+                          <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${diff > 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                            오늘 {diff > 0 ? "↑" : "↓"}{Math.abs(diff)}원
+                          </span>
+                        ) : null; })()}
                       </div>
                       <div className="text-[12px] text-text-secondary">
                         {p.changeCount}회 변경 · 평균 {p.avgChangeSize}원폭
