@@ -515,39 +515,106 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* AI 브리핑 결과 */}
+            {/* 핵심 팩터 태그 + 통합 판단 (항상 표시) */}
+            {(() => {
+              // ── 팩터 태그 수집 ──
+              const tags: Array<{ label: string; color: string }> = [];
+              // 경쟁사
+              const rising = insights.competitorPattern.risingCount;
+              const falling = insights.competitorPattern.fallingCount;
+              if (rising > 0) tags.push({ label: `경쟁사 ${rising}곳↑`, color: "bg-red-100 text-red-700" });
+              if (falling > 0) tags.push({ label: `경쟁사 ${falling}곳↓`, color: "bg-blue-100 text-blue-700" });
+              if (rising === 0 && falling === 0) tags.push({ label: "경쟁사 변동 없음", color: "bg-slate-100 text-slate-600" });
+              // 유가
+              const bc = oilPrices?.summary?.brentChange;
+              if (bc != null && Math.abs(bc) >= 0.5) {
+                tags.push({ label: `유가 ${bc > 0 ? "+" : ""}$${bc.toFixed(1)}`, color: bc > 0 ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700" });
+              }
+              // 날씨
+              if (weather?.today) {
+                const todayRainy = (weather.today.precipProbMax ?? 0) >= 60 || (weather.today.precipSum ?? 0) >= 1;
+                if (todayRainy) tags.push({ label: "비 예보", color: "bg-blue-100 text-blue-700" });
+                else tags.push({ label: weatherCodeLabel(weather.today.weatherCode).label, color: "bg-emerald-100 text-emerald-700" });
+              }
+              // 요일
+              const dowNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+              const nowKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+              tags.push({ label: dowNames[nowKST.getDay()], color: [0, 6].includes(nowKST.getDay()) ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600" });
+              // 판매 영향
+              if (weatherImpact?.todayForecast && Math.abs(weatherImpact.todayForecast.diffVsDryPct) >= 2) {
+                const d = weatherImpact.todayForecast.diffVsDryPct;
+                tags.push({ label: `수요 ${d > 0 ? "+" : ""}${d}%`, color: d < 0 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700" });
+              }
+              // 타이밍 긴급도
+              if (timingAnalysis?.currentSituation.urgency === "high") {
+                tags.push({ label: "반응 긴급", color: "bg-red-100 text-red-700" });
+              }
+
+              // ── 통합 판단 1줄 생성 ──
+              const parts: string[] = [];
+              if (rising > 0) parts.push(`경쟁사 ${rising}곳 인상 중`);
+              else if (falling > 0) parts.push(`경쟁사 ${falling}곳 인하 중`);
+              if (bc != null && Math.abs(bc) >= 1) parts.push(`유가 ${bc > 0 ? "상승" : "하락"}세`);
+              const todayRainy2 = weather?.today && ((weather.today.precipProbMax ?? 0) >= 60 || (weather.today.precipSum ?? 0) >= 1);
+              if (todayRainy2) parts.push("비 예보로 수요 감소 예상");
+              if (timingAnalysis?.currentSituation.urgency === "high") parts.push("유가 반영 시급");
+
+              const recType = insights.recommendation.type;
+              const actionMap = { hold: "현 가격 유지", raise: "인상 검토", lower: "인하 검토", watch: "관망 후 결정" };
+              const judgment = parts.length > 0
+                ? `${parts.join(" · ")} → ${actionMap[recType]}`
+                : actionMap[recType];
+
+              // 예상 판매량
+              const expectedVol = weatherImpact?.todayForecast?.expectedVolume;
+
+              return (
+                <>
+                  {/* 팩터 태그 */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {tags.map((t, i) => (
+                      <span key={i} className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${t.color}`}>{t.label}</span>
+                    ))}
+                  </div>
+                  {/* 통합 판단 */}
+                  <p className="text-[15px] font-semibold text-text-primary m-0 leading-relaxed">
+                    {judgment}
+                  </p>
+                  {expectedVol && (
+                    <p className="text-[12px] text-text-secondary m-0 mt-1">
+                      오늘 예상 판매량: {expectedVol.toLocaleString()}L
+                      {insights.recommendation.suggestedRange && (
+                        <span className="ml-2">· 추천 가격대: {insights.recommendation.suggestedRange.min.toLocaleString()}~{insights.recommendation.suggestedRange.max.toLocaleString()}원</span>
+                      )}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
+
+            {/* AI 브리핑 결과 (있으면 통합 판단 아래에) */}
             {aiBriefing?.aiBriefing && !aiBriefing.fallback ? (
-              <div className="text-[16px] text-text-primary m-0 leading-relaxed whitespace-pre-line">
-                {aiBriefing.aiBriefing}
-              </div>
-            ) : aiLoading ? (
-              <div>
-                <p className="text-[15px] font-semibold text-text-primary m-0 leading-relaxed">
-                  {insights.recommendation.message}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
-                  <p className="text-[14px] text-violet-600 m-0 italic">AI가 분석 중입니다...</p>
+              <div className="mt-3 rounded-lg bg-violet-50 border border-violet-100 px-4 py-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className="text-[10px] font-bold bg-violet-600 text-white px-1.5 py-0.5 rounded">AI</span>
+                  <span className="text-[11px] font-bold text-violet-700">심층 분석</span>
+                </div>
+                <div className="text-[13px] text-violet-900 leading-relaxed whitespace-pre-line">
+                  {aiBriefing.aiBriefing}
                 </div>
               </div>
-            ) : (
-              /* 기존 규칙 기반 */
-              <div>
-                <p className="text-[15px] font-semibold text-text-primary m-0 leading-relaxed">
-                  {insights.recommendation.message}
-                </p>
-                {insights.oilStory && (
-                  <p className="text-[12px] text-text-secondary m-0 mt-2 leading-relaxed">
-                    {insights.oilStory}
-                  </p>
-                )}
+            ) : aiLoading ? (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
+                <p className="text-[14px] text-violet-600 m-0 italic">AI가 분석 중입니다...</p>
               </div>
-            )}
-
-            {insights.weeklyTrend.message && (
-              <p className="text-[14px] text-text-tertiary m-0 mt-1.5">
-                {insights.weeklyTrend.message}
-              </p>
+            ) : (
+              /* oilStory (AI 없을 때 보조 설명) */
+              insights.oilStory ? (
+                <p className="text-[12px] text-text-tertiary m-0 mt-2 leading-relaxed">
+                  {insights.oilStory}
+                </p>
+              ) : null
             )}
 
             <div className="flex items-center justify-between mt-3">
