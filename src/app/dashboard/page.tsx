@@ -693,7 +693,10 @@ export default function DashboardPage() {
                   </span>
                   <span className="text-[14px] text-text-secondary">L 예상</span>
                   {(f as Record<string, unknown>).expectedCount != null && (
-                    <span className="text-[13px] text-text-tertiary ml-1">· {((f as Record<string, unknown>).expectedCount as number).toLocaleString()}대</span>
+                    <>
+                      <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none ml-3">{((f as Record<string, unknown>).expectedCount as number).toLocaleString()}</span>
+                      <span className="text-[14px] text-text-secondary">대</span>
+                    </>
                   )}
                 </div>
                 <div className="text-[12px] text-text-tertiary mb-3">{f.explanation}</div>
