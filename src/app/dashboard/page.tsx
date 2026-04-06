@@ -1069,143 +1069,6 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* ⑤ 국제유가 + 향후 전망 */}
-          {loading.oilPrices ? <CardSkeleton /> : oilPrices && (() => {
-            const oilTrend = oilPrices.summary?.brentChange;
-            const isOilUp = (oilTrend ?? 0) > 0;
-            const isOilDown = (oilTrend ?? 0) < 0;
-            const oilChartData = oilPrices.prices.map((p) => ({ ...p, date: p.date.slice(5) }));
-            // 2주 전~현재 구간의 날짜
-            const refStartDate = oilChartData[twoWeeksFromNowIdx]?.date;
-            const refEndDate = oilChartData[oilChartData.length - 1]?.date;
-            return (
-            <ClickableCard href="/dashboard/oil-prices" className={`rounded-2xl p-5 shadow-sm border border-border ${
-              "bg-surface-raised"
-            }`}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">국제유가 · 전망</div>
-                  {oilTrend != null && oilTrend !== 0 && (
-                    <span className={`text-[18px] font-extrabold ${isOilUp ? "text-red-500" : "text-blue-500"}`}>
-                      {isOilUp ? "↗" : "↘"}
-                    </span>
-                  )}
-                </div>
-                <DataFreshness date={oilPrices.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="최종 데이터" />
-              </div>
-              {oilPrices.summary && (
-                <div className="flex gap-3 mb-3 text-[14px]">
-                  <span className="text-text-primary font-medium">
-                    WTI <span className="font-bold">${oilPrices.summary.wti}</span>
-                    {oilPrices.summary.wtiChange != null && (
-                      <span className={oilPrices.summary.wtiChange >= 0 ? "text-coral ml-1" : "text-blue-600 ml-1"}>
-                        {oilPrices.summary.wtiChange >= 0 ? "▲" : "▼"}${Math.abs(oilPrices.summary.wtiChange).toFixed(1)}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-text-primary font-medium">
-                    Brent <span className="font-bold">${oilPrices.summary.brent}</span>
-                    {oilPrices.summary.brentChange != null && (
-                      <span className={oilPrices.summary.brentChange >= 0 ? "text-coral ml-1" : "text-blue-600 ml-1"}>
-                        {oilPrices.summary.brentChange >= 0 ? "▲" : "▼"}${Math.abs(oilPrices.summary.brentChange).toFixed(1)}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
-              <ResponsiveContainer width="100%" height={130}>
-                <LineChart data={oilChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} interval="preserveStartEnd" />
-                  <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickFormatter={(v) => `$${v}`} width={40} />
-                  <Tooltip
-                    formatter={(value, name) => [`$${value}`, name]}
-                    contentStyle={{ background: "#FFFFFF", border: "1px solid #E5E5E5", borderRadius: 6, fontSize: 12 }}
-                    labelStyle={{ color: "#1A1A1A" }}
-                    itemStyle={{ color: "#1A1A1A" }}
-                  />
-                  {refStartDate && refEndDate && (
-                    <ReferenceArea x1={refStartDate} x2={refEndDate} fill={isOilUp ? "#fecaca" : isOilDown ? "#bfdbfe" : "#e2e8f0"} fillOpacity={0.3} label={{ value: "반영 중", position: "insideTop", fontSize: 9, fill: "#94a3b8" }} />
-                  )}
-                  <Line type="monotone" dataKey="wti" stroke="#f97316" strokeWidth={1.5} dot={false} name="WTI" connectNulls />
-                  <Line type="monotone" dataKey="brent" stroke="#3b82f6" strokeWidth={1.5} dot={false} name="Brent" connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-              {/* 향후 전망 인사이트 */}
-              {insights?.oilWeekTrend.message && (
-                <InsightBadge color={
-                  insights.oilWeekTrend.trend === "rising" ? "red"
-                    : insights.oilWeekTrend.trend === "falling" ? "blue"
-                    : "slate"
-                }>
-                  {insights.oilWeekTrend.message}
-                  {insights.oilToRetailRatio && oilPrices?.summary?.brentChange != null && Math.abs(oilPrices.summary.brentChange) >= 1 && (() => {
-                    const r = insights.oilToRetailRatio!;
-                    const bc = oilPrices.summary!.brentChange!;
-                    const estMin = Math.round(bc * r.minWon);
-                    const estMax = Math.round(bc * r.maxWon);
-                    const [lo, hi] = estMin <= estMax ? [estMin, estMax] : [estMax, estMin];
-                    return (
-                      <><br />예상 소매가 영향: {lo > 0 ? "+" : ""}{lo}~{hi > 0 ? "+" : ""}{hi}원 (과거 {r.sampleCount}건 기반)</>
-                    );
-                  })()}
-                </InsightBadge>
-              )}
-            </ClickableCard>
-            );
-          })()}
-
-          {/* ④ 유가→경쟁사→내 가격 스토리 (wide) */}
-          {loading.detail ? (
-            <div className="md:col-span-2"><CardSkeleton /></div>
-          ) : detail?.oilReflection && (
-            <ClickableCard href="/dashboard/oil-reflection" className="md:col-span-2 bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">유가 반영 분석</div>
-                <DataFreshness date={oilPrices?.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="유가 데이터" />
-              </div>
-              {/* 3단계 프로그레스 */}
-              <OilReflectionProgress
-                direction={detail.oilReflection.direction}
-                brentChange={detail.oilReflection.brentChange}
-                priceChange={detail.oilReflection.priceChange}
-                competitorAction={insights?.competitorPattern.action ?? "stable"}
-              />
-              {/* 상태 메시지 */}
-              <div className={`rounded-lg px-4 py-2.5 mt-3 border ${
-                detail.oilReflection.direction === "up" ? "bg-red-50 border-red-100"
-                  : detail.oilReflection.direction === "down" ? "bg-blue-50 border-blue-100"
-                  : "bg-slate-50 border-slate-200"
-              }`}>
-                <span className={`text-[14px] font-semibold ${
-                  detail.oilReflection.direction === "up" ? "text-red-700"
-                    : detail.oilReflection.direction === "down" ? "text-blue-700"
-                    : "text-slate-700"
-                }`}>
-                  {detail.oilReflection.message}
-                </span>
-              </div>
-              {/* 타이밍 연결 */}
-              {timingAnalysis?.timingImpact?.optimalDays != null && timingAnalysis.currentSituation.pendingReaction && (
-                <div className={`rounded-lg px-3 py-2 mt-2 border text-[12px] ${
-                  timingAnalysis.currentSituation.urgency === "high" ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"
-                }`}>
-                  <span className={`font-bold ${timingAnalysis.currentSituation.urgency === "high" ? "text-red-700" : "text-amber-700"}`}>
-                    ⏱ 최적 반응 시점: {timingAnalysis.timingImpact.optimalDays}일 이내
-                  </span>
-                  {timingAnalysis.currentSituation.urgency === "high" && <span className="text-red-600 font-bold ml-1">· 긴급</span>}
-                </div>
-              )}
-              {/* 유가→경쟁사→내 가격 연결 스토리 */}
-              {insights?.oilStory && (
-                <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
-                  <div className="text-[14px] font-medium text-text-secondary mb-1">흐름 분석</div>
-                  <div className="text-[12px] text-text-primary leading-relaxed">{insights.oilStory}</div>
-                </div>
-              )}
-            </ClickableCard>
-          )}
-
           {/* ⑨ 타이밍 분석 */}
           {loading.timingAnalysis ? <CardSkeleton /> : timingAnalysis && (
             <ClickableCard href="/dashboard/timing-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -1519,6 +1382,135 @@ export default function DashboardPage() {
               </div>
             );
           })()}
+
+          {/* ⑤ 국제유가 + 향후 전망 */}
+          {loading.oilPrices ? <CardSkeleton /> : oilPrices && (() => {
+            const oilTrend = oilPrices.summary?.brentChange;
+            const isOilUp = (oilTrend ?? 0) > 0;
+            const isOilDown = (oilTrend ?? 0) < 0;
+            const oilChartData = oilPrices.prices.map((p) => ({ ...p, date: p.date.slice(5) }));
+            const refStartDate = oilChartData[twoWeeksFromNowIdx]?.date;
+            const refEndDate = oilChartData[oilChartData.length - 1]?.date;
+            return (
+            <ClickableCard href="/dashboard/oil-prices" className="rounded-2xl p-5 shadow-sm border border-border bg-surface-raised">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">국제유가 · 전망</div>
+                  {oilTrend != null && oilTrend !== 0 && (
+                    <span className={`text-[18px] font-extrabold ${isOilUp ? "text-red-500" : "text-blue-500"}`}>
+                      {isOilUp ? "↗" : "↘"}
+                    </span>
+                  )}
+                </div>
+                <DataFreshness date={oilPrices.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="최종 데이터" />
+              </div>
+              {oilPrices.summary && (
+                <div className="flex gap-3 mb-3 text-[14px]">
+                  <span className="text-text-primary font-medium">
+                    WTI <span className="font-bold">${oilPrices.summary.wti}</span>
+                    {oilPrices.summary.wtiChange != null && (
+                      <span className={oilPrices.summary.wtiChange >= 0 ? "text-coral ml-1" : "text-blue-600 ml-1"}>
+                        {oilPrices.summary.wtiChange >= 0 ? "▲" : "▼"}${Math.abs(oilPrices.summary.wtiChange).toFixed(1)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-text-primary font-medium">
+                    Brent <span className="font-bold">${oilPrices.summary.brent}</span>
+                    {oilPrices.summary.brentChange != null && (
+                      <span className={oilPrices.summary.brentChange >= 0 ? "text-coral ml-1" : "text-blue-600 ml-1"}>
+                        {oilPrices.summary.brentChange >= 0 ? "▲" : "▼"}${Math.abs(oilPrices.summary.brentChange).toFixed(1)}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+              <ResponsiveContainer width="100%" height={130}>
+                <LineChart data={oilChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#9CA3AF" }} interval="preserveStartEnd" />
+                  <YAxis domain={["dataMin - 3", "dataMax + 3"]} tick={{ fontSize: 9, fill: "#9CA3AF" }} tickFormatter={(v) => `$${v}`} width={40} />
+                  <Tooltip
+                    formatter={(value, name) => [`$${value}`, name]}
+                    contentStyle={{ background: "#FFFFFF", border: "1px solid #E5E5E5", borderRadius: 6, fontSize: 12 }}
+                    labelStyle={{ color: "#1A1A1A" }}
+                    itemStyle={{ color: "#1A1A1A" }}
+                  />
+                  {refStartDate && refEndDate && (
+                    <ReferenceArea x1={refStartDate} x2={refEndDate} fill={isOilUp ? "#fecaca" : isOilDown ? "#bfdbfe" : "#e2e8f0"} fillOpacity={0.3} label={{ value: "반영 중", position: "insideTop", fontSize: 9, fill: "#94a3b8" }} />
+                  )}
+                  <Line type="monotone" dataKey="wti" stroke="#f97316" strokeWidth={1.5} dot={false} name="WTI" connectNulls />
+                  <Line type="monotone" dataKey="brent" stroke="#3b82f6" strokeWidth={1.5} dot={false} name="Brent" connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+              {insights?.oilWeekTrend.message && (
+                <InsightBadge color={
+                  insights.oilWeekTrend.trend === "rising" ? "red"
+                    : insights.oilWeekTrend.trend === "falling" ? "blue"
+                    : "slate"
+                }>
+                  {insights.oilWeekTrend.message}
+                  {insights.oilToRetailRatio && oilPrices?.summary?.brentChange != null && Math.abs(oilPrices.summary.brentChange) >= 1 && (() => {
+                    const r = insights.oilToRetailRatio!;
+                    const bc = oilPrices.summary!.brentChange!;
+                    const estMin = Math.round(bc * r.minWon);
+                    const estMax = Math.round(bc * r.maxWon);
+                    const [lo, hi] = estMin <= estMax ? [estMin, estMax] : [estMax, estMin];
+                    return (
+                      <><br />예상 소매가 영향: {lo > 0 ? "+" : ""}{lo}~{hi > 0 ? "+" : ""}{hi}원 (과거 {r.sampleCount}건 기반)</>
+                    );
+                  })()}
+                </InsightBadge>
+              )}
+            </ClickableCard>
+            );
+          })()}
+
+          {/* ④ 유가 반영 분석 (wide) */}
+          {loading.detail ? (
+            <div className="md:col-span-2"><CardSkeleton /></div>
+          ) : detail?.oilReflection && (
+            <ClickableCard href="/dashboard/oil-reflection" className="md:col-span-2 bg-surface-raised rounded-xl p-5 border border-border">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">유가 반영 분석</div>
+                <DataFreshness date={oilPrices?.prices?.[oilPrices.prices.length - 1]?.date ?? null} label="유가 데이터" />
+              </div>
+              <OilReflectionProgress
+                direction={detail.oilReflection.direction}
+                brentChange={detail.oilReflection.brentChange}
+                priceChange={detail.oilReflection.priceChange}
+                competitorAction={insights?.competitorPattern.action ?? "stable"}
+              />
+              <div className={`rounded-lg px-4 py-2.5 mt-3 border ${
+                detail.oilReflection.direction === "up" ? "bg-red-50 border-red-100"
+                  : detail.oilReflection.direction === "down" ? "bg-blue-50 border-blue-100"
+                  : "bg-slate-50 border-slate-200"
+              }`}>
+                <span className={`text-[14px] font-semibold ${
+                  detail.oilReflection.direction === "up" ? "text-red-700"
+                    : detail.oilReflection.direction === "down" ? "text-blue-700"
+                    : "text-slate-700"
+                }`}>
+                  {detail.oilReflection.message}
+                </span>
+              </div>
+              {timingAnalysis?.timingImpact?.optimalDays != null && timingAnalysis.currentSituation.pendingReaction && (
+                <div className={`rounded-lg px-3 py-2 mt-2 border text-[12px] ${
+                  timingAnalysis.currentSituation.urgency === "high" ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"
+                }`}>
+                  <span className={`font-bold ${timingAnalysis.currentSituation.urgency === "high" ? "text-red-700" : "text-amber-700"}`}>
+                    ⏱ 최적 반응 시점: {timingAnalysis.timingImpact.optimalDays}일 이내
+                  </span>
+                  {timingAnalysis.currentSituation.urgency === "high" && <span className="text-red-600 font-bold ml-1">· 긴급</span>}
+                </div>
+              )}
+              {insights?.oilStory && (
+                <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+                  <div className="text-[14px] font-medium text-text-secondary mb-1">흐름 분석</div>
+                  <div className="text-[12px] text-text-primary leading-relaxed">{insights.oilStory}</div>
+                </div>
+              )}
+            </ClickableCard>
+          )}
 
           {/* ⑥ EV 충전소 요약 (장기 전략 — 최하단) */}
           {loading.detail ? <CardSkeleton /> : detail?.evNearby && detail.evNearby.stations > 0 && (() => {
