@@ -1206,39 +1206,6 @@ export default function DashboardPage() {
             </ClickableCard>
           )}
 
-          {/* ⑥ EV 충전소 요약 */}
-          {loading.detail ? <CardSkeleton /> : detail?.evNearby && detail.evNearby.stations > 0 && (() => {
-            const fs = detail.evNearby.fastStations;
-            const threat = fs <= 5
-              ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-50 border border-emerald-100", signal: "🟢", barColor: "bg-emerald-500" }
-              : fs <= 20
-                ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50 border border-amber-100", signal: "🟡", barColor: "bg-amber-500" }
-                : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50 border border-red-100", signal: "🔴", barColor: "bg-red-500" };
-            return (
-              <ClickableCard href="/dashboard/ev-threat" className="bg-surface-raised rounded-xl p-5 border border-border relative overflow-hidden">
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${threat.barColor}`} />
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[18px]">{threat.signal}</span>
-                    <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">EV 충전소 현황</div>
-                  </div>
-                  <DataFreshness date={todayKST()} label="기준" />
-                </div>
-                <div className={`rounded-xl px-4 py-3 ${threat.bg}`}>
-                  <div className={`text-[14px] font-bold ${threat.color} mb-2`}>{threat.label}</div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[22px] font-extrabold text-text-primary tnum tracking-tight">{fs}</span>
-                    <span className="text-[12px] font-semibold text-text-secondary">급속 충전소</span>
-                    <span className="text-[14px] text-text-secondary">(충전기 {detail.evNearby.fast}대)</span>
-                  </div>
-                  <div className="text-[14px] text-text-secondary mt-1">
-                    완속 {detail.evNearby.stations - fs}개소 · 반경 3km
-                  </div>
-                </div>
-              </ClickableCard>
-            );
-          })()}
-
           {/* ⑨ 타이밍 분석 */}
           {loading.timingAnalysis ? <CardSkeleton /> : timingAnalysis && (
             <ClickableCard href="/dashboard/timing-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -1550,6 +1517,39 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
+            );
+          })()}
+
+          {/* ⑥ EV 충전소 요약 (장기 전략 — 최하단) */}
+          {loading.detail ? <CardSkeleton /> : detail?.evNearby && detail.evNearby.stations > 0 && (() => {
+            const fs = detail.evNearby.fastStations;
+            const threat = fs <= 5
+              ? { label: "EV 전환 영향 적음", color: "text-emerald-600", bg: "bg-emerald-50 border border-emerald-100", signal: "🟢", barColor: "bg-emerald-500" }
+              : fs <= 20
+                ? { label: "EV 인프라 확대 중", color: "text-amber-600", bg: "bg-amber-50 border border-amber-100", signal: "🟡", barColor: "bg-amber-500" }
+                : { label: "EV 충전 밀집 지역", color: "text-red-600", bg: "bg-red-50 border border-red-100", signal: "🔴", barColor: "bg-red-500" };
+            return (
+              <ClickableCard href="/dashboard/ev-threat" className="bg-surface-raised rounded-xl p-5 border border-border relative overflow-hidden">
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${threat.barColor}`} />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[18px]">{threat.signal}</span>
+                    <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">EV 충전소 현황</div>
+                  </div>
+                  <DataFreshness date={todayKST()} label="기준" />
+                </div>
+                <div className={`rounded-xl px-4 py-3 ${threat.bg}`}>
+                  <div className={`text-[14px] font-bold ${threat.color} mb-2`}>{threat.label}</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[22px] font-extrabold text-text-primary tnum tracking-tight">{fs}</span>
+                    <span className="text-[12px] font-semibold text-text-secondary">급속 충전소</span>
+                    <span className="text-[14px] text-text-secondary">(충전기 {detail.evNearby.fast}대)</span>
+                  </div>
+                  <div className="text-[14px] text-text-secondary mt-1">
+                    완속 {detail.evNearby.stations - fs}개소 · 반경 3km
+                  </div>
+                </div>
+              </ClickableCard>
             );
           })()}
 
