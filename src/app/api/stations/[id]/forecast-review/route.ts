@@ -95,6 +95,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const yesterdayStr = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
   const yesterdayFc = forecasts.find((f) => f.forecast_date === yesterdayStr);
 
+  type Cause = {
+    type: string;
+    icon: string;
+    message: string;
+    impactL: number;
+    impactPct: number;
+    primary?: boolean;
+  };
+
   let yesterday: {
     date: string;
     predicted: number;
@@ -104,7 +113,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     predictedCount: number | null;
     actualCount: number | null;
     countErrorPct: number | null;
-    causes: Array<{ type: string; icon: string; message: string }>;
+    causes: Cause[];
+    errorBreakdown: string | null;
   } | null = null;
 
   if (yesterdayFc) {
@@ -118,42 +128,157 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const countErrorPct = predictedCount != null && actualCount != null && predictedCount > 0
       ? +(((actualCount - predictedCount) / predictedCount) * 100).toFixed(1) : null;
 
-    // ── 5. 오차 원인 분석 ──
-    const causes: Array<{ type: string; icon: string; message: string }> = [];
+    // ── 5. 오차 요인 분해 ──
+    const causes: Cause[] = [];
+    const ydow = new Date(yesterdayStr + "T00:00:00+09:00").getDay();
+    const dowNames = ["일", "월", "화", "수", "목", "금", "토"];
 
-    // 5a. 내 가격 변동
+    // 5-pre. 요일별·날씨별 기준 데이터 (sales_data + weather_daily 교집합)
+    const allSalesRes = await supabase
+      .from("sales_data")
+      .select("date, gasoline_volume, diesel_volume")
+      .eq("station_id", id)
+      .not("gasoline_volume", "is", null)
+      .order("date", { ascending: true });
+
+    const allWeatherRes = await supabase
+      .from("weather_daily")
+      .select("date, precipitation_mm")
+      .order("date", { ascending: true });
+
+    const weatherByDate = new Map<string, number>();
+    for (const w of allWeatherRes.data ?? []) {
+      weatherByDate.set(w.date, Number(w.precipitation_mm) || 0);
+    }
+
+    type DayRow = { date: string; dow: number; vol: number; intensity: "dry" | "light" | "heavy" };
+    const allDays: DayRow[] = [];
+    for (const s of allSalesRes.data ?? []) {
+      const gVol = Number(s.gasoline_volume) || 0;
+      const dVol = Number(s.diesel_volume) || 0;
+      if (gVol === 0 && dVol === 0) continue;
+      const precip = weatherByDate.get(s.date);
+      const intensity: DayRow["intensity"] =
+        precip == null || precip < 1 ? "dry" : precip < 5 ? "light" : "heavy";
+      allDays.push({
+        date: s.date,
+        dow: new Date(s.date + "T00:00:00+09:00").getDay(),
+        vol: gVol + dVol,
+        intensity,
+      });
+    }
+
+    const mean = (arr: number[]) => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
+    const overallMean = mean(allDays.map((d) => d.vol));
+
+    // 요일별 평균
+    const dowMeans: Record<number, number> = {};
+    for (let d = 0; d < 7; d++) {
+      const arr = allDays.filter((r) => r.dow === d).map((r) => r.vol);
+      dowMeans[d] = arr.length > 0 ? mean(arr) : overallMean;
+    }
+
+    // 날씨 강도별 잔차 평균 (요일 효과 제거 후)
+    const weatherResid: Record<string, number> = {};
+    for (const key of ["dry", "light", "heavy"] as const) {
+      const arr = allDays.filter((r) => r.intensity === key);
+      weatherResid[key] = arr.length > 0 ? mean(arr.map((r) => r.vol - dowMeans[r.dow])) : 0;
+    }
+
+    // 5a. 요일 효과 (해당 요일 평균 vs 전체 평균)
+    const dowEffect = dowMeans[ydow] - overallMean;
+    const sameDowDays = allDays.filter((r) => r.dow === ydow).map((r) => r.vol);
+    const sameDowMean = mean(sameDowDays);
+    const dowDiffVsActual = actual != null ? actual - sameDowMean : null;
+    {
+      const pct = overallMean > 0 ? +((dowEffect / overallMean) * 100).toFixed(1) : 0;
+      const direction = dowEffect >= 0 ? "많은" : "적은";
+      let msg = `${dowNames[ydow]}요일 평균 ${Math.round(sameDowMean).toLocaleString()}L (전체 대비 ${pct >= 0 ? "+" : ""}${pct}%)`;
+      if (dowDiffVsActual != null) {
+        const vsDir = dowDiffVsActual >= 0 ? "많았음" : "적었음";
+        msg += ` · 실제는 평소 ${dowNames[ydow]}요일보다 ${Math.abs(Math.round(dowDiffVsActual)).toLocaleString()}L ${vsDir}`;
+      }
+      causes.push({
+        type: "weekday",
+        icon: "📅",
+        message: msg,
+        impactL: Math.round(dowEffect),
+        impactPct: pct,
+      });
+    }
+
+    // 5b. 날씨 효과
     const dayBefore = new Date(Date.now() - 2 * 86400000).toISOString().split("T")[0];
+    const { data: actualWeather } = await supabase
+      .from("weather_daily")
+      .select("precipitation_mm, temp_max, temp_min")
+      .eq("date", yesterdayStr)
+      .single();
+
+    const labels: Record<string, string> = { dry: "맑음", light: "약한 비", heavy: "본격 비" };
+    if (actualWeather) {
+      const actualPrecip = Number(actualWeather.precipitation_mm) || 0;
+      const actualIntensity: string =
+        actualPrecip < 1 ? "dry" : actualPrecip < 5 ? "light" : "heavy";
+      const weatherImpact = weatherResid[actualIntensity] ?? 0;
+      const pct = overallMean > 0 ? +((weatherImpact / overallMean) * 100).toFixed(1) : 0;
+
+      let msg = `실제 날씨: ${labels[actualIntensity]}`;
+      if (yesterdayFc.weather_intensity && actualIntensity !== yesterdayFc.weather_intensity) {
+        msg += ` (예보는 ${labels[yesterdayFc.weather_intensity]})`;
+      }
+      if (Math.abs(pct) >= 0.5) {
+        msg += ` → 판매 ${pct >= 0 ? "+" : ""}${pct}% 영향`;
+      }
+
+      causes.push({
+        type: "weather",
+        icon: "🌦️",
+        message: msg,
+        impactL: Math.round(weatherImpact),
+        impactPct: pct,
+      });
+    }
+
+    // 5c. 내 가격 변동
     const { data: myPrices } = await supabase
       .from("price_history")
       .select("gasoline_price, collected_at")
       .eq("station_id", id)
-      .in("collected_at", [yesterdayStr, dayBefore])
+      .gte("collected_at", dayBefore)
+      .lte("collected_at", yesterdayStr + "T23:59:59")
       .not("gasoline_price", "is", null)
       .order("collected_at", { ascending: true });
 
-    // price_history의 collected_at이 YYYY-MM-DD 형태가 아닐 수 있으므로 날짜 부분만 비교
     const myPriceMap = new Map<string, number>();
     for (const p of myPrices ?? []) {
       myPriceMap.set(p.collected_at.slice(0, 10), p.gasoline_price);
     }
     const myYesterday = myPriceMap.get(yesterdayStr);
     const myDayBefore = myPriceMap.get(dayBefore);
+    let myPriceImpactL = 0;
     if (myYesterday && myDayBefore && myYesterday !== myDayBefore) {
       const diff = myYesterday - myDayBefore;
+      // 가격 탄력성: 10원 변동당 약 -2% (경험적 추정)
+      const elasticityPct = -(diff / 10) * 2;
+      myPriceImpactL = Math.round((elasticityPct / 100) * overallMean);
       causes.push({
         type: "my_price",
         icon: diff > 0 ? "🔴" : "🔵",
-        message: `내 가격 ${diff > 0 ? "+" : ""}${diff}원 변동 → ${diff > 0 ? "수요 감소" : "수요 증가"} 가능`,
+        message: `내 가격 ${diff > 0 ? "+" : ""}${diff}원 변동 → 추정 ${elasticityPct >= 0 ? "+" : ""}${elasticityPct.toFixed(1)}%`,
+        impactL: myPriceImpactL,
+        impactPct: +elasticityPct.toFixed(1),
       });
     }
 
-    // 5b. 경쟁사 가격 변동
+    // 5d. 경쟁사 가격 변동
     const { data: baseStation } = await supabase
       .from("stations")
       .select("lat, lng")
       .eq("id", id)
       .single();
 
+    let compImpactL = 0;
     if (baseStation) {
       const RADIUS = 5;
       const latD = RADIUS / 111;
@@ -167,7 +292,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         .lte("collected_at", yesterdayStr + "T23:59:59")
         .order("collected_at", { ascending: true });
 
-      // 경쟁사 5km 필터를 위해 stations 위치 조회
       const { data: nearbyStations } = await supabase
         .from("stations")
         .select("id, name, lat, lng")
@@ -184,7 +308,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
       const nearbyNameMap = new Map((nearbyStations ?? []).map((s) => [s.id, s.name]));
 
-      // 경쟁사별 어제 vs 그저께 가격 비교
       const compByStation = new Map<string, Map<string, number>>();
       for (const p of compPrices ?? []) {
         if (!nearbyIds.has(p.station_id)) continue;
@@ -201,55 +324,63 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
       }
 
-      // 가장 큰 변동 2개까지만
-      bigChanges.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
-      for (const c of bigChanges.slice(0, 2)) {
+      if (bigChanges.length > 0) {
+        bigChanges.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+        // 경쟁사 인하 → 내 고객 이탈 추정 (10원 인하당 약 -1.5%)
+        const topChanges = bigChanges.slice(0, 3);
+        const avgCompDiff = mean(topChanges.map((c) => c.diff));
+        const compElastPct = (avgCompDiff / 10) * 1.5;
+        compImpactL = Math.round((compElastPct / 100) * overallMean);
+        const names = topChanges.map((c) => `${c.name} ${c.diff > 0 ? "+" : ""}${c.diff}원`).join(", ");
         causes.push({
           type: "competitor_price",
-          icon: c.diff < 0 ? "🔴" : "🟡",
-          message: `${c.name} ${c.diff > 0 ? "+" : ""}${c.diff}원 변동${c.diff < 0 ? " → 고객 이탈 가능" : ""}`,
+          icon: avgCompDiff < 0 ? "🔴" : "🟡",
+          message: `경쟁사 변동: ${names} → 추정 ${compElastPct >= 0 ? "+" : ""}${compElastPct.toFixed(1)}%`,
+          impactL: compImpactL,
+          impactPct: +compElastPct.toFixed(1),
         });
       }
     }
 
-    // 5c. 날씨 예보 오차
-    const { data: actualWeather } = await supabase
-      .from("weather_daily")
-      .select("precipitation_mm, temp_max, temp_min")
-      .eq("date", yesterdayStr)
-      .single();
-
-    if (actualWeather && yesterdayFc.weather_intensity) {
-      const actualPrecip = Number(actualWeather.precipitation_mm) || 0;
-      const actualIntensity: string =
-        actualPrecip < 1 ? "dry" : actualPrecip < 5 ? "light" : "heavy";
-      if (actualIntensity !== yesterdayFc.weather_intensity) {
-        const labels: Record<string, string> = { dry: "맑음", light: "약한 비", heavy: "본격 비" };
+    // 5e. 잔차 (설명되지 않는 오차)
+    if (error != null) {
+      const explainedL = causes.reduce((sum, c) => sum + c.impactL, 0);
+      // 요일·날씨 효과는 예측에 이미 반영되어 있으므로, 잔차 = 실제 오차 - (가격 요인들)
+      const priceFactorsL = myPriceImpactL + compImpactL;
+      const residualL = error - priceFactorsL;
+      // 요일·날씨는 "설명 요인"으로 표시하되, 잔차는 가격 변동 외 나머지
+      const residualPct = predicted > 0 ? +((residualL / predicted) * 100).toFixed(1) : 0;
+      if (Math.abs(residualL) > 50) {
         causes.push({
-          type: "weather_error",
-          icon: "🌦️",
-          message: `날씨 예보 ${labels[yesterdayFc.weather_intensity]} → 실제 ${labels[actualIntensity]}`,
+          type: "residual",
+          icon: "❓",
+          message: `기타 요인 (교통·이벤트 등) ${residualL >= 0 ? "+" : ""}${Math.round(residualL).toLocaleString()}L`,
+          impactL: Math.round(residualL),
+          impactPct: residualPct,
         });
       }
     }
 
-    // 5d. 요일 특수성 (간단: 주말 여부만 체크)
-    const ydow = new Date(yesterdayStr + "T00:00:00+09:00").getDay();
-    if (ydow === 0 || ydow === 6) {
-      causes.push({
-        type: "weekend",
-        icon: "📅",
-        message: `주말 효과 (${ydow === 0 ? "일" : "토"}요일)`,
-      });
+    // 가장 큰 원인 표시 (impactL 절대값 기준)
+    if (causes.length > 0 && error != null && Math.abs(error) > 100) {
+      const sorted = [...causes].sort((a, b) => Math.abs(b.impactL) - Math.abs(a.impactL));
+      const primary = causes.find((c) => c === sorted[0]);
+      if (primary) primary.primary = true;
     }
 
-    // 5e. 원인 불명
-    if (causes.length === 0 && error != null && Math.abs(errorPct ?? 0) >= 5) {
-      causes.push({
-        type: "unknown",
-        icon: "❓",
-        message: "특정 원인 미감지 — 기타 외부 요인 추정",
-      });
+    // errorBreakdown 요약 문자열
+    let errorBreakdown: string | null = null;
+    if (error != null) {
+      const parts = causes
+        .filter((c) => Math.abs(c.impactL) >= 50)
+        .sort((a, b) => Math.abs(b.impactL) - Math.abs(a.impactL))
+        .map((c) => {
+          const label = { weekday: "요일", weather: "날씨", my_price: "내 가격", competitor_price: "경쟁사", residual: "기타" }[c.type] ?? c.type;
+          return `${label} ${c.impactL >= 0 ? "+" : ""}${c.impactL.toLocaleString()}L`;
+        });
+      if (parts.length > 0) {
+        errorBreakdown = `오차 ${error >= 0 ? "+" : ""}${Math.round(error).toLocaleString()}L 분해: ${parts.join(" / ")}`;
+      }
     }
 
     yesterday = {
@@ -262,6 +393,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       actualCount,
       countErrorPct,
       causes,
+      errorBreakdown,
     };
   }
 

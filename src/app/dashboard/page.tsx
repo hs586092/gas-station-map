@@ -390,7 +390,8 @@ export default function DashboardPage() {
       date: string; predicted: number; actual: number | null;
       error: number | null; errorPct: number | null;
       predictedCount: number | null; actualCount: number | null; countErrorPct: number | null;
-      causes: Array<{ type: string; icon: string; message: string }>;
+      causes: Array<{ type: string; icon: string; message: string; impactL: number; impactPct: number; primary?: boolean }>;
+      errorBreakdown: string | null;
     } | null;
     accuracy: {
       days7: { avgErrorPct: number; accuracy: number; count: number } | null;
@@ -821,14 +822,25 @@ export default function DashboardPage() {
                       </div>
                     )}
                     {y.causes.length > 0 && (
-                      <div className="space-y-1">
-                        <div className="text-[11px] font-bold text-text-tertiary">오차 원인</div>
+                      <div className="space-y-1.5">
+                        <div className="text-[11px] font-bold text-text-tertiary">오차 요인 분해</div>
                         {y.causes.map((c, i) => (
-                          <div key={i} className="text-[12px] text-text-secondary flex items-start gap-1.5">
-                            <span className="shrink-0">{c.icon}</span>
-                            <span>{c.message}</span>
+                          <div key={i} className={`text-[12px] flex items-start gap-1.5 rounded-md px-2 py-1 ${c.primary ? "bg-red-500/10 border border-red-500/20" : ""}`}>
+                            <span className="shrink-0">{c.primary ? "🔴" : c.icon}</span>
+                            <span className={`flex-1 ${c.primary ? "text-red-400 font-semibold" : "text-text-secondary"}`}>
+                              {c.primary && <span className="text-[10px] font-bold uppercase mr-1">가장 큰 원인</span>}
+                              {c.message}
+                            </span>
+                            <span className={`shrink-0 font-mono font-bold text-[11px] ${c.impactL >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                              {c.impactL >= 0 ? "+" : ""}{c.impactL.toLocaleString()}L
+                            </span>
                           </div>
                         ))}
+                        {y.errorBreakdown && (
+                          <div className="text-[11px] text-text-tertiary mt-1 pt-1.5 border-t border-border font-mono">
+                            {y.errorBreakdown}
+                          </div>
+                        )}
                       </div>
                     )}
                     {acc?.days7 && (
