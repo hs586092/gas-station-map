@@ -389,6 +389,7 @@ export default function DashboardPage() {
     yesterday: {
       date: string; predicted: number; actual: number | null;
       error: number | null; errorPct: number | null;
+      predictedCount: number | null; actualCount: number | null; countErrorPct: number | null;
       causes: Array<{ type: string; icon: string; message: string }>;
     } | null;
     accuracy: {
@@ -691,6 +692,9 @@ export default function DashboardPage() {
                     {f.expectedVolume.toLocaleString()}
                   </span>
                   <span className="text-[14px] text-text-secondary">L 예상</span>
+                  {(f as Record<string, unknown>).expectedCount != null && (
+                    <span className="text-[13px] text-text-tertiary ml-1">· {((f as Record<string, unknown>).expectedCount as number).toLocaleString()}대</span>
+                  )}
                 </div>
                 <div className="text-[12px] text-text-tertiary mb-3">{f.explanation}</div>
                 {rainy && weatherImpact.tTest && (
@@ -698,7 +702,10 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] text-text-secondary">본격 비 영향</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[14px] font-bold text-red-500">{rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%</span>
+                        <span className="text-[14px] font-bold text-red-500">판매 {rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%</span>
+                        {(rainy as Record<string, unknown>).adjustedCountDiffPct != null && (
+                          <span className="text-[14px] font-bold text-red-400">대수 {((rainy as Record<string, unknown>).adjustedCountDiffPct as number) >= 0 ? "+" : ""}{(rainy as Record<string, unknown>).adjustedCountDiffPct as number}%</span>
+                        )}
                         <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${weatherImpact.tTest.significant ? "bg-emerald/20 text-emerald" : "bg-slate-100 text-text-tertiary"}`}>{weatherImpact.tTest.label}</span>
                       </div>
                     </div>
@@ -748,6 +755,20 @@ export default function DashboardPage() {
                         </span>
                       )}
                     </div>
+                    {y.predictedCount != null && (
+                      <div className="flex items-center justify-between">
+                        <div className="text-[12px] text-text-secondary">
+                          예측 <span className="font-bold text-text-primary">{y.predictedCount.toLocaleString()}대</span>
+                          <span className="mx-1.5">→</span>
+                          실제 <span className="font-bold text-text-primary">{y.actualCount != null ? `${y.actualCount.toLocaleString()}대` : "대기 중"}</span>
+                        </div>
+                        {y.countErrorPct != null && (
+                          <span className={`text-[14px] font-bold ${Math.abs(y.countErrorPct) <= 5 ? "text-emerald-600" : Math.abs(y.countErrorPct) <= 15 ? "text-amber-500" : "text-red-500"}`}>
+                            {y.countErrorPct > 0 ? "+" : ""}{y.countErrorPct}%
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {y.causes.length > 0 && (
                       <div className="space-y-1">
                         <div className="text-[11px] font-bold text-text-tertiary">오차 원인</div>

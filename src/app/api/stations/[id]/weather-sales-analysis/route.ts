@@ -119,9 +119,11 @@ export async function GET(
 
   // ── 요일별 평균 (가법 모델의 요일 축) ──
   const dowMean: Record<number, number> = {};
+  const dowMeanCount: Record<number, number> = {};
   for (let dow = 0; dow < 7; dow++) {
-    const arr = joined.filter((d) => d.dow === dow).map((d) => d.totalVol);
-    dowMean[dow] = arr.length > 0 ? mean(arr) : baseline.volume;
+    const arr = joined.filter((d) => d.dow === dow);
+    dowMean[dow] = arr.length > 0 ? mean(arr.map((d) => d.totalVol)) : baseline.volume;
+    dowMeanCount[dow] = arr.length > 0 ? mean(arr.map((d) => d.totalCnt)) : baseline.count;
   }
 
   // ── [1] byIntensity: 강수강도 3단계 집계 ──
@@ -139,6 +141,8 @@ export async function GET(
     // 요일 효과 제거 후 잔차 평균
     const residuals = arr.map((d) => d.totalVol - dowMean[d.dow]);
     const adjustedMean = mean(residuals);
+    const countResiduals = arr.map((d) => d.totalCnt - dowMeanCount[d.dow]);
+    const adjustedCountMean = mean(countResiduals);
     return {
       key,
       label: intensityLabels[key],
@@ -151,6 +155,7 @@ export async function GET(
       perTxnDiffPct: baseline.perTxn > 0 ? +((ptMean - baseline.perTxn) / baseline.perTxn * 100).toFixed(1) : 0,
       // 요일 보정 순효과 (%)
       adjustedDiffPct: baseline.volume > 0 ? +(adjustedMean / baseline.volume * 100).toFixed(1) : 0,
+      adjustedCountDiffPct: baseline.count > 0 ? +(adjustedCountMean / baseline.count * 100).toFixed(1) : 0,
     };
   });
 
@@ -196,10 +201,14 @@ export async function GET(
   // expected(dow, intensity) = dowMean[dow] + weatherEffect[intensity]
   // weatherEffect[intensity] = mean(residual) where residual = v - dowMean[dow]
   const weatherEffectResid: Record<string, number> = {};
+  const weatherEffectResidCount: Record<string, number> = {};
   for (const key of intensityKeys) {
     const arr = joined.filter((d) => d.intensity === key);
     weatherEffectResid[key] = arr.length > 0
       ? mean(arr.map((d) => d.totalVol - dowMean[d.dow]))
+      : 0;
+    weatherEffectResidCount[key] = arr.length > 0
+      ? mean(arr.map((d) => d.totalCnt - dowMeanCount[d.dow]))
       : 0;
   }
   const additiveHeatmap = [];
@@ -271,6 +280,7 @@ export async function GET(
     intensity: "dry" | "light" | "heavy";
     intensityLabel: string;
     expectedVolume: number;
+    expectedCount: number;
     baselineForDow: number;
     diffVsDryPct: number;
     confidence: "high" | "medium" | "low";
@@ -289,6 +299,7 @@ export async function GET(
       const dow = new Date(todayDate + "T00:00:00+09:00").getDay();
 
       const expected = dowMean[dow] + weatherEffectResid[intensity];
+      const expectedCount = dowMeanCount[dow] + weatherEffectResidCount[intensity];
       const dryExpected = dowMean[dow] + weatherEffectResid.dry;
       const diffVsDry = dryExpected > 0 ? ((expected - dryExpected) / dryExpected) * 100 : 0;
 
@@ -309,6 +320,7 @@ export async function GET(
         intensity,
         intensityLabel: intensityLabels[intensity],
         expectedVolume: Math.round(expected),
+        expectedCount: Math.round(expectedCount),
         baselineForDow: Math.round(dowMean[dow]),
         diffVsDryPct: +diffVsDry.toFixed(1),
         confidence,
@@ -323,6 +335,7 @@ export async function GET(
             station_id: id,
             forecast_date: todayDate,
             predicted_volume: Math.round(expected),
+            predicted_count: Math.round(expectedCount),
             weather_intensity: intensity,
             day_of_week: dow,
             confidence,

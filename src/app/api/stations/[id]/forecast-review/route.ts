@@ -49,28 +49,43 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // ── 2. sales_data에서 같은 기간 실제값 가져오기 ──
   const { data: salesRows } = await supabase
     .from("sales_data")
-    .select("date, gasoline_volume, diesel_volume")
+    .select("date, gasoline_volume, diesel_volume, gasoline_count, diesel_count")
     .eq("station_id", id)
     .gte("date", thirtyAgo)
     .order("date", { ascending: false });
 
   const salesMap = new Map<string, number>();
+  const countMap = new Map<string, number>();
   for (const s of salesRows ?? []) {
     const vol = (Number(s.gasoline_volume) || 0) + (Number(s.diesel_volume) || 0);
+    const cnt = (Number(s.gasoline_count) || 0) + (Number(s.diesel_count) || 0);
     salesMap.set(s.date, vol);
+    countMap.set(s.date, cnt);
   }
 
-  // ── 3. forecast_history에 actual_volume 업데이트 (lazy) ──
+  // ── 3. forecast_history에 actual_volume + actual_count 업데이트 (lazy) ──
   for (const fc of forecasts) {
-    if (fc.actual_volume == null && salesMap.has(fc.forecast_date)) {
-      const actual = salesMap.get(fc.forecast_date)!;
-      fc.actual_volume = actual;
-      // fire-and-forget update
-      supabase
-        .from("forecast_history")
-        .update({ actual_volume: actual })
-        .eq("id", fc.id)
-        .then(() => {});
+    const needsUpdate = (fc.actual_volume == null && salesMap.has(fc.forecast_date))
+      || (fc.actual_count == null && countMap.has(fc.forecast_date));
+    if (needsUpdate) {
+      const updates: Record<string, number> = {};
+      if (fc.actual_volume == null && salesMap.has(fc.forecast_date)) {
+        const actual = salesMap.get(fc.forecast_date)!;
+        fc.actual_volume = actual;
+        updates.actual_volume = actual;
+      }
+      if (fc.actual_count == null && countMap.has(fc.forecast_date)) {
+        const actualCnt = countMap.get(fc.forecast_date)!;
+        fc.actual_count = actualCnt;
+        updates.actual_count = actualCnt;
+      }
+      if (Object.keys(updates).length > 0) {
+        supabase
+          .from("forecast_history")
+          .update(updates)
+          .eq("id", fc.id)
+          .then(() => {});
+      }
     }
   }
 
@@ -84,6 +99,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     actual: number | null;
     error: number | null;
     errorPct: number | null;
+    predictedCount: number | null;
+    actualCount: number | null;
+    countErrorPct: number | null;
     causes: Array<{ type: string; icon: string; message: string }>;
   } | null = null;
 
@@ -92,6 +110,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const predicted = Number(yesterdayFc.predicted_volume);
     const error = actual != null ? actual - predicted : null;
     const errorPct = actual != null && predicted > 0 ? +((error! / predicted) * 100).toFixed(1) : null;
+
+    const predictedCount = yesterdayFc.predicted_count != null ? Number(yesterdayFc.predicted_count) : null;
+    const actualCount = yesterdayFc.actual_count != null ? Number(yesterdayFc.actual_count) : null;
+    const countErrorPct = predictedCount != null && actualCount != null && predictedCount > 0
+      ? +(((actualCount - predictedCount) / predictedCount) * 100).toFixed(1) : null;
 
     // ── 5. 오차 원인 분석 ──
     const causes: Array<{ type: string; icon: string; message: string }> = [];
@@ -233,6 +256,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       actual,
       error,
       errorPct,
+      predictedCount,
+      actualCount,
+      countErrorPct,
       causes,
     };
   }
