@@ -141,6 +141,7 @@ interface Insights {
     correlation: number; label: string; insight: string;
   }>;
   recommendation: { message: string; type: "hold" | "raise" | "lower" | "watch"; suggestedRange: { min: number; max: number } | null };
+  oilToRetailRatio: { avgWonPerDollar: number; minWon: number; maxWon: number; sampleCount: number } | null;
 }
 
 // ─── KST(Asia/Seoul) 기준 YYYY-MM-DD ───
@@ -358,7 +359,11 @@ export default function DashboardPage() {
 
   const [salesAnalysis, setSalesAnalysis] = useState<{
     summary: { avg30d: { gasoline: number; diesel: number }; totalEvents: number; elasticity: number | null; elasticityLabel: string };
-    events: Array<{ date: string; priceChange: number; volumeChangeRate: number; recoveryRate: number | null }>;
+    events: Array<{ date: string; priceChange: number; volumeChangeRate: number; recoveryRate: number | null; elasticity: number | null; isWeekend: boolean }>;
+    splitElasticity: {
+      weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+      weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+    };
   } | null>(null);
 
   const [aiBriefing, setAiBriefing] = useState<{
@@ -791,6 +796,17 @@ export default function DashboardPage() {
               {insights?.benchmarkInsight && (
                 <InsightBadge color={insights.myPosition === "cheap" ? "blue" : insights.myPosition === "expensive" ? "red" : "emerald"}>
                   {insights.benchmarkInsight}
+                  {(() => {
+                    if (!salesAnalysis?.events.length || salesAnalysis.events.length < 2) return null;
+                    const validEvts = salesAnalysis.events.filter(e => e.priceChange !== 0);
+                    if (validEvts.length < 2) return null;
+                    let sumW = 0, sumWV = 0;
+                    for (const e of validEvts) { const w = Math.abs(e.priceChange); sumW += w; sumWV += e.volumeChangeRate * w; }
+                    const avgAbsChg = sumW / validEvts.length;
+                    const pctPer10 = +((sumWV / sumW / avgAbsChg) * -10).toFixed(1); // -10 = 10원 인하
+                    if (pctPer10 <= 0) return null;
+                    return <><br />10원 인하 시 예상 판매량 +{pctPer10}% (탄력성 기반)</>;
+                  })()}
                 </InsightBadge>
               )}
             </ClickableCard>
@@ -973,7 +989,14 @@ export default function DashboardPage() {
                   </div>
                 )}
                 <InsightBadge color={confColor as "emerald" | "amber" | "slate"}>
-                  신뢰도 {f.confidence === "high" ? "높음" : f.confidence === "medium" ? "중간" : "낮음"} · 클릭하면 다차원 분석
+                  {f.diffVsDryPct <= -5
+                    ? "수요 감소 예상 → 가격 변동 보류 권장. 인하 시 회복 어려움"
+                    : f.diffVsDryPct >= 5
+                    ? "수요 증가 예상 → 소폭 인상 기회. 경쟁사 대비 가격 여력 확인"
+                    : f.diffVsDryPct <= -2
+                    ? "소폭 수요 감소 예상 → 가격 유지하며 관망 권장"
+                    : "날씨 영향 미미 → 시장 상황 중심으로 판단"}
+                  <span className="text-text-tertiary ml-1">(신뢰도 {f.confidence === "high" ? "높음" : f.confidence === "medium" ? "중간" : "낮음"})</span>
                 </InsightBadge>
               </ClickableCard>
             );
@@ -1049,6 +1072,16 @@ export default function DashboardPage() {
                     : "slate"
                 }>
                   {insights.oilWeekTrend.message}
+                  {insights.oilToRetailRatio && oilPrices?.summary?.brentChange != null && Math.abs(oilPrices.summary.brentChange) >= 1 && (() => {
+                    const r = insights.oilToRetailRatio!;
+                    const bc = oilPrices.summary!.brentChange!;
+                    const estMin = Math.round(bc * r.minWon);
+                    const estMax = Math.round(bc * r.maxWon);
+                    const [lo, hi] = estMin <= estMax ? [estMin, estMax] : [estMax, estMin];
+                    return (
+                      <><br />예상 소매가 영향: {lo > 0 ? "+" : ""}{lo}~{hi > 0 ? "+" : ""}{hi}원 (과거 {r.sampleCount}건 기반)</>
+                    );
+                  })()}
                 </InsightBadge>
               )}
             </ClickableCard>
@@ -1345,19 +1378,74 @@ export default function DashboardPage() {
             const allPrices = [myGas, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
             const currentRank = allPrices.indexOf(myGas) + 1;
 
+            // 가중평균 탄력성 계산 (가격 변동폭으로 가중)
+            let weightedElasticity: number | null = null;
+            if (salesAnalysis && salesAnalysis.events.length >= 2) {
+              const validEvents = salesAnalysis.events.filter(e => e.priceChange !== 0);
+              if (validEvents.length >= 2) {
+                let sumWeightedVol = 0, sumWeight = 0;
+                for (const e of validEvents) {
+                  const weight = Math.abs(e.priceChange);
+                  sumWeightedVol += e.volumeChangeRate * weight;
+                  sumWeight += weight;
+                }
+                if (sumWeight > 0) {
+                  // volumeChangeRate per 가격변동원 → 10원 기준 환산
+                  weightedElasticity = (sumWeightedVol / sumWeight);
+                }
+              }
+            }
+
+            // 주중/주말 보정
+            const todayDow = new Date().toLocaleDateString("en-US", { timeZone: "Asia/Seoul", weekday: "short" });
+            const isWeekendNow = todayDow === "Sat" || todayDow === "Sun";
+            let dowElasticity = weightedElasticity;
+            if (salesAnalysis?.splitElasticity) {
+              const split = isWeekendNow ? salesAnalysis.splitElasticity.weekend : salesAnalysis.splitElasticity.weekday;
+              if (split.avgVolumeChangeRate != null && split.count >= 2) {
+                dowElasticity = split.avgVolumeChangeRate;
+              }
+            }
+
+            // 날씨 보정 계수
+            const weatherAdj = weatherImpact?.todayForecast?.diffVsDryPct ?? 0;
+
             const simulations = [10, 20, 30, -10, -20].map((delta) => {
               const simPrice = myGas + delta;
               const simPrices = [simPrice, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
               const simRank = simPrices.indexOf(simPrice) + 1;
-              return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank };
+              // 예상 판매 변동: (가중탄력성 / 실제평균변동원) × delta원 + 날씨보정
+              let salesImpact: number | null = null;
+              if (dowElasticity != null && salesAnalysis) {
+                const validEvents = salesAnalysis.events.filter(e => e.priceChange !== 0);
+                const avgAbsChange = validEvents.length > 0
+                  ? validEvents.reduce((s, e) => s + Math.abs(e.priceChange), 0) / validEvents.length
+                  : 10;
+                salesImpact = +(((dowElasticity / avgAbsChange) * delta) + weatherAdj).toFixed(1);
+              }
+              return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank, salesImpact };
             });
+
+            // 오늘 컨텍스트 라벨
+            const dowLabel = isWeekendNow ? "주말" : "주중";
+            const weatherLabel = weatherImpact?.todayForecast
+              ? (weatherImpact.todayForecast.intensity === "heavy" ? "비" : weatherImpact.todayForecast.intensity === "light" ? "약한 비" : "맑음")
+              : null;
+            const contextLabel = weatherLabel ? `${dowLabel} · ${weatherLabel}` : dowLabel;
 
             return (
               <div className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-1">가격 시뮬레이터</div>
-                <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위 변화 예측</div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">가격 시뮬레이터</div>
+                  {dowElasticity != null && (
+                    <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                      오늘 기준: {contextLabel}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위·판매량 변화 예측</div>
                 <div className="grid grid-cols-5 gap-2">
-                  {simulations.map(({ delta, simPrice, simRank, total, rankChange }) => {
+                  {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
                     const isUp = delta > 0;
                     return (
                       <div key={delta} className={`rounded-lg p-3 text-center border ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
@@ -1376,10 +1464,24 @@ export default function DashboardPage() {
                         {rankChange === 0 && (
                           <div className="text-[12px] text-text-tertiary mt-0.5">변동 없음</div>
                         )}
+                        {salesImpact != null && (
+                          <div className={`text-[11px] font-bold mt-1 pt-1 border-t ${
+                            isUp ? "border-red-200" : "border-blue-200"
+                          } ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
+                            판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
+                {dowElasticity != null && (
+                  <div className="mt-2 text-[10px] text-text-tertiary">
+                    * 과거 가격변경 {salesAnalysis?.events.length ?? 0}건의 가중평균 탄력성 기반
+                    {salesAnalysis?.splitElasticity && isWeekendNow !== undefined && ` · ${dowLabel} 보정`}
+                    {weatherAdj !== 0 && ` · 날씨 영향 ${weatherAdj > 0 ? "+" : ""}${weatherAdj}% 반영`}
+                  </div>
+                )}
               </div>
             );
           })()}

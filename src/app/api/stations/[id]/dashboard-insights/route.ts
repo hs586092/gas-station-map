@@ -345,6 +345,55 @@ export async function GET(
     }
   }
 
+  // ── 8.5. 유가→소매가 반영 비율 (과거 90일 기반) ──
+  let oilToRetailRatio: { avgWonPerDollar: number; minWon: number; maxWon: number; sampleCount: number } | null = null;
+  {
+    const ninetyAgo = new Date(Date.now() - 90 * 86400000).toISOString().split("T")[0];
+    const { data: oilHist90 } = await supabase
+      .from("oil_prices").select("date, brent").not("brent", "is", null)
+      .gte("date", ninetyAgo).order("date", { ascending: true });
+    const { data: myHist90 } = await supabase
+      .from("price_history").select("gasoline_price, collected_at")
+      .eq("station_id", id).not("gasoline_price", "is", null)
+      .gte("collected_at", ninetyAgo).order("collected_at", { ascending: true });
+
+    if (oilHist90 && oilHist90.length >= 14 && myHist90 && myHist90.length >= 14) {
+      // 2주 윈도우로 슬라이딩하며 유가 변동 → 소매가 변동 비율 수집
+      const oilByDate = new Map<string, number>();
+      for (const o of oilHist90) oilByDate.set(o.date, o.brent);
+      const retailByDate = new Map<string, number>();
+      for (const r of myHist90) {
+        const d = r.collected_at.slice(0, 10);
+        retailByDate.set(d, r.gasoline_price);
+      }
+
+      const ratios: number[] = [];
+      const oilDates = oilHist90.map(o => o.date);
+      for (let i = 14; i < oilDates.length; i++) {
+        const dateNow = oilDates[i];
+        const date2wAgo = oilDates[i - 14];
+        const brentNow = oilByDate.get(dateNow);
+        const brent2w = oilByDate.get(date2wAgo);
+        const retailNow = retailByDate.get(dateNow);
+        const retail2w = retailByDate.get(date2wAgo);
+        if (brentNow && brent2w && retailNow && retail2w) {
+          const oilDelta = brentNow - brent2w;
+          if (Math.abs(oilDelta) >= 1) { // 최소 $1 변동 시만 유효
+            const retailDelta = retailNow - retail2w;
+            ratios.push(retailDelta / oilDelta);
+          }
+        }
+      }
+      if (ratios.length >= 3) {
+        const avg = Math.round(ratios.reduce((a, b) => a + b, 0) / ratios.length);
+        const sorted = [...ratios].sort((a, b) => a - b);
+        const p25 = Math.round(sorted[Math.floor(sorted.length * 0.25)]);
+        const p75 = Math.round(sorted[Math.floor(sorted.length * 0.75)]);
+        oilToRetailRatio = { avgWonPerDollar: avg, minWon: p25, maxWon: p75, sampleCount: ratios.length };
+      }
+    }
+  }
+
   // ── 9. 내 포지션 판단 ──
   const allGasPrices = [base.gasoline_price, ...competitors.map((c) => c.gasoline_price)]
     .filter((p): p is number => p != null && p > 0);
@@ -719,6 +768,8 @@ export async function GET(
         type: recommendationType,
         suggestedRange,
       },
+      // 유가→소매가 반영 비율
+      oilToRetailRatio,
       // 브리핑 상세용 raw 데이터
       briefingFactors: {
         oil: {
