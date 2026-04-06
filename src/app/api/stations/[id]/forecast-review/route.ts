@@ -64,28 +64,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // ── 3. forecast_history에 actual_volume + actual_count 업데이트 (lazy) ──
+  // actual_volume이 0이거나 null인 경우 모두 재업데이트 (동기화 전에 0으로 기록된 케이스 보정)
   for (const fc of forecasts) {
-    const needsUpdate = (fc.actual_volume == null && salesMap.has(fc.forecast_date))
-      || (fc.actual_count == null && countMap.has(fc.forecast_date));
-    if (needsUpdate) {
+    if (!salesMap.has(fc.forecast_date)) continue;
+    const salesVol = salesMap.get(fc.forecast_date)!;
+    const salesCnt = countMap.get(fc.forecast_date) ?? 0;
+
+    const volMismatch = fc.actual_volume == null || (fc.actual_volume === 0 && salesVol > 0);
+    const cntMismatch = fc.actual_count == null || (fc.actual_count === 0 && salesCnt > 0);
+
+    if (volMismatch || cntMismatch) {
       const updates: Record<string, number> = {};
-      if (fc.actual_volume == null && salesMap.has(fc.forecast_date)) {
-        const actual = salesMap.get(fc.forecast_date)!;
-        fc.actual_volume = actual;
-        updates.actual_volume = actual;
+      if (volMismatch) {
+        fc.actual_volume = salesVol;
+        updates.actual_volume = salesVol;
       }
-      if (fc.actual_count == null && countMap.has(fc.forecast_date)) {
-        const actualCnt = countMap.get(fc.forecast_date)!;
-        fc.actual_count = actualCnt;
-        updates.actual_count = actualCnt;
+      if (cntMismatch) {
+        fc.actual_count = salesCnt;
+        updates.actual_count = salesCnt;
       }
-      if (Object.keys(updates).length > 0) {
-        supabase
-          .from("forecast_history")
-          .update(updates)
-          .eq("id", fc.id)
-          .then(() => {});
-      }
+      supabase
+        .from("forecast_history")
+        .update(updates)
+        .eq("id", fc.id)
+        .then(() => {});
     }
   }
 

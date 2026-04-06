@@ -6,11 +6,11 @@
 // ─── 설정 (여기만 수정하세요) ───────────────────────────────
 const CONFIG = {
   // Supabase 프로젝트 URL (예: https://xxxxxxxxxxxx.supabase.co)
-  SUPABASE_URL: "여기에_SUPABASE_URL_입력",
+  SUPABASE_URL: "https://jlbzbsqfindjzhvdfpvb.supabase.co",
 
   // Supabase service_role key (Settings → API → service_role 에서 복사)
   // ⚠️ anon key가 아닌 service_role key를 사용해야 합니다
-  SUPABASE_SERVICE_ROLE_KEY: "여기에_SERVICE_ROLE_KEY_입력",
+  SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsYnpic3FmaW5kanpodmRmcHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzUxNzQ5NCwiZXhwIjoyMDg5MDkzNDk0fQ.p-OBjhZBZYg6efW386Av7-ozeSNWbp4Rsh5jtSDp4Tc",
 
   // Google Sheets ID (URL의 /d/ 뒤 부분)
   SHEET_ID: "1a_SKw3E6-EqrYzQVFYTm2UXKdbHWAKUlrDuGLYEdqeA",
@@ -115,6 +115,10 @@ function readSheetData_() {
   var data = sheet.getDataRange().getValues();
   var rows = [];
 
+  // 오늘 자정(KST) — 미래 날짜 필터용
+  var today = new Date();
+  today.setHours(23, 59, 59, 999);
+
   // 1행: 카테고리, 2행: 컬럼명 → 데이터는 3행(index 2)부터
   for (var i = 2; i < data.length; i++) {
     var row = data[i];
@@ -137,7 +141,10 @@ function readSheetData_() {
       continue;
     }
 
-    // 판매량이 전부 비어있는 행 건너뛰기 (미래 날짜 등)
+    // 미래 날짜 건너뛰기 (오늘 이후)
+    if (date > today) continue;
+
+    // 판매량이 전부 비어있는 행 건너뛰기
     var gVol = parseNum_(row[1]);
     var dVol = parseNum_(row[4]);
     if (gVol === null && dVol === null) continue;
@@ -206,6 +213,26 @@ function upsertToSupabase_(payload) {
   if (code !== 200 && code !== 201) {
     Logger.log("Supabase 오류 (" + code + "): " + response.getContentText());
     throw new Error("Supabase upsert 실패: HTTP " + code);
+  }
+}
+
+// ─── 웹앱 엔드포인트 ────────────────────────────────────────
+
+/**
+ * 웹앱 배포 시 POST 요청으로 syncRecentSales를 트리거
+ * - 대시보드에서 '데이터 새로고침' 버튼을 통해 호출
+ * - Apps Script → 웹앱으로 배포 후 URL을 환경변수에 설정
+ */
+function doPost(e) {
+  try {
+    syncRecentSales();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, message: "동기화 완료" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
