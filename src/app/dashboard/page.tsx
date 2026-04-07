@@ -1028,11 +1028,11 @@ export default function DashboardPage() {
                         const barWidth = Math.max(Math.abs(diff) / maxDiff * 45, 2);
                         return (
                           <div key={c.id} className="flex items-center gap-2 h-6">
-                            <div className="flex items-center gap-1 w-[110px] shrink-0 min-w-0">
+                            <div className="flex items-center gap-1 w-[140px] shrink-0 min-w-0">
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
-                              <span className="text-[11px] text-text-primary truncate">{c.name}</span>
+                              <span className="text-[11px] text-text-primary truncate shrink-1 min-w-[40px]">{c.name}</span>
                               {(() => { const prof = insights?.competitorProfiles.find(p => p.id === c.id); return prof && prof.type !== "unknown" ? (
-                                <span className={`text-[8px] font-bold px-1 py-0 rounded-full shrink-0 ${prof.type === "leader" ? "bg-red-100 text-red-600" : prof.type === "follower" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500"}`}>{prof.typeLabel}</span>
+                                <span className={`text-[8px] font-bold px-1 py-0 rounded-full shrink-0 whitespace-nowrap ${prof.type === "leader" ? "bg-red-100 text-red-600" : prof.type === "follower" ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500"}`}>{prof.type === "leader" ? "선제" : prof.type === "follower" ? "추종" : "안정"}</span>
                               ) : null; })()}
                             </div>
                             <div className="flex-1 flex items-center">
