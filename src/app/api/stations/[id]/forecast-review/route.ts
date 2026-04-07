@@ -195,25 +195,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const dayBeforeDate = new Date(Date.now() - 2 * 86400000);
     const dayBefore = dayBeforeDate.toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 
-    // ── 5a. 요일 효과 ──
-    // 예측은 "해당 요일 평균"을 기반으로 하므로, 실제가 같은 요일 평균에서 얼마나 벗어났는지가 요일 오차
+    // ── 5a. 요일 효과 (참고 정보 — 예측에 이미 반영됨, 합산 대상 아님) ──
     const sameDowDays = allDays.filter((r) => r.dow === ydow).map((r) => r.vol);
     const sameDowMean = mean(sameDowDays);
-    // 요일 오차 = 실제 - 해당 요일 평균 (예측이 요일 평균 기반이므로 이 차이가 설명 안 되는 요일 내 변동)
-    const dowImpactL = actual != null ? actual - sameDowMean : 0;
+    const dowDiff = actual != null ? actual - sameDowMean : 0;
     {
-      const pct = sameDowMean > 0 ? +((dowImpactL / sameDowMean) * 100).toFixed(1) : 0;
+      const pct = sameDowMean > 0 ? +((dowDiff / sameDowMean) * 100).toFixed(1) : 0;
       let msg = `${dowNames[ydow]}요일 평균 ${Math.round(sameDowMean).toLocaleString()}L`;
       if (actual != null) {
-        const vsDir = dowImpactL >= 0 ? "많았음" : "적었음";
-        msg += ` · 실제는 평소보다 ${Math.abs(Math.round(dowImpactL)).toLocaleString()}L ${vsDir} (${pct >= 0 ? "+" : ""}${pct}%)`;
+        const vsDir = dowDiff >= 0 ? "많았음" : "적었음";
+        msg += ` · 실제는 평소보다 ${Math.abs(Math.round(dowDiff)).toLocaleString()}L ${vsDir} (${pct >= 0 ? "+" : ""}${pct}%)`;
       }
       causes.push({
         type: "weekday",
         icon: "📅",
         message: msg,
-        impactL: Math.round(dowImpactL),
-        impactPct: pct,
+        impactL: 0,   // 예측에 이미 반영 → 오차 분해 합산에서 제외
+        impactPct: 0,
       });
     }
 
@@ -310,15 +308,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const RADIUS = 5;
       const latD = RADIUS / 111;
       const lngD = RADIUS / 88;
-      const { data: compPrices } = await supabase
-        .from("price_history")
-        .select("station_id, station_name, gasoline_price, collected_at")
-        .neq("station_id", id)
-        .not("gasoline_price", "is", null)
-        .gte("collected_at", dayBefore)
-        .lte("collected_at", yesterdayStr + "T23:59:59")
-        .order("collected_at", { ascending: true });
 
+      // 먼저 5km 반경 경쟁사 목록 확보
       const { data: nearbyStations } = await supabase
         .from("stations")
         .select("id, name, lat, lng")
@@ -328,17 +319,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         .lte("lng", baseStation.lng + lngD)
         .neq("id", id);
 
-      const nearbyIds = new Set(
-        (nearbyStations ?? [])
-          .filter((s) => haversineKm(baseStation.lat, baseStation.lng, s.lat, s.lng) <= RADIUS)
-          .map((s) => s.id)
-      );
-      const nearbyNameMap = new Map((nearbyStations ?? []).map((s) => [s.id, s.name]));
+      const nearbyFiltered = (nearbyStations ?? [])
+        .filter((s) => haversineKm(baseStation.lat, baseStation.lng, s.lat, s.lng) <= RADIUS);
+      const nearbyIds = nearbyFiltered.map((s) => s.id);
+      const nearbyNameMap = new Map(nearbyFiltered.map((s) => [s.id, s.name]));
+
+      // 경쟁사 ID 목록으로 직접 필터 (전국 조회 방지)
+      const { data: compPrices } = nearbyIds.length > 0
+        ? await supabase
+            .from("price_history")
+            .select("station_id, gasoline_price, collected_at")
+            .in("station_id", nearbyIds)
+            .not("gasoline_price", "is", null)
+            .gte("collected_at", dayBefore)
+            .lte("collected_at", yesterdayStr + "T23:59:59")
+            .order("collected_at", { ascending: true })
+        : { data: [] as { station_id: string; gasoline_price: number; collected_at: string }[] };
 
       // 경쟁사별 어제 vs 그저께 가격 비교
       const compByStation = new Map<string, Map<string, number>>();
       for (const p of compPrices ?? []) {
-        if (!nearbyIds.has(p.station_id)) continue;
         if (!compByStation.has(p.station_id)) compByStation.set(p.station_id, new Map());
         compByStation.get(p.station_id)!.set(p.collected_at.slice(0, 10), p.gasoline_price);
       }
