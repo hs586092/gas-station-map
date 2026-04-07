@@ -400,10 +400,24 @@ export default function DashboardPage() {
     } | null;
   } | null>(null);
 
+  const [correlationMatrix, setCorrelationMatrix] = useState<{
+    dataRange: { totalDays: number };
+    variables: Array<{
+      id: string; label: string; group: string; color: string;
+      metric: string; r: number | null; etaSq: number | null;
+      p: number | null; n: number; significant: boolean; lowSample: boolean;
+    }>;
+    ranking: Array<{
+      id: string; label: string; absEffect: number; r: number;
+      metric: string; n: number; significant: boolean;
+    }>;
+  } | null>(null);
+
   const [loading, setLoading] = useState({
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
     salesAnalysis: true, timingAnalysis: true, forecastReview: true,
+    correlationMatrix: true,
   });
 
   const [syncing, setSyncing] = useState(false);
@@ -416,6 +430,7 @@ export default function DashboardPage() {
       competitors: true, changes: true, benchmark: true,
       detail: true, oilPrices: true, priceHistory: true, insights: true,
       salesAnalysis: true, timingAnalysis: true, forecastReview: true,
+      correlationMatrix: true,
     });
 
     fetch(`${base}/competitors`)
@@ -479,6 +494,14 @@ export default function DashboardPage() {
         setLoading((p) => ({ ...p, timingAnalysis: false }));
       })
       .catch(() => setLoading((p) => ({ ...p, timingAnalysis: false })));
+
+    fetch(`${base}/correlation-matrix`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.error) setCorrelationMatrix(d);
+        setLoading((p) => ({ ...p, correlationMatrix: false }));
+      })
+      .catch(() => setLoading((p) => ({ ...p, correlationMatrix: false })));
   };
 
   const handleSyncAndRefresh = async () => {
@@ -1646,6 +1669,156 @@ export default function DashboardPage() {
               )}
             </ClickableCard>
           )}
+
+          {/* ⑪ 상관관계 네트워크 */}
+          {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
+            const vars = correlationMatrix.variables.filter(v => v.id !== "sales");
+            const centerX = 140;
+            const centerY = 120;
+            const maxR = 90;
+
+            // 그룹별 각도 배분: weather(0~90), competitor(90~210), oil(210~270), time(270~360)
+            const groupAngles: Record<string, { start: number; end: number }> = {
+              weather: { start: -70, end: 20 },
+              competitor: { start: 40, end: 180 },
+              oil: { start: 200, end: 250 },
+              time: { start: 270, end: 320 },
+            };
+
+            const groupVars: Record<string, typeof vars> = {};
+            for (const v of vars) {
+              if (!groupVars[v.group]) groupVars[v.group] = [];
+              groupVars[v.group].push(v);
+            }
+
+            type NodePos = { x: number; y: number; v: typeof vars[0] };
+            const nodes: NodePos[] = [];
+
+            for (const [group, gVars] of Object.entries(groupVars)) {
+              const angle = groupAngles[group] || { start: 0, end: 360 };
+              const count = gVars.length;
+              for (let i = 0; i < count; i++) {
+                const v = gVars[i];
+                const absR = v.r != null ? Math.abs(v.r) : 0;
+                const dist = maxR * (1 - absR * 0.7); // 강할수록 가까이
+                const a = count === 1
+                  ? (angle.start + angle.end) / 2
+                  : angle.start + (angle.end - angle.start) * (i / (count - 1));
+                const rad = (a * Math.PI) / 180;
+                nodes.push({
+                  x: centerX + dist * Math.cos(rad),
+                  y: centerY + dist * Math.sin(rad),
+                  v,
+                });
+              }
+            }
+
+            const top3 = correlationMatrix.ranking.slice(0, 3);
+
+            return (
+              <ClickableCard href="/dashboard/correlations" className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">변수 상관관계</div>
+                  <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                    {correlationMatrix.dataRange.totalDays}일 기준
+                  </span>
+                </div>
+                <svg viewBox="0 0 280 240" className="w-full" style={{ maxHeight: 220 }}>
+                  {/* 엣지 */}
+                  {nodes.map((node) => {
+                    const r = node.v.r ?? 0;
+                    const absR = Math.abs(r);
+                    const strokeColor = node.v.metric === "eta_squared"
+                      ? "#A78BFA"
+                      : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
+                    const strokeWidth = Math.max(0.5, absR * 4);
+                    const dashArray = absR < 0.1 ? "3,3" : "none";
+                    return (
+                      <g key={`edge-${node.v.id}`}>
+                        <line
+                          x1={centerX} y1={centerY}
+                          x2={node.x} y2={node.y}
+                          stroke={strokeColor}
+                          strokeWidth={strokeWidth}
+                          strokeDasharray={dashArray}
+                          opacity={0.7}
+                        />
+                        {/* 상관계수 레이블 */}
+                        <text
+                          x={(centerX + node.x) / 2}
+                          y={(centerY + node.y) / 2 - 4}
+                          textAnchor="middle"
+                          fontSize="7"
+                          fill={strokeColor}
+                          fontWeight="bold"
+                        >
+                          {node.v.metric === "eta_squared"
+                            ? `η²=${node.v.etaSq?.toFixed(2)}`
+                            : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  {/* 중심 노드 */}
+                  <circle cx={centerX} cy={centerY} r={18} fill="#D4A843" opacity={0.9} />
+                  <text x={centerX} y={centerY + 1} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#fff" fontWeight="bold">판매량</text>
+                  {/* 변수 노드 */}
+                  {nodes.map((node) => {
+                    const absR = node.v.r != null ? Math.abs(node.v.r) : 0;
+                    const radius = Math.max(8, 6 + absR * 14);
+                    return (
+                      <g key={`node-${node.v.id}`}>
+                        <circle
+                          cx={node.x} cy={node.y} r={radius}
+                          fill={node.v.color} opacity={0.85}
+                          stroke={node.v.lowSample ? "#fbbf24" : "none"}
+                          strokeWidth={node.v.lowSample ? 1.5 : 0}
+                          strokeDasharray={node.v.lowSample ? "2,2" : "none"}
+                        />
+                        <text
+                          x={node.x} y={node.y + radius + 9}
+                          textAnchor="middle" fontSize="7" fill="#6B7280"
+                        >
+                          {node.v.label}
+                        </text>
+                        {node.v.lowSample && (
+                          <text x={node.x} y={node.y + radius + 17} textAnchor="middle" fontSize="6" fill="#f59e0b">
+                            n={node.v.n}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+                {/* 범례 */}
+                <div className="flex items-center gap-3 mt-1 mb-2 text-[10px] text-text-tertiary">
+                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-emerald-500 inline-block rounded" /> 양의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-500 inline-block rounded" /> 음의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-purple-400 inline-block rounded" /> 요일 효과</span>
+                </div>
+                {/* Top 3 영향 변수 */}
+                {top3.length > 0 && (
+                  <div className="pt-2 border-t border-border">
+                    <div className="text-[11px] text-text-tertiary mb-1">판매량 영향 Top 3</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                      {top3.map((item, i) => (
+                        <span key={item.id} className="text-[13px]">
+                          <span className="text-text-tertiary">{i + 1}.</span>{" "}
+                          <span className="font-bold text-text-primary">{item.label}</span>{" "}
+                          <span className={`font-bold ${item.r >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                            {item.metric === "eta_squared"
+                              ? `η²=${item.absEffect.toFixed(2)}`
+                              : `${item.r >= 0 ? "+" : ""}${item.r.toFixed(2)}`}
+                          </span>
+                          {!item.significant && <span className="text-[10px] text-amber-500 ml-0.5">*</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </ClickableCard>
+            );
+          })()}
 
           {/* ⑥ EV 충전소 요약 (장기 전략 — 최하단) */}
           {loading.detail ? <CardSkeleton /> : detail?.evNearby && detail.evNearby.stations > 0 && (() => {
