@@ -859,6 +859,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     )}
+                    <p className="text-[11px] text-text-tertiary/60 mt-2 mb-0 text-center">⚠️ 추정치 기반 분석 — 데이터 축적 시 정확도 향상</p>
                   </div>
                 ) : (
                   <p className="text-[14px] text-text-tertiary m-0">어제 예측 데이터 없음</p>
