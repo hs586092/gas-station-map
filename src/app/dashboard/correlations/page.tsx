@@ -146,16 +146,16 @@ export default function CorrelationsPage() {
   }
 
   const vars = data.variables.filter((v) => v.id !== "sales");
-  const centerX = 300;
-  const centerY = 260;
-  const maxRadius = 200;
+  const centerX = 350;
+  const centerY = 280;
+  const maxRadius = 240;
 
-  // 그룹별 각도 배분
+  // 그룹별 각도 배분 (간격 넓힘)
   const groupAngles: Record<string, { start: number; end: number }> = {
-    weather: { start: -70, end: 20 },
-    competitor: { start: 40, end: 180 },
-    oil: { start: 200, end: 250 },
-    time: { start: 270, end: 320 },
+    weather: { start: -80, end: 10 },
+    competitor: { start: 30, end: 190 },
+    oil: { start: 210, end: 250 },
+    time: { start: 275, end: 320 },
   };
 
   const groupVars: Record<string, Variable[]> = {};
@@ -173,7 +173,7 @@ export default function CorrelationsPage() {
     for (let i = 0; i < count; i++) {
       const v = gVars[i];
       const absR = v.r != null ? Math.abs(v.r) : 0;
-      const dist = maxRadius * (1 - absR * 0.7);
+      const dist = maxRadius * (0.55 + (1 - absR) * 0.45);
       const a =
         count === 1
           ? (angle.start + angle.end) / 2
@@ -201,8 +201,8 @@ export default function CorrelationsPage() {
 
       <div className="max-w-[1280px] mx-auto px-6 py-6 space-y-6">
         {/* 인터랙티브 네트워크 그래프 */}
-        <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-surface-raised rounded-xl p-4 border border-border">
+          <div className="flex items-center justify-between mb-3">
             <h2 className="text-[15px] font-bold text-text-primary m-0">네트워크 그래프</h2>
             <div className="flex items-center gap-4 text-[11px] text-text-tertiary">
               <span className="flex items-center gap-1">
@@ -217,16 +217,20 @@ export default function CorrelationsPage() {
               <span className="flex items-center gap-1">
                 <span className="w-3 h-3 rounded-full border-2 border-dashed border-amber-400 inline-block" /> 표본 부족
               </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-0.5 bg-slate-300 inline-block rounded" style={{ borderTop: "1px dashed #9CA3AF" }} /> 비유의
+              </span>
+              <span className="text-text-tertiary ml-2">* 경쟁사 노드 = 가격차 기준</span>
             </div>
           </div>
-          <p className="text-[12px] text-text-tertiary mb-4 mt-0">
+          <p className="text-[12px] text-text-tertiary mb-2 mt-0">
             노드를 hover하면 해당 변수의 연결만 하이라이트됩니다. 클릭하면 아래에 산점도가 표시됩니다.
           </p>
 
           <svg
-            viewBox="0 0 600 520"
+            viewBox="0 0 700 560"
             className="w-full"
-            style={{ maxHeight: 500 }}
+            style={{ maxHeight: 560 }}
             onMouseLeave={() => setHoveredNode(null)}
           >
             {/* 엣지 */}
@@ -261,7 +265,7 @@ export default function CorrelationsPage() {
               );
             })}
 
-            {/* 엣지 라벨 */}
+            {/* 엣지 라벨 (선에서 수직으로 오프셋) */}
             {nodes.map((node) => {
               const r = node.v.r ?? 0;
               const isHighlighted =
@@ -275,31 +279,52 @@ export default function CorrelationsPage() {
                   : r < 0
                   ? "#ef4444"
                   : "#9CA3AF";
+              // 선의 중점에서 수직 방향으로 오프셋
+              const mx = (centerX + node.x) / 2;
+              const my = (centerY + node.y) / 2;
+              const dx = node.x - centerX;
+              const dy = node.y - centerY;
+              const len = Math.sqrt(dx * dx + dy * dy) || 1;
+              // 수직 벡터 (왼쪽 방향)
+              const offsetDist = 12;
+              const nx = -dy / len * offsetDist;
+              const ny = dx / len * offsetDist;
               return (
-                <text
-                  key={`label-${node.v.id}`}
-                  x={(centerX + node.x) / 2}
-                  y={(centerY + node.y) / 2 - 6}
-                  textAnchor="middle"
-                  fontSize="10"
-                  fill={strokeColor}
-                  fontWeight="bold"
-                >
-                  {node.v.metric === "eta_squared"
-                    ? `η²=${node.v.etaSq?.toFixed(2)}`
-                    : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`}
-                </text>
+                <g key={`label-${node.v.id}`}>
+                  <rect
+                    x={mx + nx - 22}
+                    y={my + ny - 8}
+                    width={44}
+                    height={16}
+                    rx={3}
+                    fill="white"
+                    fillOpacity={0.85}
+                  />
+                  <text
+                    x={mx + nx}
+                    y={my + ny + 3}
+                    textAnchor="middle"
+                    fontSize="10"
+                    fill={strokeColor}
+                    fontWeight="bold"
+                  >
+                    {node.v.metric === "eta_squared"
+                      ? `η²=${node.v.etaSq?.toFixed(2)}`
+                      : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`}
+                  </text>
+                </g>
               );
             })}
 
             {/* 중심 노드 */}
-            <circle cx={centerX} cy={centerY} r={30} fill="#D4A843" opacity={0.9} />
+            <circle cx={centerX} cy={centerY} r={40} fill="#D4A843" />
+            <circle cx={centerX} cy={centerY} r={40} fill="none" stroke="#B8922E" strokeWidth={2} />
             <text
               x={centerX}
               y={centerY + 1}
               textAnchor="middle"
               dominantBaseline="middle"
-              fontSize="12"
+              fontSize="14"
               fill="#fff"
               fontWeight="bold"
             >
@@ -309,7 +334,7 @@ export default function CorrelationsPage() {
             {/* 변수 노드 */}
             {nodes.map((node) => {
               const absR = node.v.r != null ? Math.abs(node.v.r) : 0;
-              const radius = Math.max(14, 10 + absR * 22);
+              const radius = Math.max(12, 8 + absR * 30);
               const isHighlighted =
                 !hoveredNode || hoveredNode === node.v.id;
               const isSelected = selectedNode === node.v.id;
@@ -329,10 +354,10 @@ export default function CorrelationsPage() {
                     cy={node.y}
                     r={radius}
                     fill={node.v.color}
-                    opacity={isHighlighted ? 0.9 : 0.25}
+                    opacity={isHighlighted ? 0.9 : 0.2}
                     stroke={
                       isSelected
-                        ? "#fff"
+                        ? "#1F2937"
                         : node.v.lowSample
                         ? "#fbbf24"
                         : "none"
@@ -348,8 +373,8 @@ export default function CorrelationsPage() {
                     y={node.y + radius + 14}
                     textAnchor="middle"
                     fontSize="11"
-                    fill={isHighlighted ? "#374151" : "#D1D5DB"}
-                    fontWeight={isSelected ? "bold" : "normal"}
+                    fill={isHighlighted ? "#1F2937" : "#9CA3AF"}
+                    fontWeight={isSelected ? "bold" : "600"}
                     style={{ transition: "fill 0.2s" }}
                   >
                     {node.v.label}
@@ -360,7 +385,7 @@ export default function CorrelationsPage() {
                       y={node.y + radius + 26}
                       textAnchor="middle"
                       fontSize="9"
-                      fill="#f59e0b"
+                      fill="#d97706"
                     >
                       n={node.v.n}
                     </text>

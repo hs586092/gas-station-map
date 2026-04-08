@@ -895,15 +895,15 @@ export default function DashboardPage() {
           {/* ⑪ 상관관계 네트워크 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
             const vars = correlationMatrix.variables.filter(v => v.id !== "sales");
-            const centerX = 140;
-            const centerY = 120;
-            const maxR = 90;
+            const centerX = 160;
+            const centerY = 130;
+            const maxR = 110;
 
             const groupAngles: Record<string, { start: number; end: number }> = {
-              weather: { start: -70, end: 20 },
-              competitor: { start: 40, end: 180 },
-              oil: { start: 200, end: 250 },
-              time: { start: 270, end: 320 },
+              weather: { start: -80, end: 10 },
+              competitor: { start: 30, end: 190 },
+              oil: { start: 210, end: 250 },
+              time: { start: 275, end: 320 },
             };
 
             const groupVars: Record<string, typeof vars> = {};
@@ -921,7 +921,7 @@ export default function DashboardPage() {
               for (let i = 0; i < count; i++) {
                 const v = gVars[i];
                 const absR = v.r != null ? Math.abs(v.r) : 0;
-                const dist = maxR * (1 - absR * 0.7);
+                const dist = maxR * (0.55 + (1 - absR) * 0.45);
                 const a = count === 1
                   ? (angle.start + angle.end) / 2
                   : angle.start + (angle.end - angle.start) * (i / (count - 1));
@@ -944,7 +944,7 @@ export default function DashboardPage() {
                     {correlationMatrix.dataRange.totalDays}일 기준
                   </span>
                 </div>
-                <svg viewBox="0 0 280 240" className="w-full" style={{ maxHeight: 220 }}>
+                <svg viewBox="0 0 320 260" className="w-full" style={{ maxHeight: 250 }}>
                   {nodes.map((node) => {
                     const r = node.v.r ?? 0;
                     const absR = Math.abs(r);
@@ -952,7 +952,14 @@ export default function DashboardPage() {
                       ? "#A78BFA"
                       : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
                     const strokeWidth = Math.max(0.5, absR * 4);
-                    const dashArray = absR < 0.1 ? "3,3" : "none";
+                    const dashArray = !node.v.significant ? "3,3" : "none";
+                    const mx = (centerX + node.x) / 2;
+                    const my = (centerY + node.y) / 2;
+                    const dx = node.x - centerX;
+                    const dy = node.y - centerY;
+                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const nx = -dy / len * 8;
+                    const ny = dx / len * 8;
                     return (
                       <g key={`edge-${node.v.id}`}>
                         <line
@@ -963,9 +970,14 @@ export default function DashboardPage() {
                           strokeDasharray={dashArray}
                           opacity={0.7}
                         />
+                        <rect
+                          x={mx + nx - 16} y={my + ny - 6}
+                          width={32} height={12} rx={2}
+                          fill="white" fillOpacity={0.85}
+                        />
                         <text
-                          x={(centerX + node.x) / 2}
-                          y={(centerY + node.y) / 2 - 4}
+                          x={mx + nx}
+                          y={my + ny + 3}
                           textAnchor="middle"
                           fontSize="7"
                           fill={strokeColor}
@@ -978,11 +990,12 @@ export default function DashboardPage() {
                       </g>
                     );
                   })}
-                  <circle cx={centerX} cy={centerY} r={18} fill="#D4A843" opacity={0.9} />
-                  <text x={centerX} y={centerY + 1} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#fff" fontWeight="bold">판매량</text>
+                  <circle cx={centerX} cy={centerY} r={24} fill="#D4A843" />
+                  <circle cx={centerX} cy={centerY} r={24} fill="none" stroke="#B8922E" strokeWidth={1.5} />
+                  <text x={centerX} y={centerY + 1} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#fff" fontWeight="bold">판매량</text>
                   {nodes.map((node) => {
                     const absR = node.v.r != null ? Math.abs(node.v.r) : 0;
-                    const radius = Math.max(8, 6 + absR * 14);
+                    const radius = Math.max(7, 5 + absR * 18);
                     return (
                       <g key={`node-${node.v.id}`}>
                         <circle
@@ -994,12 +1007,12 @@ export default function DashboardPage() {
                         />
                         <text
                           x={node.x} y={node.y + radius + 9}
-                          textAnchor="middle" fontSize="7" fill="#6B7280"
+                          textAnchor="middle" fontSize="7.5" fill="#374151" fontWeight="600"
                         >
                           {node.v.label}
                         </text>
                         {node.v.lowSample && (
-                          <text x={node.x} y={node.y + radius + 17} textAnchor="middle" fontSize="6" fill="#f59e0b">
+                          <text x={node.x} y={node.y + radius + 17} textAnchor="middle" fontSize="6" fill="#d97706">
                             n={node.v.n}
                           </text>
                         )}

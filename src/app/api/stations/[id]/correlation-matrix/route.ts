@@ -483,9 +483,18 @@ export async function GET(
       pairs.map((p) => p.diff),
       pairs.map((p) => p.vol)
     );
+    // 주유소 이름에서 브랜드·법인명 제거 → 짧은 이름만 추출
+    const shortName = comp.name
+      .replace(/^(?:HD현대오일뱅크|현대오일뱅크|에쓰오일|에스오일|SK에너지|GS칼텍스|알뜰)(?:㈜|주식회사|\(주\))?\s*/g, "")
+      .replace(/^(?:㈜|\(주\)|주식회사)\s*/g, "")
+      .replace(/(?:㈜|\(주\)|주식회사)/g, "")
+      .replace(/\s*(직영|위탁)\s*/g, "")
+      .replace(/\s+/g, " ")
+      .trim() || comp.name;
+
     variables.push({
       id: `comp_${comp.id}`,
-      label: `${comp.name} 가격차`,
+      label: shortName,
       group: "competitor",
       color: "#EF4444",
       metric: "pearson",
