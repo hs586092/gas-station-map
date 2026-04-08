@@ -82,7 +82,6 @@ const GROUP_LABELS: Record<string, string> = {
 export default function CorrelationsPage() {
   const [data, setData] = useState<CorrelationData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -121,7 +120,7 @@ export default function CorrelationsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-surface">
-        <DetailHeader title="변수 상관관계 네트워크" description="판매량에 영향을 미치는 변수 간 상관관계 분석" />
+        <DetailHeader title="변수 상관관계 분석" description="판매량에 영향을 미치는 변수 간 상관관계 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="animate-pulse space-y-4">
             <div className="h-64 bg-slate-100 rounded-xl" />
@@ -135,7 +134,7 @@ export default function CorrelationsPage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-surface">
-        <DetailHeader title="변수 상관관계 네트워크" description="판매량에 영향을 미치는 변수 간 상관관계 분석" />
+        <DetailHeader title="변수 상관관계 분석" description="판매량에 영향을 미치는 변수 간 상관관계 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-text-secondary">
             데이터를 불러올 수 없습니다.
@@ -145,18 +144,32 @@ export default function CorrelationsPage() {
     );
   }
 
-  const vars = data.variables.filter((v) => v.id !== "sales");
-  const CX = 280;
-  const CY = 250;
-  const ORBIT = 180;
+  const vars = data.variables
+    .filter((v) => v.id !== "sales")
+    .map((v) => {
+      const absEffect = v.metric === "eta_squared" ? (v.etaSq ?? 0) : Math.abs(v.r ?? 0);
+      return { ...v, absEffect };
+    })
+    .sort((a, b) => b.absEffect - a.absEffect);
 
-  // 균등 원형 배치: 12시(−90°)부터 시계 방향
-  type NodePos = { x: number; y: number; v: Variable };
-  const nodes: NodePos[] = vars.map((v, i) => {
-    const angle = -90 + (360 / vars.length) * i;
-    const rad = (angle * Math.PI) / 180;
-    return { x: CX + ORBIT * Math.cos(rad), y: CY + ORBIT * Math.sin(rad), v };
-  });
+  const maxEffect = Math.max(...vars.map((v) => v.absEffect), 0.01);
+
+  type InfluenceGroup = "strong" | "moderate" | "weak";
+  const getGroup = (abs: number): InfluenceGroup =>
+    abs > 0.4 ? "strong" : abs > 0.2 ? "moderate" : "weak";
+
+  const groupMeta: Record<InfluenceGroup, { label: string; borderColor: string }> = {
+    strong: { label: "강한 영향  |r| > 0.4", borderColor: "#639922" },
+    moderate: { label: "보통 영향  0.2 < |r| < 0.4", borderColor: "#378ADD" },
+    weak: { label: "약한/없음  |r| < 0.2", borderColor: "#888" },
+  };
+
+  const grouped: Record<InfluenceGroup, typeof vars> = { strong: [], moderate: [], weak: [] };
+  vars.forEach((v) => grouped[getGroup(v.absEffect)].push(v));
+
+  const getBarColor = (v: typeof vars[0]) =>
+    v.metric === "eta_squared" ? "#7F77DD"
+      : (v.r ?? 0) > 0 ? "#1D9E75" : (v.r ?? 0) < 0 ? "#E24B4A" : "#6B7280";
 
   const selectedVar = selectedNode
     ? data.variables.find((v) => v.id === selectedNode)
@@ -166,133 +179,72 @@ export default function CorrelationsPage() {
   return (
     <div className="min-h-screen bg-surface h-screen overflow-y-auto">
       <DetailHeader
-        title="변수 상관관계 네트워크"
+        title="변수 상관관계 분석"
         description={`판매량 중심 · ${data.dataRange.totalDays}일 데이터 (${data.dataRange.from} ~ ${data.dataRange.to})`}
       />
 
       <div className="max-w-[1280px] mx-auto px-6 py-6 space-y-6">
-        {/* 인터랙티브 네트워크 그래프 */}
-        <div className="bg-surface-raised rounded-xl p-4 border border-border">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[15px] font-bold text-text-primary m-0">네트워크 그래프</h2>
+        {/* 영향력 순위 바 차트 */}
+        <div className="bg-surface-raised rounded-xl p-6 border border-border">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-[15px] font-bold text-text-primary m-0">판매량 영향력 순위</h2>
             <div className="flex items-center gap-4 text-[11px] text-text-tertiary">
-              <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-emerald-500 inline-block rounded" /> 양(+)
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-red-500 inline-block rounded" /> 음(−)
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-purple-400 inline-block rounded" /> 요일
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-0.5 inline-block rounded border-t-2 border-dashed border-slate-400" /> 비유의
-              </span>
-              <span className="text-text-tertiary">선 굵기 = 관계 강도 · 경쟁사 = 가격차</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#1D9E75" }} /> 양의 상관</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> 음의 상관</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#7F77DD" }} /> 요일 효과</span>
             </div>
           </div>
-          <p className="text-[12px] text-text-tertiary mb-2 mt-0">
-            노드를 hover하면 해당 변수의 연결만 하이라이트. 클릭 → 아래 산점도.
-          </p>
-
-          <svg
-            viewBox="0 0 560 500"
-            className="w-full"
-            style={{ height: 420 }}
-            onMouseLeave={() => setHoveredNode(null)}
-          >
-            {/* 엣지 (선) */}
-            {nodes.map((node) => {
-              const r = node.v.r ?? 0;
-              const absR = Math.abs(r);
-              const isHl = !hoveredNode || hoveredNode === node.v.id;
-              const color =
-                node.v.metric === "eta_squared" ? "#A78BFA"
-                : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
+          {/* 중심 변수 */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-600/20 border border-amber-500/30">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-[12px] font-bold text-amber-400">판매량</span>
+            </span>
+            <span className="text-[11px] text-text-tertiary">← 중심 변수 · 변수 클릭 → 아래 산점도</span>
+          </div>
+          {/* 그룹별 바 */}
+          <div className="space-y-3">
+            {(["strong", "moderate", "weak"] as InfluenceGroup[]).map((group) => {
+              const items = grouped[group];
+              if (items.length === 0) return null;
+              const meta = groupMeta[group];
               return (
-                <line
-                  key={`e-${node.v.id}`}
-                  x1={CX} y1={CY} x2={node.x} y2={node.y}
-                  stroke={color}
-                  strokeWidth={Math.max(0.5, absR * 5)}
-                  strokeDasharray={node.v.significant ? "none" : "5,4"}
-                  opacity={isHl ? 0.75 : 0.12}
-                  style={{ transition: "opacity 0.2s" }}
-                />
+                <div key={group} className="rounded-md py-3 pr-4 pl-4" style={{ borderLeft: `3px solid ${meta.borderColor}` }}>
+                  <div className="text-[11px] text-text-tertiary mb-2 font-medium">{meta.label}</div>
+                  <div className="space-y-1.5">
+                    {items.map((v) => {
+                      const barWidth = Math.max(4, (v.absEffect / maxEffect) * 100);
+                      const barColor = getBarColor(v);
+                      const displayValue = v.metric === "eta_squared"
+                        ? `η²=${v.absEffect.toFixed(2)}`
+                        : `${(v.r ?? 0) >= 0 ? "+" : ""}${(v.r ?? 0).toFixed(2)}`;
+                      const isSelected = selectedNode === v.id;
+                      return (
+                        <div
+                          key={v.id}
+                          className={`flex items-center gap-3 py-1 px-2 rounded cursor-pointer transition-colors ${isSelected ? "bg-slate-100" : "hover:bg-slate-50"}`}
+                          onClick={() => setSelectedNode((prev) => prev === v.id ? null : v.id)}
+                        >
+                          <span className="text-[13px] text-text-secondary w-[100px] truncate text-right flex-shrink-0 font-medium" title={v.label}>{v.label}</span>
+                          <div className="flex-1 h-[18px] rounded-sm overflow-hidden relative" style={{ backgroundColor: "#f0f0f0" }}>
+                            <div
+                              className="h-full rounded-sm transition-all duration-500"
+                              style={{ width: `${barWidth}%`, backgroundColor: barColor }}
+                            />
+                          </div>
+                          <span className="text-[13px] w-[60px] text-right flex-shrink-0" style={{ color: barColor, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                            {displayValue}
+                          </span>
+                          {v.lowSample && <span className="text-[9px] text-amber-500 flex-shrink-0">n={v.n}</span>}
+                          {!v.significant && <span className="text-[9px] text-amber-500 flex-shrink-0">*</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
-
-            {/* 중심 노드 — 판매량 */}
-            <circle cx={CX} cy={CY} r={40} fill="#D4A843" />
-            <circle cx={CX} cy={CY} r={40} fill="none" stroke="#B8922E" strokeWidth={2.5} />
-            <text x={CX} y={CY + 1} textAnchor="middle" dominantBaseline="middle"
-              fontSize="15" fill="#fff" fontWeight="bold">판매량</text>
-
-            {/* 변수 노드 + 라벨 */}
-            {nodes.map((node) => {
-              const absR = node.v.r != null ? Math.abs(node.v.r) : 0;
-              const r = node.v.r ?? 0;
-              const radius = Math.max(10, 8 + absR * 28);
-              const isHl = !hoveredNode || hoveredNode === node.v.id;
-              const isSel = selectedNode === node.v.id;
-              const color =
-                node.v.metric === "eta_squared" ? "#A78BFA"
-                : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
-
-              // 라벨 위치: 노드 바깥 방향으로 밀기
-              const dx = node.x - CX;
-              const dy = node.y - CY;
-              const len = Math.sqrt(dx * dx + dy * dy) || 1;
-              const labelDist = radius + 14;
-              const lx = node.x + (dx / len) * labelDist;
-              const ly = node.y + (dy / len) * labelDist;
-              // 텍스트 앵커: 왼쪽/오른쪽 반에 따라
-              const anchor = dx > 20 ? "start" : dx < -20 ? "end" : "middle";
-
-              const coefStr = node.v.metric === "eta_squared"
-                ? `η²${node.v.etaSq?.toFixed(2)}`
-                : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
-
-              return (
-                <g
-                  key={`n-${node.v.id}`}
-                  onMouseEnter={() => setHoveredNode(node.v.id)}
-                  onClick={() => setSelectedNode((p) => p === node.v.id ? null : node.v.id)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <circle
-                    cx={node.x} cy={node.y} r={radius}
-                    fill={node.v.color}
-                    opacity={isHl ? 0.9 : 0.2}
-                    stroke={isSel ? "#1F2937" : node.v.lowSample ? "#fbbf24" : "none"}
-                    strokeWidth={isSel ? 2.5 : node.v.lowSample ? 2 : 0}
-                    strokeDasharray={node.v.lowSample && !isSel ? "3,3" : "none"}
-                    style={{ transition: "opacity 0.2s" }}
-                  />
-                  {/* 라벨: 이름 */}
-                  <text
-                    x={lx} y={ly}
-                    textAnchor={anchor} dominantBaseline="middle"
-                    fontSize="12" fill={isHl ? "#1F2937" : "#9CA3AF"}
-                    fontWeight={isSel ? "bold" : "600"}
-                    style={{ transition: "fill 0.2s" }}
-                  >
-                    {node.v.label}
-                  </text>
-                  {/* 상관계수: 라벨 아래에 작게 */}
-                  <text
-                    x={lx} y={ly + 14}
-                    textAnchor={anchor} dominantBaseline="middle"
-                    fontSize="10" fill={color} fontWeight="bold"
-                    opacity={isHl ? 1 : 0.4}
-                  >
-                    {coefStr}
-                    {node.v.lowSample ? ` n=${node.v.n}` : ""}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
+          </div>
         </div>
 
         {/* 산점도 (노드 클릭 시 표시) */}
