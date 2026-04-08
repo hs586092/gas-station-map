@@ -899,18 +899,18 @@ export default function DashboardPage() {
             const getGroup = (abs: number): InfluenceGroup =>
               abs > 0.4 ? "strong" : abs > 0.2 ? "moderate" : "weak";
 
-            const groupMeta: Record<InfluenceGroup, { label: string; bg: string; border: string }> = {
-              strong: { label: "강한 영향 |r| > 0.4", bg: "bg-emerald-950/40", border: "border-emerald-800/30" },
-              moderate: { label: "보통 영향 0.2 < |r| < 0.4", bg: "bg-blue-950/40", border: "border-blue-800/30" },
-              weak: { label: "약한/없음 |r| < 0.2", bg: "bg-red-950/40", border: "border-red-800/30" },
+            const groupMeta: Record<InfluenceGroup, { label: string; borderColor: string }> = {
+              strong: { label: "강한 영향 |r| > 0.4", borderColor: "#639922" },
+              moderate: { label: "보통 영향 0.2 < |r| < 0.4", borderColor: "#378ADD" },
+              weak: { label: "약한/없음 |r| < 0.2", borderColor: "#888" },
             };
 
             const grouped: Record<InfluenceGroup, typeof vars> = { strong: [], moderate: [], weak: [] };
             vars.forEach(v => grouped[getGroup(v.absEffect)].push(v));
 
             const getBarColor = (v: typeof vars[0]) =>
-              v.metric === "eta_squared" ? "#A78BFA"
-                : (v.r ?? 0) > 0 ? "#10b981" : (v.r ?? 0) < 0 ? "#ef4444" : "#6B7280";
+              v.metric === "eta_squared" ? "#7F77DD"
+                : (v.r ?? 0) > 0 ? "#1D9E75" : (v.r ?? 0) < 0 ? "#E24B4A" : "#6B7280";
 
             return (
               <ClickableCard href="/dashboard/correlations" className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -935,7 +935,7 @@ export default function DashboardPage() {
                     if (items.length === 0) return null;
                     const meta = groupMeta[group];
                     return (
-                      <div key={group} className={`rounded-lg p-2.5 ${meta.bg} border ${meta.border}`}>
+                      <div key={group} className="rounded-md py-2 pr-2.5 pl-3" style={{ borderLeft: `3px solid ${meta.borderColor}` }}>
                         <div className="text-[10px] text-text-tertiary mb-1.5 font-medium">{meta.label}</div>
                         <div className="space-y-1">
                           {items.map(v => {
@@ -947,13 +947,13 @@ export default function DashboardPage() {
                             return (
                               <div key={v.id} className="flex items-center gap-2">
                                 <span className="text-[11px] text-text-secondary w-[72px] truncate text-right flex-shrink-0" title={v.label}>{v.label}</span>
-                                <div className="flex-1 h-[14px] bg-black/20 rounded-sm overflow-hidden relative">
+                                <div className="flex-1 h-[14px] rounded-sm overflow-hidden relative" style={{ backgroundColor: "#f0f0f0" }}>
                                   <div
                                     className="h-full rounded-sm transition-all duration-500"
-                                    style={{ width: `${barWidth}%`, backgroundColor: barColor, opacity: 0.85 }}
+                                    style={{ width: `${barWidth}%`, backgroundColor: barColor }}
                                   />
                                 </div>
-                                <span className="text-[11px] font-bold w-[48px] text-right flex-shrink-0" style={{ color: barColor }}>
+                                <span className="text-[12px] w-[52px] text-right flex-shrink-0" style={{ color: barColor, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                                   {displayValue}
                                 </span>
                                 {!v.significant && <span className="text-[9px] text-amber-500">*</span>}
@@ -967,9 +967,9 @@ export default function DashboardPage() {
                 </div>
                 {/* 범례 */}
                 <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
-                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-emerald-500 inline-block rounded-sm" /> 양의 상관</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-red-500 inline-block rounded-sm" /> 음의 상관</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-purple-400 inline-block rounded-sm" /> 요일 효과</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#1D9E75" }} /> 양의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> 음의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#7F77DD" }} /> 요일 효과</span>
                 </div>
               </ClickableCard>
             );
