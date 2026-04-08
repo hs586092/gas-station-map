@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/app/components/SiteHeader";
@@ -423,42 +423,6 @@ export default function DashboardPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  // ── lazy load: 하단 카드는 뷰포트 진입 시 로드 ──
-  const lazyRef = useRef<HTMLDivElement>(null);
-  const lazyFired = useRef(false);
-
-  const fetchLazyData = useCallback((bustCache = false) => {
-    if (lazyFired.current && !bustCache) return;
-    lazyFired.current = true;
-    const base = `/api/stations/${STATION_ID}`;
-    const cb = bustCache ? `?t=${Date.now()}` : "";
-
-    fetch(`${base}/sales-analysis${cb}`)
-      .then((r) => r.json())
-      .then((d) => { if (!d.error) setSalesAnalysis(d); setLoading((p) => ({ ...p, salesAnalysis: false })); })
-      .catch(() => setLoading((p) => ({ ...p, salesAnalysis: false })));
-
-    fetch(`${base}/timing-analysis`)
-      .then((r) => r.json())
-      .then((d) => { if (d.currentSituation) setTimingAnalysis(d); setLoading((p) => ({ ...p, timingAnalysis: false })); })
-      .catch(() => setLoading((p) => ({ ...p, timingAnalysis: false })));
-
-    fetch(`${base}/correlation-matrix?compact=1`)
-      .then((r) => r.json())
-      .then((d) => { if (!d.error) setCorrelationMatrix(d); setLoading((p) => ({ ...p, correlationMatrix: false })); })
-      .catch(() => setLoading((p) => ({ ...p, correlationMatrix: false })));
-  }, []);
-
-  useEffect(() => {
-    const el = lazyRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { fetchLazyData(); io.disconnect(); }
-    }, { rootMargin: "200px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [fetchLazyData]);
-
   const fetchAllData = (bustCache = false) => {
     const base = `/api/stations/${STATION_ID}`;
     const cb = bustCache ? `?t=${Date.now()}` : "";
@@ -470,6 +434,7 @@ export default function DashboardPage() {
       correlationMatrix: true, weather: true, weatherImpact: true,
     });
 
+    // ── 빠른 개별 API (가격, 경쟁사 등 — 카드별 독립 로딩) ──
     fetch(`${base}/competitors`)
       .then((r) => r.json())
       .then((d) => { setCompetitors(d); setLoading((p) => ({ ...p, competitors: false })); });
@@ -495,30 +460,38 @@ export default function DashboardPage() {
       .then((d) => { if (!d.error) setWeather(d); setLoading((p) => ({ ...p, weather: false })); })
       .catch(() => setLoading((p) => ({ ...p, weather: false })));
 
-    fetch(`${base}/weather-sales-analysis`)
-      .then((r) => r.json())
-      .then((d) => { if (!d.error) setWeatherImpact(d); setLoading((p) => ({ ...p, weatherImpact: false })); })
-      .catch(() => setLoading((p) => ({ ...p, weatherImpact: false })));
-
     fetch(`/api/price-history/${STATION_ID}`)
       .then((r) => r.json())
       .then((d) => { setPriceHistory(d); setLoading((p) => ({ ...p, priceHistory: false })); });
 
-    fetch(`${base}/dashboard-insights`)
+    // ── 통합 API: 6개 분석 데이터를 서버에서 병렬 수집 후 한 번에 반환 ──
+    fetch(`${base}/dashboard-all${cb}`)
       .then((r) => r.json())
-      .then((d) => { setInsights(d); setLoading((p) => ({ ...p, insights: false })); });
+      .then((data) => {
+        if (data.insights) setInsights(data.insights);
+        setLoading((p) => ({ ...p, insights: false }));
 
-    fetch(`${base}/forecast-review${cb}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.error) setForecastReview(d);
+        if (data.salesAnalysis && !data.salesAnalysis.error) setSalesAnalysis(data.salesAnalysis);
+        setLoading((p) => ({ ...p, salesAnalysis: false }));
+
+        if (data.weatherSales && !data.weatherSales.error) setWeatherImpact(data.weatherSales);
+        setLoading((p) => ({ ...p, weatherImpact: false }));
+
+        if (data.timing && data.timing.currentSituation) setTimingAnalysis(data.timing);
+        setLoading((p) => ({ ...p, timingAnalysis: false }));
+
+        if (data.forecast && !data.forecast.error) setForecastReview(data.forecast);
         setLoading((p) => ({ ...p, forecastReview: false }));
-      })
-      .catch(() => setLoading((p) => ({ ...p, forecastReview: false })));
 
-    // 하단 카드 (sales-analysis, timing-analysis, correlation-matrix)는
-    // lazy load — bustCache 시에는 즉시 재호출
-    if (bustCache) fetchLazyData(true);
+        if (data.correlation && !data.correlation.error) setCorrelationMatrix(data.correlation);
+        setLoading((p) => ({ ...p, correlationMatrix: false }));
+      })
+      .catch(() => {
+        setLoading((p) => ({
+          ...p, insights: false, salesAnalysis: false, weatherImpact: false,
+          timingAnalysis: false, forecastReview: false, correlationMatrix: false,
+        }));
+      });
   };
 
   const handleSyncAndRefresh = async () => {
@@ -908,8 +881,7 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* ── lazy load 센티널: 이 아래 카드는 뷰포트 진입 시 로드 ── */}
-          <div ref={lazyRef} />
+          {/* ── 분석 카드 (dashboard-all 통합 API에서 로드) ── */}
 
           {/* ⑪ 상관관계 네트워크 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
