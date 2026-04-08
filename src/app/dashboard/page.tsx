@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/app/components/SiteHeader";
@@ -423,6 +423,42 @@ export default function DashboardPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // ── lazy load: 하단 카드는 뷰포트 진입 시 로드 ──
+  const lazyRef = useRef<HTMLDivElement>(null);
+  const lazyFired = useRef(false);
+
+  const fetchLazyData = useCallback((bustCache = false) => {
+    if (lazyFired.current && !bustCache) return;
+    lazyFired.current = true;
+    const base = `/api/stations/${STATION_ID}`;
+    const cb = bustCache ? `?t=${Date.now()}` : "";
+
+    fetch(`${base}/sales-analysis${cb}`)
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setSalesAnalysis(d); setLoading((p) => ({ ...p, salesAnalysis: false })); })
+      .catch(() => setLoading((p) => ({ ...p, salesAnalysis: false })));
+
+    fetch(`${base}/timing-analysis`)
+      .then((r) => r.json())
+      .then((d) => { if (d.currentSituation) setTimingAnalysis(d); setLoading((p) => ({ ...p, timingAnalysis: false })); })
+      .catch(() => setLoading((p) => ({ ...p, timingAnalysis: false })));
+
+    fetch(`${base}/correlation-matrix?compact=1`)
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setCorrelationMatrix(d); setLoading((p) => ({ ...p, correlationMatrix: false })); })
+      .catch(() => setLoading((p) => ({ ...p, correlationMatrix: false })));
+  }, []);
+
+  useEffect(() => {
+    const el = lazyRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { fetchLazyData(); io.disconnect(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [fetchLazyData]);
+
   const fetchAllData = (bustCache = false) => {
     const base = `/api/stations/${STATION_ID}`;
     const cb = bustCache ? `?t=${Date.now()}` : "";
@@ -472,14 +508,6 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => { setInsights(d); setLoading((p) => ({ ...p, insights: false })); });
 
-    fetch(`${base}/sales-analysis${cb}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.error) setSalesAnalysis(d);
-        setLoading((p) => ({ ...p, salesAnalysis: false }));
-      })
-      .catch(() => setLoading((p) => ({ ...p, salesAnalysis: false })));
-
     fetch(`${base}/forecast-review${cb}`)
       .then((r) => r.json())
       .then((d) => {
@@ -488,21 +516,9 @@ export default function DashboardPage() {
       })
       .catch(() => setLoading((p) => ({ ...p, forecastReview: false })));
 
-    fetch(`${base}/timing-analysis`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.currentSituation) setTimingAnalysis(d);
-        setLoading((p) => ({ ...p, timingAnalysis: false }));
-      })
-      .catch(() => setLoading((p) => ({ ...p, timingAnalysis: false })));
-
-    fetch(`${base}/correlation-matrix`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.error) setCorrelationMatrix(d);
-        setLoading((p) => ({ ...p, correlationMatrix: false }));
-      })
-      .catch(() => setLoading((p) => ({ ...p, correlationMatrix: false })));
+    // 하단 카드 (sales-analysis, timing-analysis, correlation-matrix)는
+    // lazy load — bustCache 시에는 즉시 재호출
+    if (bustCache) fetchLazyData(true);
   };
 
   const handleSyncAndRefresh = async () => {
@@ -918,6 +934,9 @@ export default function DashboardPage() {
               </div>
             );
           })()}
+
+          {/* ── lazy load 센티널: 이 아래 카드는 뷰포트 진입 시 로드 ── */}
+          <div ref={lazyRef} />
 
           {/* ⑪ 상관관계 네트워크 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {

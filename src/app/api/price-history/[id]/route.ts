@@ -39,5 +39,8 @@ export async function GET(
     premium: prices.premium,
   }));
 
-  return NextResponse.json({ history });
+  return NextResponse.json(
+    { history },
+    { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600" } }
+  );
 }

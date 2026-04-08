@@ -211,6 +211,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const compact = request.nextUrl.searchParams.get("compact") === "1";
 
   // ── 1. 데이터 수집 (병렬) ──
   const [salesRes, weatherRes, oilRes, stationRes] = await Promise.all([
@@ -587,25 +588,31 @@ export async function GET(
       significant: v.significant,
     }));
 
-  return NextResponse.json(
-    {
-      stationName: stationRes.data?.name ?? null,
-      dataRange: {
-        from: salesDates[0] || null,
-        to: salesDates[salesDates.length - 1] || null,
-        totalDays: salesMap.size,
-      },
-      variables,
-      matrix,
-      ranking,
-      scatterData,
-      competitors: competitors.map((c) => ({
-        id: c.id,
-        name: c.name,
-        distance_km: c.distance_km,
-        n: c.n,
-      })),
+  const responseBody: Record<string, unknown> = {
+    stationName: stationRes.data?.name ?? null,
+    dataRange: {
+      from: salesDates[0] || null,
+      to: salesDates[salesDates.length - 1] || null,
+      totalDays: salesMap.size,
     },
+    variables,
+    ranking,
+  };
+
+  // compact=1: 대시보드 카드용 (scatterData, matrix, competitors 제외 → ~70% 경량)
+  if (!compact) {
+    responseBody.matrix = matrix;
+    responseBody.scatterData = scatterData;
+    responseBody.competitors = competitors.map((c) => ({
+      id: c.id,
+      name: c.name,
+      distance_km: c.distance_km,
+      n: c.n,
+    }));
+  }
+
+  return NextResponse.json(
+    responseBody,
     {
       headers: {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
