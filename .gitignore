@@ -43,3 +43,5 @@ next-env.d.ts
 # large data files
 /data/
 .env*.local
+.aidesigner/*
+!.aidesigner/.gitkeep

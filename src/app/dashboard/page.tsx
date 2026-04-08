@@ -423,8 +423,9 @@ export default function DashboardPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const fetchAllData = () => {
+  const fetchAllData = (bustCache = false) => {
     const base = `/api/stations/${STATION_ID}`;
+    const cb = bustCache ? `?t=${Date.now()}` : "";
 
     setLoading({
       competitors: true, changes: true, benchmark: true,
@@ -471,7 +472,7 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => { setInsights(d); setLoading((p) => ({ ...p, insights: false })); });
 
-    fetch(`${base}/sales-analysis`)
+    fetch(`${base}/sales-analysis${cb}`)
       .then((r) => r.json())
       .then((d) => {
         if (!d.error) setSalesAnalysis(d);
@@ -479,7 +480,7 @@ export default function DashboardPage() {
       })
       .catch(() => setLoading((p) => ({ ...p, salesAnalysis: false })));
 
-    fetch(`${base}/forecast-review`)
+    fetch(`${base}/forecast-review${cb}`)
       .then((r) => r.json())
       .then((d) => {
         if (!d.error) setForecastReview(d);
@@ -512,7 +513,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.success) {
         setSyncResult({ ok: true, message: "판매 데이터 동기화 완료" });
-        fetchAllData();
+        fetchAllData(true);
       } else {
         setSyncResult({ ok: false, message: data.error || "동기화 실패" });
       }
