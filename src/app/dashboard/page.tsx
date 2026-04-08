@@ -696,7 +696,15 @@ export default function DashboardPage() {
                   <span className="text-[11px] font-bold text-violet-700">심층 분석</span>
                 </div>
                 <div className="text-[13px] text-violet-900 leading-relaxed whitespace-pre-line">
-                  {aiBriefing.aiBriefing}
+                  {aiBriefing.aiBriefing?.split("\n").map((line, i) =>
+                    line.startsWith("[뉴스]") ? (
+                      <span key={i} className="block mt-1.5 px-2.5 py-1.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[12px] font-medium">
+                        {"📰 최신 뉴스:"}{line.replace("[뉴스]", "").trim()}
+                      </span>
+                    ) : (
+                      <span key={i}>{line}{"\n"}</span>
+                    )
+                  )}
                 </div>
               </div>
             ) : aiLoading ? (

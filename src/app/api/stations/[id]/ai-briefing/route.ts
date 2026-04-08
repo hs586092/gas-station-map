@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const maxDuration = 30;
+
 const client = new Anthropic();
 
 const SYSTEM_PROMPT = `당신은 주유소 경영 분석 전문가입니다. 사장님에게 직접 조언하듯 오늘의 경영 브리핑을 작성하세요.
@@ -14,8 +16,10 @@ const SYSTEM_PROMPT = `당신은 주유소 경영 분석 전문가입니다. 사
 - 경쟁사 이름을 언급하며 구체적으로 설명
 - 날씨가 비/눈/뇌우이면 주유 수요 감소 가능성을 언급 (인하 신중 권고)
 - "날씨기반예상판매량"이 제공되면 오늘 기대 판매량을 숫자로 직접 인용 (예: "오늘 예상 판매량 약 9,500L")
+- 최신 국제유가 관련 뉴스를 검색해서 브리핑에 반영하세요. 특히 OPEC 결정, 중동 정세, 호르무즈 해협 상황 등 유가에 영향을 주는 뉴스가 있으면 사장님에게 쉽게 설명해 주세요. 뉴스가 소매가에 미칠 영향도 간단히 언급하세요.
+- 뉴스 기반 인사이트가 있으면 반드시 "[뉴스]"로 시작하는 별도 줄로 작성 (예: "[뉴스] OPEC 감산 연장 합의 → 2~3주 후 국내 소매가 인상 가능성")
 - 마지막에 "주의할 점" 또는 "내일 확인할 것" 1줄
-- 전체 길이: 150~250자 이내
+- 전체 길이: 200~350자 이내
 - 이모지 사용하지 마세요
 - "~입니다" "~합니다" 체로 작성`;
 
@@ -159,23 +163,34 @@ export async function GET(
   dataPrompt += `\n기존규칙기반추천: ${rec.message || "없음"} (타입: ${rec.type || "?"})`;
   if (rec.suggestedRange) dataPrompt += ` 권장범위: ${rec.suggestedRange.min}~${rec.suggestedRange.max}원`;
 
-  // ── 3. Claude API 호출 ──
+  // ── 3. Claude API 호출 (web_search 도구 포함) ──
   try {
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 800,
+      max_tokens: 1200,
       system: SYSTEM_PROMPT,
+      tools: [
+        {
+          type: "web_search_20250305" as const,
+          name: "web_search",
+          max_uses: 3,
+        },
+      ],
       messages: [{ role: "user", content: dataPrompt }],
-    });
+    }, { timeout: 30000 });
 
-    const textBlock = message.content.find((b) => b.type === "text");
-    const aiBriefing = textBlock ? textBlock.text : null;
+    // web_search 사용 시 여러 content block이 올 수 있음 — text만 합치기
+    const textParts = message.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text);
+    const aiBriefing = textParts.join("\n") || null;
 
     return NextResponse.json(
       {
         aiBriefing,
         fallback: false,
         recommendationType: rec.type || "hold",
+        webSearchUsed: message.content.some((b) => b.type === "web_search_tool_result"),
         usage: {
           inputTokens: message.usage.input_tokens,
           outputTokens: message.usage.output_tokens,
