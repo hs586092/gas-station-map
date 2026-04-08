@@ -87,7 +87,7 @@ export async function GET(
   dataPrompt += `경쟁사평균: ${bf.position?.avgPrice?.toLocaleString() ?? "?"}원 (차이: ${bf.position?.priceDiff > 0 ? "+" : ""}${bf.position?.priceDiff ?? "?"}원)\n`;
   dataPrompt += `포지션: ${ins.myPosition === "expensive" ? "평균보다 비쌈" : ins.myPosition === "cheap" ? "평균보다 저렴" : "평균 수준"}\n`;
 
-  dataPrompt += `경쟁사오늘: 인상${compPattern.risingCount ?? 0}곳 인하${compPattern.fallingCount ?? 0}곳 유지${compPattern.stableCount ?? 0}곳\n`;
+  dataPrompt += `경쟁사오늘: ${compPattern.message}\n`;
 
   if (compProfiles.length > 0) {
     dataPrompt += `주요경쟁사: `;

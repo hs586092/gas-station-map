@@ -143,6 +143,8 @@ export async function GET(
   let risingCount = 0;
   let fallingCount = 0;
   let stableCount = 0;
+  const risingIds = new Set<string>();
+  const fallingIds = new Set<string>();
   const todayRows = byDate.get(todayDate!) || [];
   const ydayRows = byDate.get(yesterdayDate!) || [];
   const ydayPriceMap = new Map<string, { g: number | null; d: number | null }>();
@@ -160,8 +162,8 @@ export async function GET(
     const gDiff = (r.gasoline_price && yp.g) ? r.gasoline_price - yp.g : 0;
     const dDiff = (r.diesel_price && yp.d) ? r.diesel_price - yp.d : 0;
     const maxDiff = Math.abs(gDiff) > Math.abs(dDiff) ? gDiff : dDiff;
-    if (maxDiff > 0) risingCount++;
-    else if (maxDiff < 0) fallingCount++;
+    if (maxDiff > 0) { risingCount++; risingIds.add(r.station_id); }
+    else if (maxDiff < 0) { fallingCount++; fallingIds.add(r.station_id); }
     else stableCount++;
   }
   const totalComp = risingCount + fallingCount + stableCount;
@@ -604,6 +606,57 @@ export async function GET(
         type, typeLabel, changeCount: changes, avgChangeSize: avgSize,
         currentPrice: comp.gasoline_price,
       });
+    }
+  }
+
+  // ── 13-1. 오늘 변동 경쟁사의 프로파일별 분류 ──
+  const profileBreakdown = { leader: 0, follower: 0, steady: 0 };
+  const profileRisingBreakdown = { leader: 0, follower: 0, steady: 0 };
+  const profileFallingBreakdown = { leader: 0, follower: 0, steady: 0 };
+  const leaderNames: string[] = [];
+  for (const p of competitorProfiles) {
+    if (p.type === "unknown") continue;
+    if (risingIds.has(p.id)) {
+      profileRisingBreakdown[p.type]++;
+      if (p.type === "leader") leaderNames.push(p.name);
+    }
+    if (fallingIds.has(p.id)) {
+      profileFallingBreakdown[p.type]++;
+      if (p.type === "leader") leaderNames.push(p.name);
+    }
+  }
+
+  // 프로파일 기반 경쟁사 메시지 보강
+  if (risingCount > 0 || fallingCount > 0) {
+    const parts: string[] = [];
+    if (risingCount > 0) {
+      const rParts: string[] = [];
+      if (profileRisingBreakdown.leader > 0)
+        rParts.push(`선제형 ${profileRisingBreakdown.leader}곳`);
+      if (profileRisingBreakdown.follower > 0)
+        rParts.push(`추종형 ${profileRisingBreakdown.follower}곳`);
+      if (profileRisingBreakdown.steady > 0)
+        rParts.push(`안정형 ${profileRisingBreakdown.steady}곳`);
+      parts.push(`인상 ${risingCount}곳(${rParts.join(", ")})`);
+    }
+    if (fallingCount > 0) {
+      const fParts: string[] = [];
+      if (profileFallingBreakdown.leader > 0)
+        fParts.push(`선제형 ${profileFallingBreakdown.leader}곳`);
+      if (profileFallingBreakdown.follower > 0)
+        fParts.push(`추종형 ${profileFallingBreakdown.follower}곳`);
+      if (profileFallingBreakdown.steady > 0)
+        fParts.push(`안정형 ${profileFallingBreakdown.steady}곳`);
+      parts.push(`인하 ${fallingCount}곳(${fParts.join(", ")})`);
+    }
+    competitorMessage = parts.join(", ");
+    // 선제형이 주도한 경우 추가 시그널
+    if (profileRisingBreakdown.leader > 0 && profileRisingBreakdown.leader >= profileRisingBreakdown.follower) {
+      competitorMessage += ` → 선제형 주도 인상(${leaderNames.filter((_, i) => i < 2).join("·")})`;
+    } else if (profileFallingBreakdown.leader > 0 && profileFallingBreakdown.leader >= profileFallingBreakdown.follower) {
+      competitorMessage += ` → 선제형 주도 인하(${leaderNames.filter((_, i) => i < 2).join("·")})`;
+    } else if (profileRisingBreakdown.follower > 0 && profileRisingBreakdown.leader === 0) {
+      competitorMessage += ` → 추종형 위주 움직임, 선제형은 아직 미반영`;
     }
   }
 
