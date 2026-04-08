@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         accuracy: null,
         history: [],
       },
-      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } }
+      { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" } }
     );
   }
 
@@ -492,6 +492,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
       history,
     },
-    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } }
+    { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" } }
   );
 }

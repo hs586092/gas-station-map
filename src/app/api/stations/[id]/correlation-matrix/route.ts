@@ -615,7 +615,7 @@ export async function GET(
     responseBody,
     {
       headers: {
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+        "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600",
       },
     }
   );

@@ -352,6 +352,6 @@ export async function GET(
         dataRange: { from, to },
       },
     },
-    { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600" } }
+    { headers: { "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=3600" } }
   );
 }

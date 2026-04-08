@@ -417,7 +417,7 @@ export default function DashboardPage() {
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
     salesAnalysis: true, timingAnalysis: true, forecastReview: true,
-    correlationMatrix: true,
+    correlationMatrix: true, weather: true, weatherImpact: true,
   });
 
   const [syncing, setSyncing] = useState(false);
@@ -467,7 +467,7 @@ export default function DashboardPage() {
       competitors: true, changes: true, benchmark: true,
       detail: true, oilPrices: true, priceHistory: true, insights: true,
       salesAnalysis: true, timingAnalysis: true, forecastReview: true,
-      correlationMatrix: true,
+      correlationMatrix: true, weather: true, weatherImpact: true,
     });
 
     fetch(`${base}/competitors`)
@@ -492,13 +492,13 @@ export default function DashboardPage() {
 
     fetch("/api/weather")
       .then((r) => r.json())
-      .then((d) => { if (!d.error) setWeather(d); })
-      .catch(() => {});
+      .then((d) => { if (!d.error) setWeather(d); setLoading((p) => ({ ...p, weather: false })); })
+      .catch(() => setLoading((p) => ({ ...p, weather: false })));
 
     fetch(`${base}/weather-sales-analysis`)
       .then((r) => r.json())
-      .then((d) => { if (!d.error) setWeatherImpact(d); })
-      .catch(() => {});
+      .then((d) => { if (!d.error) setWeatherImpact(d); setLoading((p) => ({ ...p, weatherImpact: false })); })
+      .catch(() => setLoading((p) => ({ ...p, weatherImpact: false })));
 
     fetch(`/api/price-history/${STATION_ID}`)
       .then((r) => r.json())
@@ -766,7 +766,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-text-primary">
 
           {/* 🌧️ 날씨 영향 (판매량 예측) */}
-          {weatherImpact?.todayForecast && (() => {
+          {loading.weatherImpact ? <CardSkeleton /> : weatherImpact?.todayForecast && (() => {
             const f = weatherImpact.todayForecast!;
             const rainy = weatherImpact.byIntensity.find((b) => b.key === "heavy");
             const confColor = f.confidence === "high" ? "emerald" : f.confidence === "medium" ? "amber" : "slate";
@@ -1066,7 +1066,7 @@ export default function DashboardPage() {
           )}
 
           {/* 🌤️ 오늘 날씨 (하남시) */}
-          {weather && weather.today && (() => {
+          {loading.weather ? <CardSkeleton /> : weather && weather.today && (() => {
             const todayW = weatherCodeLabel(weather.today.weatherCode);
             const tmrW = weather.tomorrow ? weatherCodeLabel(weather.tomorrow.weatherCode) : null;
             const todayRainy = (weather.today.precipProbMax ?? 0) >= 60 || (weather.today.precipSum ?? 0) >= 1;
