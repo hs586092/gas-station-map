@@ -883,101 +883,94 @@ export default function DashboardPage() {
 
           {/* ── 분석 카드 (dashboard-all 통합 API에서 로드) ── */}
 
-          {/* ⑪ 상관관계 네트워크 */}
+          {/* ⑪ 영향력 순위 바 차트 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
-            const vars = correlationMatrix.variables.filter(v => v.id !== "sales");
-            const CX = 160;
-            const CY = 130;
-            const ORBIT = 95;
+            const vars = correlationMatrix.variables
+              .filter(v => v.id !== "sales")
+              .map(v => {
+                const absEffect = v.metric === "eta_squared" ? (v.etaSq ?? 0) : Math.abs(v.r ?? 0);
+                return { ...v, absEffect };
+              })
+              .sort((a, b) => b.absEffect - a.absEffect);
 
-            type NodePos = { x: number; y: number; v: typeof vars[0] };
-            const nodes: NodePos[] = vars.map((v, i) => {
-              const angle = -90 + (360 / vars.length) * i;
-              const rad = (angle * Math.PI) / 180;
-              return { x: CX + ORBIT * Math.cos(rad), y: CY + ORBIT * Math.sin(rad), v };
-            });
+            const maxEffect = Math.max(...vars.map(v => v.absEffect), 0.01);
 
-            const top3 = correlationMatrix.ranking.slice(0, 3);
+            type InfluenceGroup = "strong" | "moderate" | "weak";
+            const getGroup = (abs: number): InfluenceGroup =>
+              abs > 0.4 ? "strong" : abs > 0.2 ? "moderate" : "weak";
+
+            const groupMeta: Record<InfluenceGroup, { label: string; bg: string; border: string }> = {
+              strong: { label: "강한 영향 |r| > 0.4", bg: "bg-emerald-950/40", border: "border-emerald-800/30" },
+              moderate: { label: "보통 영향 0.2 < |r| < 0.4", bg: "bg-blue-950/40", border: "border-blue-800/30" },
+              weak: { label: "약한/없음 |r| < 0.2", bg: "bg-red-950/40", border: "border-red-800/30" },
+            };
+
+            const grouped: Record<InfluenceGroup, typeof vars> = { strong: [], moderate: [], weak: [] };
+            vars.forEach(v => grouped[getGroup(v.absEffect)].push(v));
+
+            const getBarColor = (v: typeof vars[0]) =>
+              v.metric === "eta_squared" ? "#A78BFA"
+                : (v.r ?? 0) > 0 ? "#10b981" : (v.r ?? 0) < 0 ? "#ef4444" : "#6B7280";
 
             return (
               <ClickableCard href="/dashboard/correlations" className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">변수 상관관계</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">영향력 순위</div>
                   <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
                     {correlationMatrix.dataRange.totalDays}일 기준
                   </span>
                 </div>
-                <svg viewBox="0 0 320 260" className="w-full" style={{ maxHeight: 250 }}>
-                  {/* 엣지 */}
-                  {nodes.map((node) => {
-                    const r = node.v.r ?? 0;
-                    const absR = Math.abs(r);
-                    const color = node.v.metric === "eta_squared" ? "#A78BFA"
-                      : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
-                    return (
-                      <line key={`e-${node.v.id}`}
-                        x1={CX} y1={CY} x2={node.x} y2={node.y}
-                        stroke={color}
-                        strokeWidth={Math.max(0.5, absR * 4)}
-                        strokeDasharray={node.v.significant ? "none" : "3,3"}
-                        opacity={0.65}
-                      />
-                    );
-                  })}
-                  {/* 중심 */}
-                  <circle cx={CX} cy={CY} r={22} fill="#D4A843" />
-                  <circle cx={CX} cy={CY} r={22} fill="none" stroke="#B8922E" strokeWidth={1.5} />
-                  <text x={CX} y={CY + 1} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#fff" fontWeight="bold">판매량</text>
-                  {/* 노드 + 라벨 */}
-                  {nodes.map((node) => {
-                    const absR = node.v.r != null ? Math.abs(node.v.r) : 0;
-                    const radius = Math.max(6, 4 + absR * 14);
-                    const dx = node.x - CX;
-                    const dy = node.y - CY;
-                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const lx = node.x + (dx / len) * (radius + 6);
-                    const ly = node.y + (dy / len) * (radius + 6);
-                    const anchor = dx > 10 ? "start" : dx < -10 ? "end" : "middle";
-                    return (
-                      <g key={`n-${node.v.id}`}>
-                        <circle cx={node.x} cy={node.y} r={radius}
-                          fill={node.v.color} opacity={0.85}
-                          stroke={node.v.lowSample ? "#fbbf24" : "none"}
-                          strokeWidth={node.v.lowSample ? 1.5 : 0}
-                          strokeDasharray={node.v.lowSample ? "2,2" : "none"}
-                        />
-                        <text x={lx} y={ly}
-                          textAnchor={anchor} dominantBaseline="middle"
-                          fontSize="7" fill="#374151" fontWeight="600"
-                        >{node.v.label}</text>
-                      </g>
-                    );
-                  })}
-                </svg>
-                <div className="flex items-center gap-3 mt-1 mb-2 text-[10px] text-text-tertiary">
-                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-emerald-500 inline-block rounded" /> 양의 상관</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-red-500 inline-block rounded" /> 음의 상관</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-purple-400 inline-block rounded" /> 요일 효과</span>
+                {/* 중심 변수 라벨 */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-600/20 border border-amber-500/30">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-[12px] font-bold text-amber-400">판매량</span>
+                  </span>
+                  <span className="text-[11px] text-text-tertiary">← 중심 변수</span>
                 </div>
-                {top3.length > 0 && (
-                  <div className="pt-2 border-t border-border">
-                    <div className="text-[11px] text-text-tertiary mb-1">판매량 영향 Top 3</div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                      {top3.map((item, i) => (
-                        <span key={item.id} className="text-[13px]">
-                          <span className="text-text-tertiary">{i + 1}.</span>{" "}
-                          <span className="font-bold text-text-primary">{item.label}</span>{" "}
-                          <span className={`font-bold ${item.r >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                            {item.metric === "eta_squared"
-                              ? `η²=${item.absEffect.toFixed(2)}`
-                              : `${item.r >= 0 ? "+" : ""}${item.r.toFixed(2)}`}
-                          </span>
-                          {!item.significant && <span className="text-[10px] text-amber-500 ml-0.5">*</span>}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* 그룹별 바 차트 */}
+                <div className="space-y-2">
+                  {(["strong", "moderate", "weak"] as InfluenceGroup[]).map(group => {
+                    const items = grouped[group];
+                    if (items.length === 0) return null;
+                    const meta = groupMeta[group];
+                    return (
+                      <div key={group} className={`rounded-lg p-2.5 ${meta.bg} border ${meta.border}`}>
+                        <div className="text-[10px] text-text-tertiary mb-1.5 font-medium">{meta.label}</div>
+                        <div className="space-y-1">
+                          {items.map(v => {
+                            const barWidth = Math.max(4, (v.absEffect / maxEffect) * 100);
+                            const barColor = getBarColor(v);
+                            const displayValue = v.metric === "eta_squared"
+                              ? `η²=${v.absEffect.toFixed(2)}`
+                              : `${(v.r ?? 0) >= 0 ? "+" : ""}${(v.r ?? 0).toFixed(2)}`;
+                            return (
+                              <div key={v.id} className="flex items-center gap-2">
+                                <span className="text-[11px] text-text-secondary w-[72px] truncate text-right flex-shrink-0" title={v.label}>{v.label}</span>
+                                <div className="flex-1 h-[14px] bg-black/20 rounded-sm overflow-hidden relative">
+                                  <div
+                                    className="h-full rounded-sm transition-all duration-500"
+                                    style={{ width: `${barWidth}%`, backgroundColor: barColor, opacity: 0.85 }}
+                                  />
+                                </div>
+                                <span className="text-[11px] font-bold w-[48px] text-right flex-shrink-0" style={{ color: barColor }}>
+                                  {displayValue}
+                                </span>
+                                {!v.significant && <span className="text-[9px] text-amber-500">*</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* 범례 */}
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-emerald-500 inline-block rounded-sm" /> 양의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-red-500 inline-block rounded-sm" /> 음의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-purple-400 inline-block rounded-sm" /> 요일 효과</span>
+                </div>
               </ClickableCard>
             );
           })()}
