@@ -146,46 +146,17 @@ export default function CorrelationsPage() {
   }
 
   const vars = data.variables.filter((v) => v.id !== "sales");
-  const centerX = 350;
-  const centerY = 280;
-  const maxRadius = 240;
+  const CX = 280;
+  const CY = 250;
+  const ORBIT = 180;
 
-  // 그룹별 각도 배분 (간격 넓힘)
-  const groupAngles: Record<string, { start: number; end: number }> = {
-    weather: { start: -80, end: 10 },
-    competitor: { start: 30, end: 190 },
-    oil: { start: 210, end: 250 },
-    time: { start: 275, end: 320 },
-  };
-
-  const groupVars: Record<string, Variable[]> = {};
-  for (const v of vars) {
-    if (!groupVars[v.group]) groupVars[v.group] = [];
-    groupVars[v.group].push(v);
-  }
-
+  // 균등 원형 배치: 12시(−90°)부터 시계 방향
   type NodePos = { x: number; y: number; v: Variable };
-  const nodes: NodePos[] = [];
-
-  for (const [group, gVars] of Object.entries(groupVars)) {
-    const angle = groupAngles[group] || { start: 0, end: 360 };
-    const count = gVars.length;
-    for (let i = 0; i < count; i++) {
-      const v = gVars[i];
-      const absR = v.r != null ? Math.abs(v.r) : 0;
-      const dist = maxRadius * (0.55 + (1 - absR) * 0.45);
-      const a =
-        count === 1
-          ? (angle.start + angle.end) / 2
-          : angle.start + (angle.end - angle.start) * (i / (count - 1));
-      const rad = (a * Math.PI) / 180;
-      nodes.push({
-        x: centerX + dist * Math.cos(rad),
-        y: centerY + dist * Math.sin(rad),
-        v,
-      });
-    }
-  }
+  const nodes: NodePos[] = vars.map((v, i) => {
+    const angle = -90 + (360 / vars.length) * i;
+    const rad = (angle * Math.PI) / 180;
+    return { x: CX + ORBIT * Math.cos(rad), y: CY + ORBIT * Math.sin(rad), v };
+  });
 
   const selectedVar = selectedNode
     ? data.variables.find((v) => v.id === selectedNode)
@@ -206,190 +177,118 @@ export default function CorrelationsPage() {
             <h2 className="text-[15px] font-bold text-text-primary m-0">네트워크 그래프</h2>
             <div className="flex items-center gap-4 text-[11px] text-text-tertiary">
               <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-emerald-500 inline-block rounded" /> 양의 상관
+                <span className="w-4 h-0.5 bg-emerald-500 inline-block rounded" /> 양(+)
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-red-500 inline-block rounded" /> 음의 상관
+                <span className="w-4 h-0.5 bg-red-500 inline-block rounded" /> 음(−)
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-purple-400 inline-block rounded" /> 요일 효과
+                <span className="w-4 h-0.5 bg-purple-400 inline-block rounded" /> 요일
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-full border-2 border-dashed border-amber-400 inline-block" /> 표본 부족
+                <span className="w-3 h-0.5 inline-block rounded border-t-2 border-dashed border-slate-400" /> 비유의
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-0.5 bg-slate-300 inline-block rounded" style={{ borderTop: "1px dashed #9CA3AF" }} /> 비유의
-              </span>
-              <span className="text-text-tertiary ml-2">* 경쟁사 노드 = 가격차 기준</span>
+              <span className="text-text-tertiary">선 굵기 = 관계 강도 · 경쟁사 = 가격차</span>
             </div>
           </div>
           <p className="text-[12px] text-text-tertiary mb-2 mt-0">
-            노드를 hover하면 해당 변수의 연결만 하이라이트됩니다. 클릭하면 아래에 산점도가 표시됩니다.
+            노드를 hover하면 해당 변수의 연결만 하이라이트. 클릭 → 아래 산점도.
           </p>
 
           <svg
-            viewBox="0 0 700 560"
+            viewBox="0 0 560 500"
             className="w-full"
-            style={{ maxHeight: 560 }}
+            style={{ height: 420 }}
             onMouseLeave={() => setHoveredNode(null)}
           >
-            {/* 엣지 */}
+            {/* 엣지 (선) */}
             {nodes.map((node) => {
               const r = node.v.r ?? 0;
               const absR = Math.abs(r);
-              const isHighlighted =
-                !hoveredNode || hoveredNode === node.v.id;
-              const strokeColor =
-                node.v.metric === "eta_squared"
-                  ? "#A78BFA"
-                  : r > 0
-                  ? "#10b981"
-                  : r < 0
-                  ? "#ef4444"
-                  : "#9CA3AF";
-              const strokeWidth = Math.max(1, absR * 6);
-              const dashArray = !node.v.significant ? "4,4" : "none";
+              const isHl = !hoveredNode || hoveredNode === node.v.id;
+              const color =
+                node.v.metric === "eta_squared" ? "#A78BFA"
+                : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
               return (
                 <line
-                  key={`edge-${node.v.id}`}
-                  x1={centerX}
-                  y1={centerY}
-                  x2={node.x}
-                  y2={node.y}
-                  stroke={strokeColor}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={dashArray}
-                  opacity={isHighlighted ? 0.8 : 0.15}
+                  key={`e-${node.v.id}`}
+                  x1={CX} y1={CY} x2={node.x} y2={node.y}
+                  stroke={color}
+                  strokeWidth={Math.max(0.5, absR * 5)}
+                  strokeDasharray={node.v.significant ? "none" : "5,4"}
+                  opacity={isHl ? 0.75 : 0.12}
                   style={{ transition: "opacity 0.2s" }}
                 />
               );
             })}
 
-            {/* 엣지 라벨 (선에서 수직으로 오프셋) */}
-            {nodes.map((node) => {
-              const r = node.v.r ?? 0;
-              const isHighlighted =
-                !hoveredNode || hoveredNode === node.v.id;
-              if (!isHighlighted) return null;
-              const strokeColor =
-                node.v.metric === "eta_squared"
-                  ? "#A78BFA"
-                  : r > 0
-                  ? "#10b981"
-                  : r < 0
-                  ? "#ef4444"
-                  : "#9CA3AF";
-              // 선의 중점에서 수직 방향으로 오프셋
-              const mx = (centerX + node.x) / 2;
-              const my = (centerY + node.y) / 2;
-              const dx = node.x - centerX;
-              const dy = node.y - centerY;
-              const len = Math.sqrt(dx * dx + dy * dy) || 1;
-              // 수직 벡터 (왼쪽 방향)
-              const offsetDist = 12;
-              const nx = -dy / len * offsetDist;
-              const ny = dx / len * offsetDist;
-              return (
-                <g key={`label-${node.v.id}`}>
-                  <rect
-                    x={mx + nx - 22}
-                    y={my + ny - 8}
-                    width={44}
-                    height={16}
-                    rx={3}
-                    fill="white"
-                    fillOpacity={0.85}
-                  />
-                  <text
-                    x={mx + nx}
-                    y={my + ny + 3}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fill={strokeColor}
-                    fontWeight="bold"
-                  >
-                    {node.v.metric === "eta_squared"
-                      ? `η²=${node.v.etaSq?.toFixed(2)}`
-                      : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`}
-                  </text>
-                </g>
-              );
-            })}
+            {/* 중심 노드 — 판매량 */}
+            <circle cx={CX} cy={CY} r={40} fill="#D4A843" />
+            <circle cx={CX} cy={CY} r={40} fill="none" stroke="#B8922E" strokeWidth={2.5} />
+            <text x={CX} y={CY + 1} textAnchor="middle" dominantBaseline="middle"
+              fontSize="15" fill="#fff" fontWeight="bold">판매량</text>
 
-            {/* 중심 노드 */}
-            <circle cx={centerX} cy={centerY} r={40} fill="#D4A843" />
-            <circle cx={centerX} cy={centerY} r={40} fill="none" stroke="#B8922E" strokeWidth={2} />
-            <text
-              x={centerX}
-              y={centerY + 1}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize="14"
-              fill="#fff"
-              fontWeight="bold"
-            >
-              판매량
-            </text>
-
-            {/* 변수 노드 */}
+            {/* 변수 노드 + 라벨 */}
             {nodes.map((node) => {
               const absR = node.v.r != null ? Math.abs(node.v.r) : 0;
-              const radius = Math.max(12, 8 + absR * 30);
-              const isHighlighted =
-                !hoveredNode || hoveredNode === node.v.id;
-              const isSelected = selectedNode === node.v.id;
+              const r = node.v.r ?? 0;
+              const radius = Math.max(10, 8 + absR * 28);
+              const isHl = !hoveredNode || hoveredNode === node.v.id;
+              const isSel = selectedNode === node.v.id;
+              const color =
+                node.v.metric === "eta_squared" ? "#A78BFA"
+                : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
+
+              // 라벨 위치: 노드 바깥 방향으로 밀기
+              const dx = node.x - CX;
+              const dy = node.y - CY;
+              const len = Math.sqrt(dx * dx + dy * dy) || 1;
+              const labelDist = radius + 14;
+              const lx = node.x + (dx / len) * labelDist;
+              const ly = node.y + (dy / len) * labelDist;
+              // 텍스트 앵커: 왼쪽/오른쪽 반에 따라
+              const anchor = dx > 20 ? "start" : dx < -20 ? "end" : "middle";
+
+              const coefStr = node.v.metric === "eta_squared"
+                ? `η²${node.v.etaSq?.toFixed(2)}`
+                : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
+
               return (
                 <g
-                  key={`node-${node.v.id}`}
+                  key={`n-${node.v.id}`}
                   onMouseEnter={() => setHoveredNode(node.v.id)}
-                  onClick={() =>
-                    setSelectedNode((prev) =>
-                      prev === node.v.id ? null : node.v.id
-                    )
-                  }
+                  onClick={() => setSelectedNode((p) => p === node.v.id ? null : node.v.id)}
                   style={{ cursor: "pointer" }}
                 >
                   <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={radius}
+                    cx={node.x} cy={node.y} r={radius}
                     fill={node.v.color}
-                    opacity={isHighlighted ? 0.9 : 0.2}
-                    stroke={
-                      isSelected
-                        ? "#1F2937"
-                        : node.v.lowSample
-                        ? "#fbbf24"
-                        : "none"
-                    }
-                    strokeWidth={isSelected ? 2.5 : node.v.lowSample ? 2 : 0}
-                    strokeDasharray={
-                      node.v.lowSample && !isSelected ? "3,3" : "none"
-                    }
+                    opacity={isHl ? 0.9 : 0.2}
+                    stroke={isSel ? "#1F2937" : node.v.lowSample ? "#fbbf24" : "none"}
+                    strokeWidth={isSel ? 2.5 : node.v.lowSample ? 2 : 0}
+                    strokeDasharray={node.v.lowSample && !isSel ? "3,3" : "none"}
                     style={{ transition: "opacity 0.2s" }}
                   />
+                  {/* 라벨: 이름 */}
                   <text
-                    x={node.x}
-                    y={node.y + radius + 14}
-                    textAnchor="middle"
-                    fontSize="11"
-                    fill={isHighlighted ? "#1F2937" : "#9CA3AF"}
-                    fontWeight={isSelected ? "bold" : "600"}
+                    x={lx} y={ly}
+                    textAnchor={anchor} dominantBaseline="middle"
+                    fontSize="12" fill={isHl ? "#1F2937" : "#9CA3AF"}
+                    fontWeight={isSel ? "bold" : "600"}
                     style={{ transition: "fill 0.2s" }}
                   >
                     {node.v.label}
                   </text>
-                  {node.v.lowSample && (
-                    <text
-                      x={node.x}
-                      y={node.y + radius + 26}
-                      textAnchor="middle"
-                      fontSize="9"
-                      fill="#d97706"
-                    >
-                      n={node.v.n}
-                    </text>
-                  )}
+                  {/* 상관계수: 라벨 아래에 작게 */}
+                  <text
+                    x={lx} y={ly + 14}
+                    textAnchor={anchor} dominantBaseline="middle"
+                    fontSize="10" fill={color} fontWeight="bold"
+                    opacity={isHl ? 1 : 0.4}
+                  >
+                    {coefStr}
+                    {node.v.lowSample ? ` n=${node.v.n}` : ""}
+                  </text>
                 </g>
               );
             })}

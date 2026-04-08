@@ -895,44 +895,16 @@ export default function DashboardPage() {
           {/* ⑪ 상관관계 네트워크 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
             const vars = correlationMatrix.variables.filter(v => v.id !== "sales");
-            const centerX = 160;
-            const centerY = 130;
-            const maxR = 110;
-
-            const groupAngles: Record<string, { start: number; end: number }> = {
-              weather: { start: -80, end: 10 },
-              competitor: { start: 30, end: 190 },
-              oil: { start: 210, end: 250 },
-              time: { start: 275, end: 320 },
-            };
-
-            const groupVars: Record<string, typeof vars> = {};
-            for (const v of vars) {
-              if (!groupVars[v.group]) groupVars[v.group] = [];
-              groupVars[v.group].push(v);
-            }
+            const CX = 160;
+            const CY = 130;
+            const ORBIT = 95;
 
             type NodePos = { x: number; y: number; v: typeof vars[0] };
-            const nodes: NodePos[] = [];
-
-            for (const [group, gVars] of Object.entries(groupVars)) {
-              const angle = groupAngles[group] || { start: 0, end: 360 };
-              const count = gVars.length;
-              for (let i = 0; i < count; i++) {
-                const v = gVars[i];
-                const absR = v.r != null ? Math.abs(v.r) : 0;
-                const dist = maxR * (0.55 + (1 - absR) * 0.45);
-                const a = count === 1
-                  ? (angle.start + angle.end) / 2
-                  : angle.start + (angle.end - angle.start) * (i / (count - 1));
-                const rad = (a * Math.PI) / 180;
-                nodes.push({
-                  x: centerX + dist * Math.cos(rad),
-                  y: centerY + dist * Math.sin(rad),
-                  v,
-                });
-              }
-            }
+            const nodes: NodePos[] = vars.map((v, i) => {
+              const angle = -90 + (360 / vars.length) * i;
+              const rad = (angle * Math.PI) / 180;
+              return { x: CX + ORBIT * Math.cos(rad), y: CY + ORBIT * Math.sin(rad), v };
+            });
 
             const top3 = correlationMatrix.ranking.slice(0, 3);
 
@@ -945,77 +917,48 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <svg viewBox="0 0 320 260" className="w-full" style={{ maxHeight: 250 }}>
+                  {/* 엣지 */}
                   {nodes.map((node) => {
                     const r = node.v.r ?? 0;
                     const absR = Math.abs(r);
-                    const strokeColor = node.v.metric === "eta_squared"
-                      ? "#A78BFA"
+                    const color = node.v.metric === "eta_squared" ? "#A78BFA"
                       : r > 0 ? "#10b981" : r < 0 ? "#ef4444" : "#9CA3AF";
-                    const strokeWidth = Math.max(0.5, absR * 4);
-                    const dashArray = !node.v.significant ? "3,3" : "none";
-                    const mx = (centerX + node.x) / 2;
-                    const my = (centerY + node.y) / 2;
-                    const dx = node.x - centerX;
-                    const dy = node.y - centerY;
-                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const nx = -dy / len * 8;
-                    const ny = dx / len * 8;
                     return (
-                      <g key={`edge-${node.v.id}`}>
-                        <line
-                          x1={centerX} y1={centerY}
-                          x2={node.x} y2={node.y}
-                          stroke={strokeColor}
-                          strokeWidth={strokeWidth}
-                          strokeDasharray={dashArray}
-                          opacity={0.7}
-                        />
-                        <rect
-                          x={mx + nx - 16} y={my + ny - 6}
-                          width={32} height={12} rx={2}
-                          fill="white" fillOpacity={0.85}
-                        />
-                        <text
-                          x={mx + nx}
-                          y={my + ny + 3}
-                          textAnchor="middle"
-                          fontSize="7"
-                          fill={strokeColor}
-                          fontWeight="bold"
-                        >
-                          {node.v.metric === "eta_squared"
-                            ? `η²=${node.v.etaSq?.toFixed(2)}`
-                            : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`}
-                        </text>
-                      </g>
+                      <line key={`e-${node.v.id}`}
+                        x1={CX} y1={CY} x2={node.x} y2={node.y}
+                        stroke={color}
+                        strokeWidth={Math.max(0.5, absR * 4)}
+                        strokeDasharray={node.v.significant ? "none" : "3,3"}
+                        opacity={0.65}
+                      />
                     );
                   })}
-                  <circle cx={centerX} cy={centerY} r={24} fill="#D4A843" />
-                  <circle cx={centerX} cy={centerY} r={24} fill="none" stroke="#B8922E" strokeWidth={1.5} />
-                  <text x={centerX} y={centerY + 1} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill="#fff" fontWeight="bold">판매량</text>
+                  {/* 중심 */}
+                  <circle cx={CX} cy={CY} r={22} fill="#D4A843" />
+                  <circle cx={CX} cy={CY} r={22} fill="none" stroke="#B8922E" strokeWidth={1.5} />
+                  <text x={CX} y={CY + 1} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#fff" fontWeight="bold">판매량</text>
+                  {/* 노드 + 라벨 */}
                   {nodes.map((node) => {
                     const absR = node.v.r != null ? Math.abs(node.v.r) : 0;
-                    const radius = Math.max(7, 5 + absR * 18);
+                    const radius = Math.max(6, 4 + absR * 14);
+                    const dx = node.x - CX;
+                    const dy = node.y - CY;
+                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const lx = node.x + (dx / len) * (radius + 6);
+                    const ly = node.y + (dy / len) * (radius + 6);
+                    const anchor = dx > 10 ? "start" : dx < -10 ? "end" : "middle";
                     return (
-                      <g key={`node-${node.v.id}`}>
-                        <circle
-                          cx={node.x} cy={node.y} r={radius}
+                      <g key={`n-${node.v.id}`}>
+                        <circle cx={node.x} cy={node.y} r={radius}
                           fill={node.v.color} opacity={0.85}
                           stroke={node.v.lowSample ? "#fbbf24" : "none"}
                           strokeWidth={node.v.lowSample ? 1.5 : 0}
                           strokeDasharray={node.v.lowSample ? "2,2" : "none"}
                         />
-                        <text
-                          x={node.x} y={node.y + radius + 9}
-                          textAnchor="middle" fontSize="7.5" fill="#374151" fontWeight="600"
-                        >
-                          {node.v.label}
-                        </text>
-                        {node.v.lowSample && (
-                          <text x={node.x} y={node.y + radius + 17} textAnchor="middle" fontSize="6" fill="#d97706">
-                            n={node.v.n}
-                          </text>
-                        )}
+                        <text x={lx} y={ly}
+                          textAnchor={anchor} dominantBaseline="middle"
+                          fontSize="7" fill="#374151" fontWeight="600"
+                        >{node.v.label}</text>
                       </g>
                     );
                   })}
