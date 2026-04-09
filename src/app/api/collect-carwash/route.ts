@@ -41,7 +41,7 @@ export async function GET(request: Request) {
         .from("transactions")
         .select("date")
         .eq("business_id", BUSINESS_ID)
-        .is("is_deleted", false)
+        .neq("is_deleted", true)
         .order("date", { ascending: true })
         .limit(1);
 
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
         .from("transactions")
         .select("date, price_key, price_label, price_value, payment_key")
         .eq("business_id", BUSINESS_ID)
-        .is("is_deleted", false)
+        .neq("is_deleted", true)
         .gte("date", minDate)
         .lte("date", maxDate)
         .order("date", { ascending: true })
