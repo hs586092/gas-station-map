@@ -96,6 +96,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
+  // ── 3.5 세차 데이터 조회 ──
+  const { data: carwashYesterday } = await supabase
+    .from("carwash_daily")
+    .select("date, total_count, total_revenue, breakdown")
+    .eq("station_id", id)
+    .eq("date", new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }))
+    .limit(1);
+
   // ── 4. 어제 복기 데이터 ──
   const yesterdayStr = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
   const yesterdayFc = forecasts.find((f) => f.forecast_date === yesterdayStr);
@@ -118,6 +126,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     predictedCount: number | null;
     actualCount: number | null;
     countErrorPct: number | null;
+    carwashCount: number | null;
+    carwashRevenue: number | null;
     causes: Cause[];
     errorBreakdown: string | null;
   } | null = null;
@@ -423,6 +433,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    const cwData = carwashYesterday?.[0] ?? null;
+
     yesterday = {
       date: yesterdayStr,
       predicted,
@@ -432,6 +444,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       predictedCount,
       actualCount,
       countErrorPct,
+      carwashCount: cwData?.total_count ?? null,
+      carwashRevenue: cwData?.total_revenue ?? null,
       causes,
       errorBreakdown,
     };

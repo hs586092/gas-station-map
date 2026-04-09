@@ -214,7 +214,7 @@ export async function GET(
   const compact = request.nextUrl.searchParams.get("compact") === "1";
 
   // ── 1. 데이터 수집 (병렬) ──
-  const [salesRes, weatherRes, oilRes, stationRes] = await Promise.all([
+  const [salesRes, weatherRes, oilRes, stationRes, carwashRes] = await Promise.all([
     supabase
       .from("sales_data")
       .select(
@@ -236,6 +236,11 @@ export async function GET(
       .select("id, name, lat, lng")
       .eq("id", id)
       .single(),
+    supabase
+      .from("carwash_daily")
+      .select("date, total_count")
+      .eq("station_id", id)
+      .order("date", { ascending: true }),
   ]);
 
   if (!salesRes.data || salesRes.data.length === 0) {
@@ -274,6 +279,12 @@ export async function GET(
       precip: Number(w.precipitation_mm) || 0,
       tempAvg,
     });
+  }
+
+  // ── 3.5 세차 → 날짜별 Map ──
+  const carwashMap = new Map<string, number>();
+  for (const c of carwashRes.data || []) {
+    if (c.total_count > 0) carwashMap.set(c.date, c.total_count);
   }
 
   // ── 4. 유가 → 날짜별 Map ──
@@ -473,6 +484,32 @@ export async function GET(
     });
   }
 
+  // (d2) 세차 대수 vs 판매량
+  {
+    const pairs: { vol: number; cw: number }[] = [];
+    for (const [date, s] of salesMap) {
+      const cw = carwashMap.get(date);
+      if (cw != null) pairs.push({ vol: s.totalVol, cw });
+    }
+    const result = pearsonWithPValue(
+      pairs.map((p) => p.cw),
+      pairs.map((p) => p.vol)
+    );
+    variables.push({
+      id: "carwash",
+      label: "세차 대수",
+      group: "weather",
+      color: "#8B5CF6",
+      metric: "pearson",
+      r: result?.r ?? null,
+      etaSq: null,
+      p: result?.p ?? null,
+      n: pairs.length,
+      significant: result ? result.p < 0.05 : false,
+      lowSample: pairs.length < 30,
+    });
+  }
+
   // (e) 경쟁사 가격 차이 vs 판매량
   for (const comp of competitors) {
     const pairs: { vol: number; diff: number }[] = [];
@@ -537,6 +574,7 @@ export async function GET(
     precipitation: number | null;
     temperature: number | null;
     brent: number | null;
+    carwash: number | null;
     dow: number;
     competitorDiffs: Record<string, number | null>;
   }
@@ -555,6 +593,7 @@ export async function GET(
       precipitation: w?.precip ?? null,
       temperature: w?.tempAvg ?? null,
       brent,
+      carwash: carwashMap.get(date) ?? null,
       dow: s.dow,
       competitorDiffs,
     });

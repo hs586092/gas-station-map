@@ -35,7 +35,7 @@ export async function GET(
   const { id } = await params;
 
   // ── 데이터 수집 ──
-  const [salesRes, weatherRes] = await Promise.all([
+  const [salesRes, weatherRes, carwashRes] = await Promise.all([
     supabase
       .from("sales_data")
       .select("date, gasoline_volume, gasoline_count, diesel_volume, diesel_count")
@@ -44,6 +44,11 @@ export async function GET(
     supabase
       .from("weather_daily")
       .select("date, weather_code, temp_max, temp_min, precipitation_mm")
+      .order("date", { ascending: true }),
+    supabase
+      .from("carwash_daily")
+      .select("date, total_count")
+      .eq("station_id", id)
       .order("date", { ascending: true }),
   ]);
 
@@ -277,6 +282,67 @@ export async function GET(
       : 0,
   };
 
+  // ── [6.5] 세차 × 날씨 분석 (비 다음날 세차 증가율) ──
+  const carwashMap = new Map<string, number>();
+  for (const c of carwashRes.data || []) {
+    carwashMap.set(c.date, c.total_count);
+  }
+
+  // lag-1: 어제 강수량 → 오늘 세차 대수
+  const carwashLag1Pairs: { precip: number; cwNext: number }[] = [];
+  // same-day: 당일 강수량 → 당일 세차 대수
+  const carwashSameDayPairs: { precip: number; cw: number }[] = [];
+
+  const sortedDates = joined.map((d) => d.date).sort();
+  for (let i = 0; i < sortedDates.length - 1; i++) {
+    const today = sortedDates[i];
+    const tomorrow = sortedDates[i + 1];
+    const todayJ = joined.find((d) => d.date === today);
+    const cwToday = carwashMap.get(today);
+    const cwTomorrow = carwashMap.get(tomorrow);
+
+    if (todayJ && cwTomorrow != null) {
+      carwashLag1Pairs.push({ precip: todayJ.precip, cwNext: cwTomorrow });
+    }
+    if (todayJ && cwToday != null) {
+      carwashSameDayPairs.push({ precip: todayJ.precip, cw: cwToday });
+    }
+  }
+
+  // 강수 강도별 세차 평균 (비 다음날)
+  const cwByIntensity: Record<string, { counts: number[]; label: string }> = {
+    dry: { counts: [], label: "맑은 다음날" },
+    light: { counts: [], label: "약한비 다음날" },
+    heavy: { counts: [], label: "강한비 다음날" },
+  };
+  for (const p of carwashLag1Pairs) {
+    const key = p.precip < 1 ? "dry" : p.precip < 5 ? "light" : "heavy";
+    cwByIntensity[key].counts.push(p.cwNext);
+  }
+
+  const cwBaselineAvg = carwashLag1Pairs.length > 0
+    ? carwashLag1Pairs.reduce((s, p) => s + p.cwNext, 0) / carwashLag1Pairs.length
+    : 0;
+
+  const carwashWeather = {
+    lag1Correlation: carwashLag1Pairs.length >= 3
+      ? +pearson(carwashLag1Pairs.map((p) => p.precip), carwashLag1Pairs.map((p) => p.cwNext)).toFixed(3)
+      : null,
+    sameDayCorrelation: carwashSameDayPairs.length >= 3
+      ? +pearson(carwashSameDayPairs.map((p) => p.precip), carwashSameDayPairs.map((p) => p.cw)).toFixed(3)
+      : null,
+    byIntensity: Object.entries(cwByIntensity).map(([key, v]) => ({
+      key,
+      label: v.label,
+      n: v.counts.length,
+      avgCount: v.counts.length > 0 ? Math.round(mean(v.counts)) : null,
+      diffPct: v.counts.length > 0 && cwBaselineAvg > 0
+        ? +(((mean(v.counts) - cwBaselineAvg) / cwBaselineAvg) * 100).toFixed(1)
+        : null,
+    })),
+    totalDays: carwashLag1Pairs.length,
+  };
+
   // ── [7] todayForecast ──
   // 오늘 날짜의 요일 + 오늘 예보 precipSum 으로 강수강도 분류 → 가법 모델로 예상 판매량 계산
   let todayForecast: {
@@ -372,6 +438,7 @@ export async function GET(
       additiveHeatmap,
       perTxnDecomposition: decomp,
       correlation,
+      carwashWeather,
       todayForecast,
     },
     {

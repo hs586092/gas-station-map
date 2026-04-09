@@ -392,6 +392,8 @@ export default function DashboardPage() {
       predictedCount: number | null; actualCount: number | null; countErrorPct: number | null;
       causes: Array<{ type: string; icon: string; message: string; impactL: number; impactPct: number; primary?: boolean }>;
       errorBreakdown: string | null;
+      carwashCount: number | null;
+      carwashRevenue: number | null;
     } | null;
     accuracy: {
       days7: { avgErrorPct: number; accuracy: number; count: number } | null;
@@ -832,6 +834,16 @@ export default function DashboardPage() {
                             {y.countErrorPct > 0 ? "+" : ""}{y.countErrorPct}%
                           </span>
                         )}
+                      </div>
+                    )}
+                    {y.carwashCount != null && (
+                      <div className="flex items-center justify-between">
+                        <div className="text-[12px] text-text-secondary">
+                          🚿 세차 <span className="font-bold text-purple-500">{y.carwashCount.toLocaleString()}대</span>
+                          {y.carwashRevenue != null && y.carwashRevenue > 0 && (
+                            <span className="text-text-tertiary ml-1.5">({Math.round(y.carwashRevenue / 10000)}만원)</span>
+                          )}
+                        </div>
                       </div>
                     )}
                     {y.causes.length > 0 && (

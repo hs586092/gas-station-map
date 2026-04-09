@@ -46,6 +46,7 @@ interface ScatterPoint {
   precipitation: number | null;
   temperature: number | null;
   brent: number | null;
+  carwash: number | null;
   dow: number;
   competitorDiffs: Record<string, number | null>;
 }
@@ -103,6 +104,7 @@ export default function CorrelationsPage() {
         if (variableId === "precipitation") xVal = pt.precipitation;
         else if (variableId === "temperature") xVal = pt.temperature;
         else if (variableId === "brent") xVal = pt.brent;
+        else if (variableId === "carwash") xVal = pt.carwash;
         else if (variableId === "day_of_week") xVal = pt.dow;
         else if (variableId.startsWith("comp_")) {
           const compId = variableId.replace("comp_", "");

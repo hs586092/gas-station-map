@@ -33,14 +33,16 @@ export async function GET(
   let timingData: Record<string, unknown> | null = null;
   let weatherData: Record<string, unknown> | null = null;
   let weatherImpactData: Record<string, unknown> | null = null;
+  let forecastData: Record<string, unknown> | null = null;
 
   try {
-    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes] = await Promise.all([
+    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes, forecastRes] = await Promise.all([
       fetch(`${baseUrl}/api/stations/${id}/dashboard-insights`, { next: { revalidate: 1800 } }),
       fetch(`${baseUrl}/api/stations/${id}/sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/timing-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/weather`, { next: { revalidate: 600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/weather-sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
+      fetch(`${baseUrl}/api/stations/${id}/forecast-review?t=${Date.now()}`, { cache: "no-store" }).catch(() => null),
     ]);
 
     if (insightsRes.ok) insights = await insightsRes.json();
@@ -48,6 +50,7 @@ export async function GET(
     if (timingRes?.ok) timingData = await timingRes.json();
     if (weatherRes?.ok) weatherData = await weatherRes.json();
     if (weatherImpactRes?.ok) weatherImpactData = await weatherImpactRes.json();
+    if (forecastRes?.ok) forecastData = await forecastRes.json();
   } catch {
     // 데이터 수집 실패 시 insights 없이 진행
   }
@@ -153,6 +156,24 @@ export async function GET(
       dataPrompt += `과거 본격비(≥5mm) 영향: 판매량 ${heavy.adjustedDiffPct >= 0 ? "+" : ""}${heavy.adjustedDiffPct}% (n=${heavy.n}, 요일보정)`;
       if (wsa.tTest?.significant) dataPrompt += ` [통계 유의]`;
       dataPrompt += `\n`;
+    }
+  }
+
+  // 세차장 데이터
+  const fc = forecastData as Record<string, any> | null;
+  const cwYesterday = fc?.yesterday;
+  if (cwYesterday?.carwashCount != null) {
+    dataPrompt += `세차: 어제 ${cwYesterday.carwashCount}대`;
+    if (cwYesterday.carwashRevenue != null) dataPrompt += ` 매출 ${Math.round(cwYesterday.carwashRevenue / 10000)}만원`;
+    dataPrompt += `\n`;
+  }
+
+  // 비 다음날 세차 증가율
+  const cwWeather = (weatherImpactData as Record<string, any>)?.carwashWeather;
+  if (cwWeather?.lag1Correlation != null) {
+    const heavy = cwWeather.byIntensity?.find((b: any) => b.key === "heavy");
+    if (heavy?.diffPct != null && heavy.n >= 3) {
+      dataPrompt += `비다음날세차: 강한비 후 세차 ${heavy.diffPct >= 0 ? "+" : ""}${heavy.diffPct}% (n=${heavy.n})\n`;
     }
   }
 
