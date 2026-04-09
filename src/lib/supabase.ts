@@ -12,3 +12,11 @@ export function createServiceClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
+
+/** 세차장 Supabase 클라이언트 (서버 사이드 전용) */
+export function createCarwashClient() {
+  return createClient(
+    process.env.CARWASH_SUPABASE_URL!,
+    process.env.CARWASH_SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
