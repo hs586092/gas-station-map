@@ -217,7 +217,7 @@ function ClickableCard({ href, children, className = "" }: { href: string; child
       onKeyDown={(e) => e.key === "Enter" && router.push(href)}
     >
       {children}
-      <div className="flex items-center justify-end mt-3 pt-2 border-t border-border/60 text-[11px] font-semibold text-text-tertiary gap-0.5 tracking-wider uppercase">
+      <div className="flex items-center justify-end mt-3 pt-2 border-t border-border/60 text-[11px] font-semibold text-blue-600 gap-0.5 tracking-wider uppercase">
         <span>상세</span>
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M9 18l6-6-6-6" />
