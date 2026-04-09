@@ -1541,7 +1541,7 @@ export default function DashboardPage() {
             const maxVol = Math.max(...bars.map(b => Math.max(b.avg, b.actual ?? 0)), 1);
 
             return (
-              <div className="bg-surface-raised rounded-xl p-5 border border-border">
+              <ClickableCard href="/dashboard/weekly-sales" className="bg-surface-raised rounded-xl p-5 border border-border">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-2">이번 주 판매</div>
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-[24px] font-extrabold text-text-primary tnum tracking-tight">
@@ -1591,7 +1591,7 @@ export default function DashboardPage() {
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block" /> 실제(평균 이상)</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block" /> 실제(평균 이하)</span>
                 </div>
-              </div>
+              </ClickableCard>
             );
           })()}
 
