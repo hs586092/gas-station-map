@@ -441,6 +441,8 @@ export default function DashboardPage() {
 
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [snapshotUpdatedAt, setSnapshotUpdatedAt] = useState<string | null>(null);
+  const [rebuilding, setRebuilding] = useState(false);
 
   const fetchAllData = (bustCache = false) => {
     const base = `/api/stations/${STATION_ID}`;
@@ -483,10 +485,15 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => { setPriceHistory(d); setLoading((p) => ({ ...p, priceHistory: false })); });
 
-    // ── 1단계: essential (브리핑+판매분석+날씨영향+예측복기+세차 — 위쪽 카드) ──
-    fetch(`${base}/dashboard-all?tier=essential${cb ? "&" + cb.slice(1) : ""}`)
-      .then((r) => r.json())
+    // ── 스냅샷 기반 로딩 (1 쿼리로 전체 분석 데이터 로드) ──
+    fetch(`/api/snapshot/${STATION_ID}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("NO_SNAPSHOT");
+        return r.json();
+      })
       .then((data) => {
+        if (data._snapshot?.updatedAt) setSnapshotUpdatedAt(data._snapshot.updatedAt);
+
         if (data.insights) setInsights(data.insights);
         setLoading((p) => ({ ...p, insights: false }));
 
@@ -501,18 +508,7 @@ export default function DashboardPage() {
 
         if (data.carwash && !data.carwash.error) setCarwashSummary(data.carwash);
         setLoading((p) => ({ ...p, carwash: false }));
-      })
-      .catch(() => {
-        setLoading((p) => ({
-          ...p, insights: false, salesAnalysis: false, weatherImpact: false,
-          forecastReview: false, carwash: false,
-        }));
-      });
 
-    // ── 2단계: extended (상관관계+타이밍+크로스인사이트 — 아래쪽 카드) ──
-    fetch(`${base}/dashboard-all?tier=extended`)
-      .then((r) => r.json())
-      .then((data) => {
         if (data.correlation && !data.correlation.error) setCorrelationMatrix(data.correlation);
         setLoading((p) => ({ ...p, correlationMatrix: false }));
 
@@ -523,9 +519,40 @@ export default function DashboardPage() {
         setLoading((p) => ({ ...p, crossInsights: false }));
       })
       .catch(() => {
-        setLoading((p) => ({
-          ...p, correlationMatrix: false, timingAnalysis: false, crossInsights: false,
-        }));
+        // 스냅샷 없음 → fallback: dashboard-all 실시간 호출 + 스냅샷 자동 생성
+        fetch(`${base}/dashboard-all?tier=all${cb ? "&" + cb.slice(1) : ""}`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.insights) setInsights(data.insights);
+            setLoading((p) => ({ ...p, insights: false }));
+            if (data.salesAnalysis && !data.salesAnalysis.error) setSalesAnalysis(data.salesAnalysis);
+            setLoading((p) => ({ ...p, salesAnalysis: false }));
+            if (data.weatherSales && !data.weatherSales.error) setWeatherImpact(data.weatherSales);
+            setLoading((p) => ({ ...p, weatherImpact: false }));
+            if (data.forecast && !data.forecast.error) setForecastReview(data.forecast);
+            setLoading((p) => ({ ...p, forecastReview: false }));
+            if (data.carwash && !data.carwash.error) setCarwashSummary(data.carwash);
+            setLoading((p) => ({ ...p, carwash: false }));
+            if (data.correlation && !data.correlation.error) setCorrelationMatrix(data.correlation);
+            setLoading((p) => ({ ...p, correlationMatrix: false }));
+            if (data.timing && data.timing.currentSituation) setTimingAnalysis(data.timing);
+            setLoading((p) => ({ ...p, timingAnalysis: false }));
+            if (data.crossInsights && !data.crossInsights.error) setCrossInsights(data.crossInsights);
+            setLoading((p) => ({ ...p, crossInsights: false }));
+          })
+          .catch(() => {
+            setLoading((p) => ({
+              ...p, insights: false, salesAnalysis: false, weatherImpact: false,
+              forecastReview: false, carwash: false, correlationMatrix: false,
+              timingAnalysis: false, crossInsights: false,
+            }));
+          });
+        // 백그라운드에서 스냅샷 생성 (다음 로드부터 빠르게)
+        fetch("/api/snapshot/rebuild", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stationId: STATION_ID }),
+        }).catch(() => {});
       });
   };
 
@@ -536,7 +563,20 @@ export default function DashboardPage() {
       const res = await fetch("/api/sync-sales", { method: "POST" });
       const data = await res.json();
       if (data.success) {
-        setSyncResult({ ok: true, message: "판매 데이터 동기화 완료" });
+        setSyncResult({ ok: true, message: "동기화 완료, 스냅샷 갱신 중..." });
+        // 스냅샷 재생성 후 데이터 리로드
+        setRebuilding(true);
+        try {
+          await fetch("/api/snapshot/rebuild", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stationId: STATION_ID }),
+          });
+          setSyncResult({ ok: true, message: "스냅샷 갱신 완료" });
+        } catch {
+          setSyncResult({ ok: true, message: "동기화 완료 (스냅샷 갱신 실패)" });
+        }
+        setRebuilding(false);
         fetchAllData(true);
       } else {
         setSyncResult({ ok: false, message: data.error || "동기화 실패" });
@@ -591,13 +631,18 @@ export default function DashboardPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={syncing ? "animate-spin" : ""}>
                 <path d="M1 4v6h6" /><path d="M23 20v-6h-6" /><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
               </svg>
-              {syncing ? "동기화 중..." : "데이터 새로고침"}
+              {syncing ? (rebuilding ? "스냅샷 갱신 중..." : "동기화 중...") : "데이터 새로고침"}
             </button>
             {syncResult && (
               <span className={`text-[12px] font-medium ${syncResult.ok ? "text-emerald-400" : "text-red-400"}`}>
                 {syncResult.message}
               </span>
             )}
+            {!syncResult && snapshotUpdatedAt && (() => {
+              const mins = Math.round((Date.now() - new Date(snapshotUpdatedAt).getTime()) / 60000);
+              const label = mins < 1 ? "방금 갱신" : mins < 60 ? `${mins}분 전 갱신` : mins < 1440 ? `${Math.round(mins / 60)}시간 전 갱신` : `${Math.round(mins / 1440)}일 전 갱신`;
+              return <span className="text-[11px] text-white/40">{label}</span>;
+            })()}
           </div>
           {!loading.detail && detail?.newAddress && (
             <p className="text-[13px] text-white/60 m-0 mt-1.5 flex items-center gap-1.5">
