@@ -1642,63 +1642,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ⑦ 내 가격 추이 (wide) */}
-          {loading.priceHistory ? (
-            <div className="md:col-span-2 lg:col-span-3"><CardSkeleton /></div>
-          ) : priceHistory && priceHistory.history.length > 0 && (
-            <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">내 가격 추이 (30일)</div>
-                  <DataFreshness date={priceHistory.history[priceHistory.history.length - 1]?.date ?? null} label="최종" />
-                </div>
-                <div className="flex gap-3 text-[12px]">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-0.5 rounded bg-coral inline-block" /> 휘발유
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-0.5 rounded bg-text-primary inline-block" /> 경유
-                  </span>
-                </div>
-              </div>
-              {(() => {
-                const hist = priceHistory.history;
-                const recent14 = hist.slice(-14);
-                let chgCnt = 0, totalChg = 0;
-                for (let i = 1; i < recent14.length; i++) {
-                  const prev = recent14[i - 1].gasoline, curr = recent14[i].gasoline;
-                  if (prev && curr && prev !== curr) { chgCnt++; totalChg += Math.abs(curr - prev); }
-                }
-                const avgChg = chgCnt > 0 ? Math.round(totalChg / chgCnt) : 0;
-                const first = recent14[0]?.gasoline, last = recent14[recent14.length - 1]?.gasoline;
-                const trend = first && last ? (last > first ? "상승" : last < first ? "하락" : "보합") : null;
-                const trendIcon = trend === "상승" ? "↗" : trend === "하락" ? "↘" : "→";
-                const trendColor = trend === "상승" ? "text-red-500" : trend === "하락" ? "text-blue-500" : "text-slate-400";
-                return (
-                  <div className="text-[12px] text-text-secondary mb-2">
-                    최근 2주: 변경 {chgCnt}회{avgChg > 0 && <>, 평균 ±{avgChg}원</>}
-                    {trend && <span className={`font-bold ml-1.5 ${trendColor}`}>{trendIcon} {trend}</span>}
-                  </div>
-                );
-              })()}
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={priceHistory.history.map((h) => ({ ...h, date: h.date.slice(5) }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#9CA3AF" }} interval="preserveStartEnd" />
-                  <YAxis domain={["dataMin - 20", "dataMax + 20"]} tick={{ fontSize: 12, fill: "#9CA3AF" }} tickFormatter={(v) => v.toLocaleString()} width={45} />
-                  <Tooltip
-                    formatter={(value, name) => [`${Number(value).toLocaleString()}원`, name]}
-                    contentStyle={{ background: "#FFFFFF", border: "1px solid #E5E5E5", borderRadius: 6, fontSize: 12 }}
-                    labelStyle={{ color: "#1A1A1A" }}
-                    itemStyle={{ color: "#1A1A1A" }}
-                  />
-                  <Line type="monotone" dataKey="gasoline" stroke="#FF5252" strokeWidth={2} dot={false} name="휘발유" connectNulls />
-                  <Line type="monotone" dataKey="diesel" stroke="#1A1A1A" strokeWidth={2} dot={false} name="경유" connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </ClickableCard>
-          )}
-
           {/* ⑧ 경쟁사 프로파일링 + ⑩ 가격 시뮬레이터 (2열 나란히) */}
           {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
             <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
@@ -1994,6 +1937,62 @@ export default function DashboardPage() {
             </ClickableCard>
           )}
 
+          {/* ⑦ 내 가격 추이 (wide) — 최하단 */}
+          {loading.priceHistory ? (
+            <div className="md:col-span-2 lg:col-span-3"><CardSkeleton /></div>
+          ) : priceHistory && priceHistory.history.length > 0 && (
+            <ClickableCard href="/dashboard/price-history" className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">내 가격 추이 (30일)</div>
+                  <DataFreshness date={priceHistory.history[priceHistory.history.length - 1]?.date ?? null} label="최종" />
+                </div>
+                <div className="flex gap-3 text-[12px]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-0.5 rounded bg-coral inline-block" /> 휘발유
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-0.5 rounded bg-text-primary inline-block" /> 경유
+                  </span>
+                </div>
+              </div>
+              {(() => {
+                const hist = priceHistory.history;
+                const recent14 = hist.slice(-14);
+                let chgCnt = 0, totalChg = 0;
+                for (let i = 1; i < recent14.length; i++) {
+                  const prev = recent14[i - 1].gasoline, curr = recent14[i].gasoline;
+                  if (prev && curr && prev !== curr) { chgCnt++; totalChg += Math.abs(curr - prev); }
+                }
+                const avgChg = chgCnt > 0 ? Math.round(totalChg / chgCnt) : 0;
+                const first = recent14[0]?.gasoline, last = recent14[recent14.length - 1]?.gasoline;
+                const trend = first && last ? (last > first ? "상승" : last < first ? "하락" : "보합") : null;
+                const trendIcon = trend === "상승" ? "↗" : trend === "하락" ? "↘" : "→";
+                const trendColor = trend === "상승" ? "text-red-500" : trend === "하락" ? "text-blue-500" : "text-slate-400";
+                return (
+                  <div className="text-[12px] text-text-secondary mb-2">
+                    최근 2주: 변경 {chgCnt}회{avgChg > 0 && <>, 평균 ±{avgChg}원</>}
+                    {trend && <span className={`font-bold ml-1.5 ${trendColor}`}>{trendIcon} {trend}</span>}
+                  </div>
+                );
+              })()}
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={priceHistory.history.map((h) => ({ ...h, date: h.date.slice(5) }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#9CA3AF" }} interval="preserveStartEnd" />
+                  <YAxis domain={["dataMin - 20", "dataMax + 20"]} tick={{ fontSize: 12, fill: "#9CA3AF" }} tickFormatter={(v) => v.toLocaleString()} width={45} />
+                  <Tooltip
+                    formatter={(value, name) => [`${Number(value).toLocaleString()}원`, name]}
+                    contentStyle={{ background: "#FFFFFF", border: "1px solid #E5E5E5", borderRadius: 6, fontSize: 12 }}
+                    labelStyle={{ color: "#1A1A1A" }}
+                    itemStyle={{ color: "#1A1A1A" }}
+                  />
+                  <Line type="monotone" dataKey="gasoline" stroke="#FF5252" strokeWidth={2} dot={false} name="휘발유" connectNulls />
+                  <Line type="monotone" dataKey="diesel" stroke="#1A1A1A" strokeWidth={2} dot={false} name="경유" connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </ClickableCard>
+          )}
 
         </div>
       </main>
