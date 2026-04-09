@@ -1197,98 +1197,6 @@ export default function DashboardPage() {
 
           <SectionDivider title="내 매출 현황" description="판매량 · 세차 · 영향 요인" />
 
-          {/* ⑪ 영향력 순위 바 차트 */}
-          {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
-            const vars = correlationMatrix.variables
-              .filter(v => v.id !== "sales")
-              .map(v => {
-                const absEffect = v.metric === "eta_squared" ? (v.etaSq ?? 0) : Math.abs(v.r ?? 0);
-                return { ...v, absEffect };
-              })
-              .sort((a, b) => b.absEffect - a.absEffect);
-
-            const maxEffect = Math.max(...vars.map(v => v.absEffect), 0.01);
-
-            type InfluenceGroup = "strong" | "moderate" | "weak";
-            const getGroup = (abs: number): InfluenceGroup =>
-              abs > 0.4 ? "strong" : abs > 0.2 ? "moderate" : "weak";
-
-            const groupMeta: Record<InfluenceGroup, { label: string; borderColor: string }> = {
-              strong: { label: "강한 영향 |r| > 0.4", borderColor: "#639922" },
-              moderate: { label: "보통 영향 0.2 < |r| < 0.4", borderColor: "#378ADD" },
-              weak: { label: "약한/없음 |r| < 0.2", borderColor: "#888" },
-            };
-
-            const grouped: Record<InfluenceGroup, typeof vars> = { strong: [], moderate: [], weak: [] };
-            vars.forEach(v => grouped[getGroup(v.absEffect)].push(v));
-
-            const getBarColor = (v: typeof vars[0]) =>
-              v.metric === "eta_squared" ? "#7F77DD"
-                : (v.r ?? 0) > 0 ? "#1D9E75" : (v.r ?? 0) < 0 ? "#E24B4A" : "#6B7280";
-
-            return (
-              <ClickableCard href="/dashboard/correlations" className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">영향력 순위</div>
-                  <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
-                    {correlationMatrix.dataRange.totalDays}일 기준
-                  </span>
-                </div>
-                {/* 중심 변수 라벨 */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-600/20 border border-amber-500/30">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span className="text-[12px] font-bold text-amber-400">판매량</span>
-                  </span>
-                  <span className="text-[11px] text-text-tertiary">← 중심 변수</span>
-                </div>
-                {/* 그룹별 바 차트 */}
-                <div className="space-y-2">
-                  {(["strong", "moderate", "weak"] as InfluenceGroup[]).map(group => {
-                    const items = grouped[group];
-                    if (items.length === 0) return null;
-                    const meta = groupMeta[group];
-                    return (
-                      <div key={group} className="rounded-md py-2 pr-2.5 pl-3" style={{ borderLeft: `3px solid ${meta.borderColor}` }}>
-                        <div className="text-[10px] text-text-tertiary mb-1.5 font-medium">{meta.label}</div>
-                        <div className="space-y-1">
-                          {items.map(v => {
-                            const barWidth = Math.max(4, (v.absEffect / maxEffect) * 100);
-                            const barColor = getBarColor(v);
-                            const displayValue = v.metric === "eta_squared"
-                              ? `η²=${v.absEffect.toFixed(2)}`
-                              : `${(v.r ?? 0) >= 0 ? "+" : ""}${(v.r ?? 0).toFixed(2)}`;
-                            return (
-                              <div key={v.id} className="flex items-center gap-2">
-                                <span className="text-[11px] text-text-secondary w-[72px] truncate text-right flex-shrink-0" title={v.label}>{v.label}</span>
-                                <div className="flex-1 h-[14px] rounded-sm overflow-hidden relative" style={{ backgroundColor: "#f0f0f0" }}>
-                                  <div
-                                    className="h-full rounded-sm transition-all duration-500"
-                                    style={{ width: `${barWidth}%`, backgroundColor: barColor }}
-                                  />
-                                </div>
-                                <span className="text-[12px] w-[52px] text-right flex-shrink-0" style={{ color: barColor, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                                  {displayValue}
-                                </span>
-                                {!v.significant && <span className="text-[9px] text-amber-500">*</span>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* 범례 */}
-                <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
-                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#1D9E75" }} /> 양의 상관</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> 음의 상관</span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#7F77DD" }} /> 요일 효과</span>
-                </div>
-              </ClickableCard>
-            );
-          })()}
-
           {/* ⑧ 판매량·가격 분석 */}
           {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (
             <ClickableCard href="/dashboard/sales-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -1343,6 +1251,178 @@ export default function DashboardPage() {
               </div>
             </ClickableCard>
           )}
+
+          {/* ⑪ 영향력 순위 바 차트 */}
+          {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
+            const vars = correlationMatrix.variables
+              .filter(v => v.id !== "sales")
+              .map(v => {
+                const absEffect = v.metric === "eta_squared" ? (v.etaSq ?? 0) : Math.abs(v.r ?? 0);
+                return { ...v, absEffect };
+              })
+              .sort((a, b) => b.absEffect - a.absEffect);
+
+            const maxEffect = Math.max(...vars.map(v => v.absEffect), 0.01);
+
+            type InfluenceGroup = "strong" | "moderate" | "weak";
+            const getGroup = (abs: number): InfluenceGroup =>
+              abs > 0.4 ? "strong" : abs > 0.2 ? "moderate" : "weak";
+
+            const groupMeta: Record<InfluenceGroup, { label: string; borderColor: string }> = {
+              strong: { label: "강한 영향 |r| > 0.4", borderColor: "#639922" },
+              moderate: { label: "보통 영향 0.2 < |r| < 0.4", borderColor: "#378ADD" },
+              weak: { label: "약한/없음 |r| < 0.2", borderColor: "#888" },
+            };
+
+            const grouped: Record<InfluenceGroup, typeof vars> = { strong: [], moderate: [], weak: [] };
+            vars.forEach(v => grouped[getGroup(v.absEffect)].push(v));
+
+            const getBarColor = (v: typeof vars[0]) =>
+              v.metric === "eta_squared" ? "#7F77DD"
+                : (v.r ?? 0) > 0 ? "#1D9E75" : (v.r ?? 0) < 0 ? "#E24B4A" : "#6B7280";
+
+            return (
+              <ClickableCard href="/dashboard/correlations" className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">영향력 순위</div>
+                  <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                    {correlationMatrix.dataRange.totalDays}일 기준
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-600/20 border border-amber-500/30">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-[12px] font-bold text-amber-400">판매량</span>
+                  </span>
+                  <span className="text-[11px] text-text-tertiary">← 중심 변수</span>
+                </div>
+                <div className="space-y-2">
+                  {(["strong", "moderate", "weak"] as InfluenceGroup[]).map(group => {
+                    const items = grouped[group];
+                    if (items.length === 0) return null;
+                    const meta = groupMeta[group];
+                    return (
+                      <div key={group} className="rounded-md py-2 pr-2.5 pl-3" style={{ borderLeft: `3px solid ${meta.borderColor}` }}>
+                        <div className="text-[10px] text-text-tertiary mb-1.5 font-medium">{meta.label}</div>
+                        <div className="space-y-1">
+                          {items.map(v => {
+                            const barWidth = Math.max(4, (v.absEffect / maxEffect) * 100);
+                            const barColor = getBarColor(v);
+                            const displayValue = v.metric === "eta_squared"
+                              ? `η²=${v.absEffect.toFixed(2)}`
+                              : `${(v.r ?? 0) >= 0 ? "+" : ""}${(v.r ?? 0).toFixed(2)}`;
+                            return (
+                              <div key={v.id} className="flex items-center gap-2">
+                                <span className="text-[11px] text-text-secondary w-[72px] truncate text-right flex-shrink-0" title={v.label}>{v.label}</span>
+                                <div className="flex-1 h-[14px] rounded-sm overflow-hidden relative" style={{ backgroundColor: "#f0f0f0" }}>
+                                  <div className="h-full rounded-sm transition-all duration-500" style={{ width: `${barWidth}%`, backgroundColor: barColor }} />
+                                </div>
+                                <span className="text-[12px] w-[52px] text-right flex-shrink-0" style={{ color: barColor, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                                  {displayValue}
+                                </span>
+                                {!v.significant && <span className="text-[9px] text-amber-500">*</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#1D9E75" }} /> 양의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> 음의 상관</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#7F77DD" }} /> 요일 효과</span>
+                </div>
+              </ClickableCard>
+            );
+          })()}
+
+          {/* 📅 이번 주 판매 현황 */}
+          {forecastReview && (() => {
+            const history = ((forecastReview as Record<string, any>).history as Array<{ date: string; predicted: number; actual: number }> | undefined) ?? [];
+            const dowMean = (integratedForecast as Record<string, any>)?.coefficients?.dowMean as Record<number, number> | undefined;
+            if (history.length < 2 && !dowMean) return null;
+
+            const nowKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+            const todayStr = nowKST.toISOString().slice(0, 10);
+            const kstDow = nowKST.getDay();
+            const mondayOffset = kstDow === 0 ? -6 : 1 - kstDow;
+            const monday = new Date(nowKST);
+            monday.setDate(monday.getDate() + mondayOffset);
+            const mondayStr = monday.toISOString().slice(0, 10);
+
+            const lastMonday = new Date(monday);
+            lastMonday.setDate(lastMonday.getDate() - 7);
+            const lastMondayStr = lastMonday.toISOString().slice(0, 10);
+
+            const thisWeek = history.filter(h => h.date >= mondayStr && h.date <= todayStr && h.actual > 0);
+            const lastWeek = history.filter(h => h.date >= lastMondayStr && h.date < mondayStr && h.actual > 0);
+
+            const thisWeekTotal = thisWeek.reduce((s, h) => s + h.actual, 0);
+            const lastWeekSameDays = lastWeek.slice(0, thisWeek.length);
+            const lastWeekSameTotal = lastWeekSameDays.reduce((s, h) => s + h.actual, 0);
+            const weekDiffPct = lastWeekSameTotal > 0 ? +((thisWeekTotal - lastWeekSameTotal) / lastWeekSameTotal * 100).toFixed(1) : null;
+
+            const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+            const DOW_MAP = [1, 2, 3, 4, 5, 6, 0];
+            const bars = DOW_MAP.map((jsDow, i) => {
+              const avg = dowMean?.[jsDow] ?? 0;
+              const dayData = thisWeek.find(h => {
+                const d = new Date(h.date + "T00:00:00Z");
+                return d.getUTCDay() === jsDow;
+              });
+              const targetDate = new Date(monday);
+              targetDate.setDate(targetDate.getDate() + i);
+              const dateStr = targetDate.toISOString().slice(0, 10);
+              const isToday = dateStr === todayStr;
+              const isFuture = dateStr > todayStr;
+              return { label: DOW_LABELS[i], avg: Math.round(avg), actual: dayData?.actual ?? null, isToday, isPast: dateStr < todayStr, isFuture };
+            });
+            const maxVol = Math.max(...bars.map(b => Math.max(b.avg, b.actual ?? 0)), 1);
+
+            return (
+              <ClickableCard href="/dashboard/weekly-sales" className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-2">이번 주 판매</div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-[24px] font-extrabold text-text-primary tnum tracking-tight">
+                    {thisWeekTotal > 0 ? thisWeekTotal.toLocaleString() : "-"}
+                  </span>
+                  <span className="text-[12px] text-text-secondary">L 누적</span>
+                  {weekDiffPct != null && (
+                    <span className={`text-[13px] font-bold ${weekDiffPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {weekDiffPct >= 0 ? "+" : ""}{weekDiffPct}%
+                    </span>
+                  )}
+                </div>
+                {weekDiffPct != null && (
+                  <div className="text-[11px] text-text-tertiary mb-3">지난주 같은 기간({lastWeekSameDays.length}일) 대비</div>
+                )}
+                <div className="flex items-end gap-1 h-20">
+                  {bars.map((b) => {
+                    const avgH = maxVol > 0 ? (b.avg / maxVol) * 100 : 0;
+                    const actH = b.actual != null && maxVol > 0 ? (b.actual / maxVol) * 100 : 0;
+                    return (
+                      <div key={b.label} className="flex-1 flex flex-col items-center gap-0.5">
+                        <div className="w-full flex flex-col items-center justify-end h-16 relative">
+                          <div className="w-full rounded-t bg-slate-200 absolute bottom-0" style={{ height: `${Math.max(avgH, 4)}%` }} />
+                          {b.actual != null && (
+                            <div className={`w-3/4 rounded-t absolute bottom-0 z-10 ${b.isToday ? "bg-blue-500" : b.actual >= b.avg ? "bg-emerald-500" : "bg-red-400"}`} style={{ height: `${Math.max(actH, 4)}%` }} />
+                          )}
+                        </div>
+                        <span className={`text-[10px] ${b.isToday ? "font-bold text-blue-600" : b.isFuture ? "text-text-tertiary" : "text-text-secondary"}`}>{b.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-200 inline-block" /> 요일 평균</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block" /> 실제(평균 이상)</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block" /> 실제(평균 이하)</span>
+                </div>
+              </ClickableCard>
+            );
+          })()}
 
           {/* 🚿 세차장 현황 */}
           {loading.carwash ? <CardSkeleton /> : carwashSummary ? (() => {
@@ -1491,109 +1571,6 @@ export default function DashboardPage() {
               </ClickableCard>
             );
           })() : null}
-
-          {/* 📅 이번 주 판매 현황 */}
-          {forecastReview && (() => {
-            const history = ((forecastReview as Record<string, any>).history as Array<{ date: string; predicted: number; actual: number }> | undefined) ?? [];
-            const dowMean = (integratedForecast as Record<string, any>)?.coefficients?.dowMean as Record<number, number> | undefined;
-            if (history.length < 2 && !dowMean) return null;
-
-            // KST 기준 이번 주 (월~일)
-            const nowKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-            const todayStr = nowKST.toISOString().slice(0, 10);
-            const kstDow = nowKST.getDay(); // 0=일 ~ 6=토
-            const mondayOffset = kstDow === 0 ? -6 : 1 - kstDow;
-            const monday = new Date(nowKST);
-            monday.setDate(monday.getDate() + mondayOffset);
-            const mondayStr = monday.toISOString().slice(0, 10);
-
-            // 이번 주 + 지난주 데이터
-            const lastMonday = new Date(monday);
-            lastMonday.setDate(lastMonday.getDate() - 7);
-            const lastMondayStr = lastMonday.toISOString().slice(0, 10);
-
-            const thisWeek = history.filter(h => h.date >= mondayStr && h.date <= todayStr && h.actual > 0);
-            const lastWeek = history.filter(h => h.date >= lastMondayStr && h.date < mondayStr && h.actual > 0);
-
-            const thisWeekTotal = thisWeek.reduce((s, h) => s + h.actual, 0);
-            const lastWeekTotal = lastWeek.reduce((s, h) => s + h.actual, 0);
-            const lastWeekSameDays = lastWeek.slice(0, thisWeek.length);
-            const lastWeekSameTotal = lastWeekSameDays.reduce((s, h) => s + h.actual, 0);
-            const weekDiffPct = lastWeekSameTotal > 0 ? +((thisWeekTotal - lastWeekSameTotal) / lastWeekSameTotal * 100).toFixed(1) : null;
-
-            // 요일별 미니 바 (월~일)
-            const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
-            const DOW_MAP = [1, 2, 3, 4, 5, 6, 0]; // 월~일 → JS dow
-            const bars = DOW_MAP.map((jsDow, i) => {
-              const avg = dowMean?.[jsDow] ?? 0;
-              const dayData = thisWeek.find(h => {
-                const d = new Date(h.date + "T00:00:00Z");
-                return d.getUTCDay() === jsDow;
-              });
-              const targetDate = new Date(monday);
-              targetDate.setDate(targetDate.getDate() + i);
-              const dateStr = targetDate.toISOString().slice(0, 10);
-              const isToday = dateStr === todayStr;
-              const isPast = dateStr < todayStr;
-              const isFuture = dateStr > todayStr;
-              return { label: DOW_LABELS[i], avg: Math.round(avg), actual: dayData?.actual ?? null, isToday, isPast, isFuture };
-            });
-            const maxVol = Math.max(...bars.map(b => Math.max(b.avg, b.actual ?? 0)), 1);
-
-            return (
-              <ClickableCard href="/dashboard/weekly-sales" className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-2">이번 주 판매</div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-[24px] font-extrabold text-text-primary tnum tracking-tight">
-                    {thisWeekTotal > 0 ? thisWeekTotal.toLocaleString() : "-"}
-                  </span>
-                  <span className="text-[12px] text-text-secondary">L 누적</span>
-                  {weekDiffPct != null && (
-                    <span className={`text-[13px] font-bold ${weekDiffPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                      {weekDiffPct >= 0 ? "+" : ""}{weekDiffPct}%
-                    </span>
-                  )}
-                </div>
-                {weekDiffPct != null && (
-                  <div className="text-[11px] text-text-tertiary mb-3">지난주 같은 기간({lastWeekSameDays.length}일) 대비</div>
-                )}
-                <div className="flex items-end gap-1 h-20">
-                  {bars.map((b) => {
-                    const avgH = maxVol > 0 ? (b.avg / maxVol) * 100 : 0;
-                    const actH = b.actual != null && maxVol > 0 ? (b.actual / maxVol) * 100 : 0;
-                    return (
-                      <div key={b.label} className="flex-1 flex flex-col items-center gap-0.5">
-                        <div className="w-full flex flex-col items-center justify-end h-16 relative">
-                          {/* 평균 바 (배경) */}
-                          <div
-                            className="w-full rounded-t bg-slate-200 absolute bottom-0"
-                            style={{ height: `${Math.max(avgH, 4)}%` }}
-                          />
-                          {/* 실제 바 (전경) */}
-                          {b.actual != null && (
-                            <div
-                              className={`w-3/4 rounded-t absolute bottom-0 z-10 ${
-                                b.isToday ? "bg-blue-500" : b.actual >= b.avg ? "bg-emerald-500" : "bg-red-400"
-                              }`}
-                              style={{ height: `${Math.max(actH, 4)}%` }}
-                            />
-                          )}
-                        </div>
-                        <span className={`text-[10px] ${b.isToday ? "font-bold text-blue-600" : b.isFuture ? "text-text-tertiary" : "text-text-secondary"}`}>
-                          {b.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-200 inline-block" /> 요일 평균</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block" /> 실제(평균 이상)</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block" /> 실제(평균 이하)</span>
-                </div>
-              </ClickableCard>
-            );
-          })()}
 
           {/* 🌤️ 오늘 날씨 (하남시) */}
           {loading.weather ? <CardSkeleton /> : weather && weather.today && (() => {
