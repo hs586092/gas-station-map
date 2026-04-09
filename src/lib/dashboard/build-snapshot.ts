@@ -7,6 +7,7 @@ import { getCarwashSummary } from "./carwash-summary";
 import { getCorrelationMatrix } from "./correlation-matrix";
 import { getTimingAnalysis } from "./timing-analysis";
 import { getCrossInsights } from "./cross-insights";
+import { getIntegratedForecast } from "./integrated-forecast";
 
 /**
  * 대시보드 스냅샷을 재생성하여 dashboard_snapshot 테이블에 저장한다.
@@ -22,19 +23,22 @@ export async function buildDashboardSnapshot(
 
   try {
     // 8개 함수 병렬 실행 — 개별 실패 시 null
-    const [insights, salesAnalysis, weatherSales, forecast, carwash, correlation, timing, crossInsights] =
+    // 통합 모델을 먼저 실행 → 계수를 forecast-review에 전달
+    const [integratedForecast, insights, salesAnalysis, weatherSales, carwash, correlation, timing, crossInsights] =
       await Promise.all([
+        getIntegratedForecast(stationId, weatherForecast).catch(() => null),
         getDashboardInsights(stationId).catch(() => null),
         getSalesAnalysis(stationId).catch(() => null),
         getWeatherSales(stationId, weatherForecast).catch(() => null),
-        getForecastReview(stationId).catch(() => null),
         getCarwashSummary(stationId, { compact: true, weatherForecast }).catch(() => null),
         getCorrelationMatrix(stationId, { compact: true }).catch(() => null),
         getTimingAnalysis(stationId).catch(() => null),
         getCrossInsights(stationId, { compact: true }).catch(() => null),
       ]);
+    const coeffs = (integratedForecast as any)?.coefficients ?? null;
+    const forecast = await getForecastReview(stationId, coeffs).catch(() => null);
 
-    const essentialData = { insights, salesAnalysis, weatherSales, forecast, carwash };
+    const essentialData = { insights, salesAnalysis, weatherSales, forecast, carwash, integratedForecast };
     const extendedData = { correlation, timing, crossInsights };
 
     const { error } = await supabase

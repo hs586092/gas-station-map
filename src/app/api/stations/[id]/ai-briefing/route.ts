@@ -35,9 +35,10 @@ export async function GET(
   let weatherImpactData: Record<string, unknown> | null = null;
   let forecastData: Record<string, unknown> | null = null;
   let crossData: Record<string, unknown> | null = null;
+  let integratedData: Record<string, unknown> | null = null;
 
   try {
-    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes, forecastRes, crossRes] = await Promise.all([
+    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes, forecastRes, crossRes, integratedRes] = await Promise.all([
       fetch(`${baseUrl}/api/stations/${id}/dashboard-insights`, { next: { revalidate: 1800 } }),
       fetch(`${baseUrl}/api/stations/${id}/sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/timing-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
@@ -45,6 +46,7 @@ export async function GET(
       fetch(`${baseUrl}/api/stations/${id}/weather-sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/forecast-review?t=${Date.now()}`, { cache: "no-store" }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/cross-insights?compact=1`, { next: { revalidate: 1800 } }).catch(() => null),
+      fetch(`${baseUrl}/api/stations/${id}/integrated-forecast`, { next: { revalidate: 1800 } }).catch(() => null),
     ]);
 
     if (insightsRes.ok) insights = await insightsRes.json();
@@ -54,6 +56,7 @@ export async function GET(
     if (weatherImpactRes?.ok) weatherImpactData = await weatherImpactRes.json();
     if (forecastRes?.ok) forecastData = await forecastRes.json();
     if (crossRes?.ok) crossData = await crossRes.json();
+    if (integratedRes?.ok) integratedData = await integratedRes.json();
   } catch {
     // 데이터 수집 실패 시 insights 없이 진행
   }
@@ -146,14 +149,30 @@ export async function GET(
     dataPrompt += `\n`;
   }
 
-  // 날씨 기반 판매량 예측 (weather-sales-analysis)
+  // 통합 판매량 예측 (날씨 + 가격 + 경쟁사)
+  const ig = (integratedData as Record<string, any>)?.forecast;
+  if (ig) {
+    dataPrompt += `통합예상판매량: ${ig.expectedVolume?.toLocaleString()}L (${ig.explanation}) [신뢰도:${ig.confidence}]\n`;
+    const contribs = (ig.contributions as Array<any> | undefined)?.filter((c: any) => Math.abs(c.value) >= 10);
+    if (contribs && contribs.length > 0) {
+      dataPrompt += `변수분해: ${contribs.map((c: any) => `${c.label} ${c.value > 0 ? "+" : ""}${c.value}L(${c.badge})`).join(", ")}\n`;
+    }
+    if (ig.weatherOnly && ig.weatherOnly !== ig.expectedVolume) {
+      dataPrompt += `날씨만예측: ${ig.weatherOnly?.toLocaleString()}L → 통합모델 차이: ${ig.expectedVolume - ig.weatherOnly > 0 ? "+" : ""}${ig.expectedVolume - ig.weatherOnly}L\n`;
+    }
+  } else {
+    // fallback: 날씨 기반 판매량 예측 (weather-sales-analysis)
+    const wsa = weatherImpactData as Record<string, any> | null;
+    if (wsa?.todayForecast) {
+      const f = wsa.todayForecast;
+      dataPrompt += `날씨기반예상판매량: ${f.expectedVolume?.toLocaleString()}L (${f.explanation})`;
+      if (f.confidence) dataPrompt += ` [신뢰도:${f.confidence}]`;
+      dataPrompt += `\n`;
+    }
+  }
+  // 본격 비 영향 (과거 관측)
   const wsa = weatherImpactData as Record<string, any> | null;
-  if (wsa?.todayForecast) {
-    const f = wsa.todayForecast;
-    dataPrompt += `날씨기반예상판매량: ${f.expectedVolume?.toLocaleString()}L (${f.explanation})`;
-    if (f.confidence) dataPrompt += ` [신뢰도:${f.confidence}]`;
-    dataPrompt += `\n`;
-    // 본격 비 영향 (과거 관측)
+  if (wsa) {
     const heavy = (wsa.byIntensity as Array<any> | undefined)?.find((b) => b.key === "heavy");
     if (heavy && heavy.n >= 10) {
       dataPrompt += `과거 본격비(≥5mm) 영향: 판매량 ${heavy.adjustedDiffPct >= 0 ? "+" : ""}${heavy.adjustedDiffPct}% (n=${heavy.n}, 요일보정)`;

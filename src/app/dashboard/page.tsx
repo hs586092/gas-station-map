@@ -432,11 +432,31 @@ export default function DashboardPage() {
     similarDays: { count: number; avgFuelCount: number | null; avgCarwashCount: number | null; avgConversionPct: number | null; confidence: string; insight: string };
   } | null>(null);
 
+  const [integratedForecast, setIntegratedForecast] = useState<{
+    forecast: {
+      expectedVolume: number;
+      expectedCount: number;
+      confidence: "high" | "medium" | "low";
+      explanation: string;
+      baseline: number;
+      diffVsDryPct: number;
+      weatherOnly: number;
+      modelVersion: string;
+      totalDataDays: number;
+      contributions: Array<{
+        name: string; label: string; value: number; pct: number;
+        n: number; reliable: boolean; badge: string;
+        method: "measured" | "estimated" | "fallback";
+      }>;
+    } | null;
+  } | null>(null);
+
   const [loading, setLoading] = useState({
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
     salesAnalysis: true, timingAnalysis: true, forecastReview: true,
     correlationMatrix: true, weather: true, weatherImpact: true, carwash: true, crossInsights: true,
+    integratedForecast: true,
   });
 
   const [syncing, setSyncing] = useState(false);
@@ -453,6 +473,7 @@ export default function DashboardPage() {
       detail: true, oilPrices: true, priceHistory: true, insights: true,
       salesAnalysis: true, timingAnalysis: true, forecastReview: true,
       correlationMatrix: true, weather: true, weatherImpact: true, carwash: true, crossInsights: true,
+      integratedForecast: true,
     });
 
     // ── 빠른 개별 API (가격, 경쟁사 등 — 카드별 독립 로딩) ──
@@ -517,6 +538,9 @@ export default function DashboardPage() {
 
         if (data.crossInsights && !data.crossInsights.error) setCrossInsights(data.crossInsights);
         setLoading((p) => ({ ...p, crossInsights: false }));
+
+        if (data.integratedForecast && !data.integratedForecast.error) setIntegratedForecast(data.integratedForecast);
+        setLoading((p) => ({ ...p, integratedForecast: false }));
       })
       .catch(() => {
         // 스냅샷 없음 → fallback: dashboard-all 실시간 호출 + 스냅샷 자동 생성
@@ -539,12 +563,14 @@ export default function DashboardPage() {
             setLoading((p) => ({ ...p, timingAnalysis: false }));
             if (data.crossInsights && !data.crossInsights.error) setCrossInsights(data.crossInsights);
             setLoading((p) => ({ ...p, crossInsights: false }));
+            if (data.integratedForecast && !data.integratedForecast.error) setIntegratedForecast(data.integratedForecast);
+            setLoading((p) => ({ ...p, integratedForecast: false }));
           })
           .catch(() => {
             setLoading((p) => ({
               ...p, insights: false, salesAnalysis: false, weatherImpact: false,
               forecastReview: false, carwash: false, correlationMatrix: false,
-              timingAnalysis: false, crossInsights: false,
+              timingAnalysis: false, crossInsights: false, integratedForecast: false,
             }));
           });
         // 백그라운드에서 스냅샷 생성 (다음 로드부터 빠르게)
@@ -705,10 +731,10 @@ export default function DashboardPage() {
               const dowNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
               const nowKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
               tags.push({ label: dowNames[nowKST.getDay()], color: [0, 6].includes(nowKST.getDay()) ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600" });
-              // 판매 영향
-              if (weatherImpact?.todayForecast && Math.abs(weatherImpact.todayForecast.diffVsDryPct) >= 2) {
-                const d = weatherImpact.todayForecast.diffVsDryPct;
-                tags.push({ label: `수요 ${d > 0 ? "+" : ""}${d}%`, color: d < 0 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700" });
+              // 판매 영향 (통합 모델 우선)
+              const forecastDiff = integratedForecast?.forecast?.diffVsDryPct ?? weatherImpact?.todayForecast?.diffVsDryPct;
+              if (forecastDiff != null && Math.abs(forecastDiff) >= 2) {
+                tags.push({ label: `수요 ${forecastDiff > 0 ? "+" : ""}${forecastDiff}%`, color: forecastDiff < 0 ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700" });
               }
               // 타이밍 긴급도
               if (timingAnalysis?.currentSituation.urgency === "high") {
@@ -731,7 +757,7 @@ export default function DashboardPage() {
                 : actionMap[recType];
 
               // 예상 판매량
-              const expectedVol = weatherImpact?.todayForecast?.expectedVolume;
+              const expectedVol = integratedForecast?.forecast?.expectedVolume ?? weatherImpact?.todayForecast?.expectedVolume;
 
               return (
                 <>
@@ -818,31 +844,79 @@ export default function DashboardPage() {
         {/* 카드 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-text-primary">
 
-          {/* 🌧️ 날씨 영향 (판매량 예측) */}
-          {loading.weatherImpact ? <CardSkeleton /> : weatherImpact?.todayForecast && (() => {
-            const f = weatherImpact.todayForecast!;
-            const rainy = weatherImpact.byIntensity.find((b) => b.key === "heavy");
-            const confColor = f.confidence === "high" ? "emerald" : f.confidence === "medium" ? "amber" : "slate";
+          {/* 🌧️ 통합 판매량 예측 (날씨 + 가격 + 경쟁사) */}
+          {(loading.weatherImpact && loading.integratedForecast) ? <CardSkeleton /> : (() => {
+            const ig = integratedForecast?.forecast;
+            const f = weatherImpact?.todayForecast;
+            if (!ig && !f) return null;
+
+            // 통합 모델 우선, fallback → 날씨 모델
+            const vol = ig?.expectedVolume ?? f?.expectedVolume ?? 0;
+            const cnt = ig?.expectedCount ?? (f as Record<string, unknown>)?.expectedCount as number | undefined;
+            const conf = ig?.confidence ?? f?.confidence ?? "low";
+            const expl = ig?.explanation ?? f?.explanation ?? "";
+            const diff = ig?.diffVsDryPct ?? f?.diffVsDryPct ?? 0;
+            const confColor = conf === "high" ? "emerald" : conf === "medium" ? "amber" : "slate";
+            const isIntegrated = !!ig;
+            const rainy = weatherImpact?.byIntensity?.find((b) => b.key === "heavy");
+            const activeContribs = ig?.contributions.filter((c) => Math.abs(c.value) >= 10) ?? [];
+
             return (
               <ClickableCard href="/dashboard/weather-impact" className="bg-surface-raised rounded-xl p-5 border border-border">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">날씨 영향 · 판매량</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">
+                      {isIntegrated ? "통합 판매 예측" : "날씨 영향 · 판매량"}
+                    </div>
+                    {isIntegrated && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600">
+                        v1 · {ig!.totalDataDays}일
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[12px] text-text-tertiary">오늘 예측</span>
                 </div>
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none">
-                    {f.expectedVolume.toLocaleString()}
+                    {vol.toLocaleString()}
                   </span>
                   <span className="text-[14px] text-text-secondary">L 예상</span>
-                  {(f as Record<string, unknown>).expectedCount != null && (
+                  {cnt != null && (
                     <>
-                      <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none ml-3">{((f as Record<string, unknown>).expectedCount as number).toLocaleString()}</span>
+                      <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none ml-3">{cnt.toLocaleString()}</span>
                       <span className="text-[14px] text-text-secondary">대</span>
                     </>
                   )}
                 </div>
-                <div className="text-[12px] text-text-tertiary mb-3">{f.explanation}</div>
-                {rainy && weatherImpact.tTest && (
+                <div className="text-[12px] text-text-tertiary mb-3">{expl}</div>
+
+                {/* 통합 모델: 변수 분해 */}
+                {isIntegrated && activeContribs.length > 0 && (
+                  <div className="border-t border-border pt-3 mb-3 space-y-1.5">
+                    <div className="text-[11px] font-bold text-text-tertiary">변수별 기여</div>
+                    {activeContribs.map((c) => (
+                      <div key={c.name} className="flex items-center justify-between text-[12px]">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-text-secondary">{c.label}</span>
+                          {!c.reliable && (
+                            <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-600">⚠️ {c.badge}</span>
+                          )}
+                        </div>
+                        <span className={`font-bold tnum ${c.value > 0 ? "text-emerald-600" : c.value < 0 ? "text-red-500" : "text-text-tertiary"}`}>
+                          {c.value > 0 ? "+" : ""}{c.value.toLocaleString()}L ({c.pct > 0 ? "+" : ""}{c.pct}%)
+                        </span>
+                      </div>
+                    ))}
+                    {ig!.weatherOnly !== ig!.expectedVolume && (
+                      <div className="text-[10px] text-text-tertiary mt-1">
+                        날씨-only: {ig!.weatherOnly.toLocaleString()}L · 차이 {ig!.expectedVolume - ig!.weatherOnly > 0 ? "+" : ""}{(ig!.expectedVolume - ig!.weatherOnly).toLocaleString()}L
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* fallback: 비 영향 (날씨-only 모델) */}
+                {!isIntegrated && rainy && weatherImpact?.tTest && (
                   <div className="border-t border-border pt-3 space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] text-text-secondary">본격 비 영향</span>
@@ -857,12 +931,13 @@ export default function DashboardPage() {
                     <div className="text-[10px] text-text-tertiary">요일 효과 보정 · 과거 {rainy.n}일 기준</div>
                   </div>
                 )}
+
                 <InsightBadge color={confColor as "emerald" | "amber" | "slate"}>
-                  {f.diffVsDryPct <= -5 ? "수요 감소 예상 → 가격 변동 보류 권장. 인하 시 회복 어려움"
-                    : f.diffVsDryPct >= 5 ? "수요 증가 예상 → 소폭 인상 기회. 경쟁사 대비 가격 여력 확인"
-                    : f.diffVsDryPct <= -2 ? "소폭 수요 감소 예상 → 가격 유지하며 관망 권장"
+                  {diff <= -5 ? "수요 감소 예상 → 가격 변동 보류 권장. 인하 시 회복 어려움"
+                    : diff >= 5 ? "수요 증가 예상 → 소폭 인상 기회. 경쟁사 대비 가격 여력 확인"
+                    : diff <= -2 ? "소폭 수요 감소 예상 → 가격 유지하며 관망 권장"
                     : "날씨 영향 미미 → 시장 상황 중심으로 판단"}
-                  <span className="text-text-tertiary ml-1">(신뢰도 {f.confidence === "high" ? "높음" : f.confidence === "medium" ? "중간" : "낮음"})</span>
+                  <span className="text-text-tertiary ml-1">(신뢰도 {conf === "high" ? "높음" : conf === "medium" ? "중간" : "낮음"})</span>
                 </InsightBadge>
               </ClickableCard>
             );
@@ -1725,7 +1800,7 @@ export default function DashboardPage() {
             }
 
             // 날씨 보정 계수
-            const weatherAdj = weatherImpact?.todayForecast?.diffVsDryPct ?? 0;
+            const weatherAdj = integratedForecast?.forecast?.diffVsDryPct ?? weatherImpact?.todayForecast?.diffVsDryPct ?? 0;
 
             const simulations = [10, 20, 30, -10, -20].map((delta) => {
               const simPrice = myGas + delta;

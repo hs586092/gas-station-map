@@ -7,6 +7,7 @@ import { getForecastReview } from "@/lib/dashboard/forecast-review";
 import { getCorrelationMatrix } from "@/lib/dashboard/correlation-matrix";
 import { getCarwashSummary } from "@/lib/dashboard/carwash-summary";
 import { getCrossInsights } from "@/lib/dashboard/cross-insights";
+import { getIntegratedForecast } from "@/lib/dashboard/integrated-forecast";
 
 /**
  * GET /api/stations/[id]/dashboard-all
@@ -62,35 +63,40 @@ export async function GET(
   }
 
   if (tier === "all") {
-    const [insights, salesAnalysis, weatherSales, forecast, carwash, correlation, timing, crossInsights] =
+    // 통합 모델을 먼저 실행 → 계수를 forecast-review에 전달
+    const [integratedForecast, insights, salesAnalysis, weatherSales, carwash, correlation, timing, crossInsights] =
       await Promise.all([
+        safe("integratedForecast", () => getIntegratedForecast(id, weatherForecast)),
         safe("insights", () => getDashboardInsights(id)),
         safe("salesAnalysis", () => getSalesAnalysis(id)),
         safe("weatherSales", () => getWeatherSales(id, weatherForecast)),
-        safe("forecast", () => getForecastReview(id)),
         safe("carwash", () => getCarwashSummary(id, { compact: true, weatherForecast })),
         safe("correlation", () => getCorrelationMatrix(id, { compact: true })),
         safe("timing", () => getTimingAnalysis(id)),
         safe("crossInsights", () => getCrossInsights(id, { compact: true })),
       ]);
+    const coeffs = (integratedForecast as any)?.coefficients ?? null;
+    const forecast = await safe("forecast", () => getForecastReview(id, coeffs));
     console.timeEnd(`[dashboard-all] total (tier=${tier})`);
     return NextResponse.json(
-      { insights, salesAnalysis, weatherSales, timing, forecast, correlation, carwash, crossInsights },
+      { insights, salesAnalysis, weatherSales, timing, forecast, correlation, carwash, crossInsights, integratedForecast },
       { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } }
     );
   }
 
-  // Default: essential
-  const [insights, salesAnalysis, weatherSales, forecast, carwash] = await Promise.all([
+  // Default: essential — 통합 모델 먼저, 계수를 forecast-review에 전달
+  const [integratedForecast, insights, salesAnalysis, weatherSales, carwash] = await Promise.all([
+    safe("integratedForecast", () => getIntegratedForecast(id, weatherForecast)),
     safe("insights", () => getDashboardInsights(id)),
     safe("salesAnalysis", () => getSalesAnalysis(id)),
     safe("weatherSales", () => getWeatherSales(id, weatherForecast)),
-    safe("forecast", () => getForecastReview(id)),
     safe("carwash", () => getCarwashSummary(id, { compact: true, weatherForecast })),
   ]);
+  const coeffs = (integratedForecast as any)?.coefficients ?? null;
+  const forecast = await safe("forecast", () => getForecastReview(id, coeffs));
   console.timeEnd(`[dashboard-all] total (tier=${tier})`);
   return NextResponse.json(
-    { insights, salesAnalysis, weatherSales, forecast, carwash },
+    { insights, salesAnalysis, weatherSales, forecast, carwash, integratedForecast },
     { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } }
   );
 }

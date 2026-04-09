@@ -26,7 +26,13 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 
 const mean = (arr: number[]) => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
 
-export async function getForecastReview(id: string): Promise<any> {
+export async function getForecastReview(
+  id: string,
+  integratedCoeffs?: {
+    myPriceElasticity: { perWon: number; n: number; reliable: boolean } | null;
+    compGapElasticity: { perWon: number; n: number; reliable: boolean } | null;
+  } | null
+): Promise<any> {
   // ── 1. forecast_history에서 최근 30일 예측 가져오기 ──
   const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
   const { data: forecasts, error: fcErr } = await supabase
@@ -279,12 +285,23 @@ export async function getForecastReview(id: string): Promise<any> {
     let myPriceImpactL = 0;
     if (myYesterday && myDayBefore && myYesterday !== myDayBefore) {
       const diff = myYesterday - myDayBefore;
-      const elasticityPct = -(diff / 10) * 2;
-      myPriceImpactL = Math.round((elasticityPct / 100) * overallMean);
+      // 통합 모델 계수 사용 시도 → fallback: 하드코딩 탄력성
+      let elasticityPct: number;
+      let methodNote = "";
+      if (integratedCoeffs?.myPriceElasticity && integratedCoeffs.myPriceElasticity.n >= 3) {
+        const impactL = integratedCoeffs.myPriceElasticity.perWon * diff;
+        elasticityPct = overallMean > 0 ? (impactL / overallMean) * 100 : 0;
+        myPriceImpactL = Math.round(impactL);
+        methodNote = ` [실측 n=${integratedCoeffs.myPriceElasticity.n}]`;
+      } else {
+        elasticityPct = -(diff / 10) * 2;
+        myPriceImpactL = Math.round((elasticityPct / 100) * overallMean);
+        methodNote = " [추정]";
+      }
       causes.push({
         type: "my_price",
         icon: diff > 0 ? "🔴" : "🔵",
-        message: `내 가격 ${diff > 0 ? "+" : ""}${diff}원 → 추정 ${elasticityPct >= 0 ? "+" : ""}${elasticityPct.toFixed(1)}%`,
+        message: `내 가격 ${diff > 0 ? "+" : ""}${diff}원 → ${elasticityPct >= 0 ? "+" : ""}${elasticityPct.toFixed(1)}%${methodNote}`,
         impactL: myPriceImpactL,
         impactPct: +elasticityPct.toFixed(1),
       });
@@ -364,13 +381,24 @@ export async function getForecastReview(id: string): Promise<any> {
         changes.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
         const topChanges = changes.slice(0, 4);
         const avgCompDiff = mean(topChanges.map((c) => c.diff));
-        const compElastPct = (avgCompDiff / 10) * 1.5;
-        compImpactL = Math.round((compElastPct / 100) * overallMean);
+        let compElastPct: number;
+        let methodNote = "";
+        if (integratedCoeffs?.compGapElasticity && integratedCoeffs.compGapElasticity.n >= 10) {
+          // 경쟁사 인하 = 내 gap 증가 → perWon × gap변화
+          const impactL = integratedCoeffs.compGapElasticity.perWon * (-avgCompDiff);
+          compElastPct = overallMean > 0 ? (impactL / overallMean) * 100 : 0;
+          compImpactL = Math.round(impactL);
+          methodNote = ` [실측 n=${integratedCoeffs.compGapElasticity.n}]`;
+        } else {
+          compElastPct = (avgCompDiff / 10) * 1.5;
+          compImpactL = Math.round((compElastPct / 100) * overallMean);
+          methodNote = " [추정]";
+        }
         const names = topChanges.map((c) => `${c.name} ${c.diff > 0 ? "+" : ""}${c.diff}원`).join(", ");
         causes.push({
           type: "competitor_price",
           icon: avgCompDiff < 0 ? "🔴" : "🟡",
-          message: `경쟁사 변동: ${names} → 추정 ${compElastPct >= 0 ? "+" : ""}${compElastPct.toFixed(1)}%`,
+          message: `경쟁사 변동: ${names} → ${compElastPct >= 0 ? "+" : ""}${compElastPct.toFixed(1)}%${methodNote}`,
           impactL: compImpactL,
           impactPct: +compElastPct.toFixed(1),
         });
