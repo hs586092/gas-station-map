@@ -30,6 +30,11 @@ export async function GET(request: Request) {
   const slp = createServiceClient();
 
   try {
+    // ── 환경변수 확인 ──
+    if (!process.env.CARWASH_SUPABASE_URL || !process.env.CARWASH_SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: "Missing CARWASH env vars" }, { status: 500 });
+    }
+
     // ── 수집 대상 날짜 범위 결정 ──
     let minDate: string;
     let maxDate: string;
@@ -41,12 +46,16 @@ export async function GET(request: Request) {
         .from("transactions")
         .select("date")
         .eq("business_id", BUSINESS_ID)
-        .neq("is_deleted", true)
         .order("date", { ascending: true })
         .limit(1);
 
       if (eErr || !earliestRows || earliestRows.length === 0) {
-        return NextResponse.json({ error: "No carwash data found", detail: eErr?.message }, { status: 404 });
+        return NextResponse.json({
+          error: "No carwash data found",
+          detail: eErr?.message,
+          businessId: BUSINESS_ID,
+          carwashUrl: process.env.CARWASH_SUPABASE_URL?.slice(0, 30),
+        }, { status: 404 });
       }
       minDate = earliestRows[0].date;
       maxDate = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -65,7 +74,6 @@ export async function GET(request: Request) {
         .from("transactions")
         .select("date, price_key, price_label, price_value, payment_key")
         .eq("business_id", BUSINESS_ID)
-        .neq("is_deleted", true)
         .gte("date", minDate)
         .lte("date", maxDate)
         .order("date", { ascending: true })
