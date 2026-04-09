@@ -194,8 +194,8 @@ function SectionDivider({ title, description }: { title: string; description?: s
   return (
     <div className="md:col-span-2 lg:col-span-3 flex items-center gap-3 pt-4 pb-1">
       <div>
-        <div className="text-[14px] font-bold text-text-primary">{title}</div>
-        {description && <div className="text-[11px] text-text-tertiary">{description}</div>}
+        <div className="text-[18px] font-extrabold text-white">{title}</div>
+        {description && <div className="text-[13px] text-white/60">{description}</div>}
       </div>
       <div className="flex-1 h-px bg-border" />
     </div>
