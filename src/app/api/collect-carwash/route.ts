@@ -3,6 +3,7 @@ import { createServiceClient, createCarwashClient } from "@/lib/supabase";
 
 const BUSINESS_ID = process.env.CARWASH_BUSINESS_ID!;
 const STATION_ID = "A0003453";
+const PAGE_SIZE = 1000;
 
 /**
  * 세차장 POS(별도 Supabase)에서 일별 세차 데이터를 수집하여
@@ -29,49 +30,55 @@ export async function GET(request: Request) {
   const slp = createServiceClient();
 
   try {
-    // ── 수집 대상 날짜 결정 ──
-    let dates: string[];
+    // ── 수집 대상 날짜 범위 결정 ──
+    let minDate: string;
+    let maxDate: string;
 
     if (specificDate) {
-      dates = [specificDate];
+      minDate = maxDate = specificDate;
     } else if (backfill) {
-      // 전체 백필: 세차장 최초 날짜부터 어제까지
       const { data: earliestRows, error: eErr } = await carwash
         .from("transactions")
         .select("date")
         .eq("business_id", BUSINESS_ID)
-        .eq("is_deleted", false)
+        .is("is_deleted", false)
         .order("date", { ascending: true })
         .limit(1);
 
       if (eErr || !earliestRows || earliestRows.length === 0) {
         return NextResponse.json({ error: "No carwash data found", detail: eErr?.message }, { status: 404 });
       }
-      const earliest = earliestRows[0];
-
-      const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
-      dates = getDateRange(earliest.date, yesterday);
+      minDate = earliestRows[0].date;
+      maxDate = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
     } else {
-      // 기본: 어제 + 그저께 (2일치, 늦게 입력된 데이터 대비)
-      const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
-      const dayBefore = new Date(Date.now() - 2 * 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
-      dates = [yesterday, dayBefore];
+      maxDate = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+      minDate = new Date(Date.now() - 2 * 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
     }
 
-    // ── 세차장 트랜잭션 조회 (날짜 범위로 한 번에) ──
-    const minDate = dates[dates.length - 1] < dates[0] ? dates[dates.length - 1] : dates.reduce((a, b) => a < b ? a : b);
-    const maxDate = dates.reduce((a, b) => a > b ? a : b);
+    // ── 세차장 트랜잭션 페이지네이션 조회 ──
+    type Tx = { date: string; price_key: string; price_label: string; price_value: number; payment_key: string };
+    const allTx: Tx[] = [];
+    let offset = 0;
 
-    const { data: transactions, error: txErr } = await carwash
-      .from("transactions")
-      .select("date, price_key, price_label, price_value, payment_key")
-      .eq("business_id", BUSINESS_ID)
-      .eq("is_deleted", false)
-      .gte("date", minDate)
-      .lte("date", maxDate);
+    while (true) {
+      const { data: page, error: txErr } = await carwash
+        .from("transactions")
+        .select("date, price_key, price_label, price_value, payment_key")
+        .eq("business_id", BUSINESS_ID)
+        .is("is_deleted", false)
+        .gte("date", minDate)
+        .lte("date", maxDate)
+        .order("date", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
 
-    if (txErr) {
-      return NextResponse.json({ error: "Carwash DB error", detail: txErr.message }, { status: 500 });
+      if (txErr) {
+        return NextResponse.json({ error: "Carwash DB error", detail: txErr.message }, { status: 500 });
+      }
+
+      if (!page || page.length === 0) break;
+      allTx.push(...page);
+      if (page.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
     }
 
     // ── 날짜별 집계 ──
@@ -83,11 +90,12 @@ export async function GET(request: Request) {
     }>();
 
     // 모든 대상 날짜를 미리 초기화 (데이터 없는 날도 0으로 기록)
+    const dates = getDateRange(minDate, maxDate);
     for (const d of dates) {
       dailyMap.set(d, { total_count: 0, total_revenue: 0, breakdown: {}, payment_breakdown: {} });
     }
 
-    for (const tx of transactions ?? []) {
+    for (const tx of allTx) {
       const day = dailyMap.get(tx.date);
       if (!day) continue;
 
@@ -131,9 +139,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
+      totalTransactions: allTx.length,
       dates: dates.length,
       upserted,
-      sample: rows.slice(0, 3),
+      sample: rows.slice(0, 3).map(r => ({ date: r.date, count: r.total_count, revenue: r.total_revenue })),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
