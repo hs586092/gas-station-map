@@ -31,7 +31,23 @@
   "crons": [
     {
       "path": "/api/collect-prices",
-      "schedule": "0 0 * * *"
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/collect-oil-prices",
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/collect-weather",
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/collect-carwash",
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/snapshot/rebuild",
+      "schedule": "30 0 * * *"
     },
     {
       "path": "/api/collect-population",
@@ -40,22 +56,6 @@
     {
       "path": "/api/cleanup-traffic",
       "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/collect-oil-prices",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/collect-weather",
-      "schedule": "30 2 * * *"
-    },
-    {
-      "path": "/api/collect-carwash",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/snapshot/rebuild",
-      "schedule": "30 4 * * *"
     }
   ]
 }
