@@ -966,7 +966,9 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* 📊 예측 복기 · 어제 */}
+          {/* 📊 예측 복기 + 가격 시뮬레이터 (2열) */}
+          <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 왼쪽: 예측 복기 · 어제 */}
           {loading.forecastReview ? <CardSkeleton /> : forecastReview && (() => {
             const y = forecastReview.yesterday;
             const acc = forecastReview.accuracy;
@@ -1111,7 +1113,9 @@ export default function DashboardPage() {
                 const avgAbsChange = validEvents.length > 0
                   ? validEvents.reduce((s, e) => s + Math.abs(e.priceChange), 0) / validEvents.length
                   : 10;
-                salesImpact = +((dowElasticity / avgAbsChange) * delta).toFixed(1);
+                // 탄력성 부호 보정: 가격↑ → 판매↓ (음의 관계 강제)
+                const absElast = Math.abs(dowElasticity / avgAbsChange);
+                salesImpact = +(-absElast * delta).toFixed(1);
               }
               return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank, salesImpact };
             });
@@ -1123,7 +1127,7 @@ export default function DashboardPage() {
             const contextLabel = weatherLabel ? `${dowLabel} · ${weatherLabel}` : dowLabel;
 
             return (
-              <div className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
+              <div className="bg-surface-raised rounded-xl p-5 border border-border">
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">가격 시뮬레이터</div>
                   {dowElasticity != null && (
@@ -1132,34 +1136,38 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위·판매량 변화 예측</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위</div>
+                <div className="grid grid-cols-1 gap-2">
                   {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
                     const isUp = delta > 0;
                     return (
-                      <div key={delta} className={`rounded-lg p-3 text-center border ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
-                        <div className={`text-[12px] font-bold ${isUp ? "text-red-600" : "text-blue-600"}`}>
-                          {delta > 0 ? "+" : ""}{delta}원
-                        </div>
-                        <div className="text-[16px] font-extrabold text-text-primary tnum tracking-tight mt-1">{simPrice.toLocaleString()}</div>
-                        <div className="text-[13px] text-text-secondary mt-1">
-                          {total}개 중 <span className="font-bold">{simRank}위</span>
-                        </div>
-                        {rankChange !== 0 && (
-                          <div className={`text-[12px] font-medium mt-0.5 ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
-                            {rankChange > 0 ? `▼${rankChange}단계` : `▲${Math.abs(rankChange)}단계`}
+                      <div key={delta} className={`rounded-lg px-4 py-2.5 border flex items-center justify-between ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`text-[13px] font-bold w-12 ${isUp ? "text-red-600" : "text-blue-600"}`}>
+                            {delta > 0 ? "+" : ""}{delta}원
                           </div>
-                        )}
-                        {rankChange === 0 && (
-                          <div className="text-[12px] text-text-tertiary mt-0.5">변동 없음</div>
-                        )}
-                        {salesImpact != null && (
-                          <div className={`text-[11px] font-bold mt-1 pt-1 border-t ${
-                            isUp ? "border-red-200" : "border-blue-200"
-                          } ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
-                            판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
+                          <div className="text-[15px] font-extrabold text-text-primary tnum tracking-tight">{simPrice.toLocaleString()}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-[12px] text-text-secondary">
+                            {total}개 중 <span className="font-bold">{simRank}위</span>
                           </div>
-                        )}
+                          {rankChange !== 0 && (
+                            <div className={`text-[11px] font-medium ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
+                              {rankChange > 0 ? `▼${rankChange}` : `▲${Math.abs(rankChange)}`}
+                            </div>
+                          )}
+                          {rankChange === 0 && (
+                            <div className="text-[11px] text-text-tertiary">-</div>
+                          )}
+                          {salesImpact != null && (
+                            <div className={`text-[11px] font-bold pl-2 border-l ${
+                              isUp ? "border-red-200" : "border-blue-200"
+                            } ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
+                              판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1173,6 +1181,7 @@ export default function DashboardPage() {
               </div>
             );
           })()}
+          </div>
 
           {/* ── 분석 카드 (dashboard-all 통합 API에서 로드) ── */}
 
