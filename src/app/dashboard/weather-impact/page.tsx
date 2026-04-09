@@ -172,14 +172,14 @@ export default function WeatherImpactPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* 통합 예측 카드 (또는 날씨-only fallback) */}
           {(ig || data.todayForecast) && (
-            <div className="bg-gradient-to-br from-navy to-[#0a1526] text-white rounded-2xl p-5 shadow-sm md:col-span-2">
+            <div className="bg-surface-raised rounded-2xl p-5 shadow-sm border border-border md:col-span-2">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="text-[13px] font-semibold text-gray-300">
+                  <div className="text-[13px] font-semibold text-slate-600">
                     {ig ? "통합 모델 예측" : "날씨 기반 예측"}
                   </div>
                   {ig && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
                       {ig.modelVersion} · {ig.totalDataDays}일
                     </span>
                   )}
@@ -189,53 +189,53 @@ export default function WeatherImpactPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-3 mb-1">
-                <span className="text-[36px] font-extrabold leading-tight">
+                <span className="text-[36px] font-extrabold text-slate-900 leading-tight">
                   {(ig?.expectedVolume ?? data.todayForecast?.expectedVolume)?.toLocaleString()}
                 </span>
-                <span className="text-[16px] font-normal text-gray-300">L 예상</span>
+                <span className="text-[16px] font-normal text-slate-500">L 예상</span>
                 {ig && (
                   <>
-                    <span className="text-[28px] font-extrabold leading-tight ml-2">
+                    <span className="text-[28px] font-extrabold text-slate-900 leading-tight ml-2">
                       {ig.expectedCount.toLocaleString()}
                     </span>
-                    <span className="text-[14px] font-normal text-gray-300">대</span>
+                    <span className="text-[14px] font-normal text-slate-500">대</span>
                   </>
                 )}
               </div>
-              <div className="text-[12px] text-gray-300 mt-1">
+              <div className="text-[12px] text-slate-500 mt-1">
                 {ig?.explanation ?? data.todayForecast?.explanation}
               </div>
 
               {/* 변수 분해 */}
               {ig && ig.contributions.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-white/15 space-y-2">
-                  <div className="text-[11px] font-bold text-gray-400 uppercase">변수별 기여</div>
+                <div className="mt-4 pt-3 border-t border-border space-y-2">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase">변수별 기여</div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[12px] text-gray-400">기저(요일 평균)</span>
-                    <span className="text-[14px] font-bold text-white">{ig.baseline.toLocaleString()}L</span>
+                    <span className="text-[12px] text-slate-500">기저(요일 평균)</span>
+                    <span className="text-[14px] font-bold text-slate-900">{ig.baseline.toLocaleString()}L</span>
                   </div>
                   {ig.contributions.map((c) => (
                     <div key={c.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-[12px] text-gray-300">{c.label}</span>
+                        <span className="text-[12px] text-slate-700">{c.label}</span>
                         <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                          c.reliable ? "bg-emerald-500/25 text-emerald-300" : "bg-amber-500/25 text-amber-300"
+                          c.reliable ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                         }`}>
                           {c.badge}
                         </span>
                       </div>
                       <span className={`text-[13px] font-bold tabular-nums ${
-                        c.value > 0 ? "text-emerald-400" : c.value < 0 ? "text-red-400" : "text-gray-400"
+                        c.value > 0 ? "text-emerald-600" : c.value < 0 ? "text-red-500" : "text-slate-400"
                       }`}>
                         {c.value > 0 ? "+" : ""}{c.value.toLocaleString()}L
-                        <span className="text-[10px] font-normal text-gray-400 ml-1">({c.pct > 0 ? "+" : ""}{c.pct}%)</span>
+                        <span className="text-[10px] font-normal text-slate-400 ml-1">({c.pct > 0 ? "+" : ""}{c.pct}%)</span>
                       </span>
                     </div>
                   ))}
                   {ig.weatherOnly !== ig.expectedVolume && (
-                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                      <span className="text-gray-400">날씨-only 모델과 차이</span>
-                      <span className="text-gray-300 font-bold">
+                    <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">날씨-only 모델과 차이</span>
+                      <span className="text-slate-700 font-bold">
                         {ig.expectedVolume - ig.weatherOnly > 0 ? "+" : ""}{(ig.expectedVolume - ig.weatherOnly).toLocaleString()}L
                       </span>
                     </div>
@@ -245,9 +245,9 @@ export default function WeatherImpactPage() {
 
               <div className="mt-3 flex items-center gap-2">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                  (ig?.confidence ?? data.todayForecast?.confidence) === "high" ? "bg-emerald/30 text-emerald" :
-                  (ig?.confidence ?? data.todayForecast?.confidence) === "medium" ? "bg-amber-400/30 text-amber-300" :
-                  "bg-gray-500/30 text-gray-300"
+                  (ig?.confidence ?? data.todayForecast?.confidence) === "high" ? "bg-emerald-100 text-emerald-700" :
+                  (ig?.confidence ?? data.todayForecast?.confidence) === "medium" ? "bg-amber-100 text-amber-700" :
+                  "bg-slate-100 text-slate-600"
                 }`}>
                   신뢰도 {(ig?.confidence ?? data.todayForecast?.confidence) === "high" ? "높음" : (ig?.confidence ?? data.todayForecast?.confidence) === "medium" ? "중간" : "낮음"}
                 </span>
