@@ -425,11 +425,18 @@ export default function DashboardPage() {
     conversionRate: { fuelCount: number; carwashCount: number; pct: number } | null;
   } | null>(null);
 
+  const [crossInsights, setCrossInsights] = useState<{
+    weatherTriple: { carwashDrivenFuel: boolean; insight: string; heavySameDay: { fuelCount: number; carwashCount: number; conversionPct: number | null; n: number } | null; heavyNextDay: { fuelCount: number; carwashCount: number; conversionPct: number | null; n: number } | null };
+    competitorCascade: { dataStatus: string; daysCollected: number; daysNeeded: number; insight: string };
+    dowHighlight: { bestConversionDay: { label: string; conversionPct: number }; bestPremiumDay: { label: string; premiumPct: number } };
+    similarDays: { count: number; avgFuelCount: number | null; avgCarwashCount: number | null; avgConversionPct: number | null; confidence: string; insight: string };
+  } | null>(null);
+
   const [loading, setLoading] = useState({
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
     salesAnalysis: true, timingAnalysis: true, forecastReview: true,
-    correlationMatrix: true, weather: true, weatherImpact: true, carwash: true,
+    correlationMatrix: true, weather: true, weatherImpact: true, carwash: true, crossInsights: true,
   });
 
   const [syncing, setSyncing] = useState(false);
@@ -443,7 +450,7 @@ export default function DashboardPage() {
       competitors: true, changes: true, benchmark: true,
       detail: true, oilPrices: true, priceHistory: true, insights: true,
       salesAnalysis: true, timingAnalysis: true, forecastReview: true,
-      correlationMatrix: true, weather: true, weatherImpact: true, carwash: true,
+      correlationMatrix: true, weather: true, weatherImpact: true, carwash: true, crossInsights: true,
     });
 
     // ── 빠른 개별 API (가격, 경쟁사 등 — 카드별 독립 로딩) ──
@@ -500,11 +507,14 @@ export default function DashboardPage() {
 
         if (data.carwash && !data.carwash.error) setCarwashSummary(data.carwash);
         setLoading((p) => ({ ...p, carwash: false }));
+
+        if (data.crossInsights && !data.crossInsights.error) setCrossInsights(data.crossInsights);
+        setLoading((p) => ({ ...p, crossInsights: false }));
       })
       .catch(() => {
         setLoading((p) => ({
           ...p, insights: false, salesAnalysis: false, weatherImpact: false,
-          timingAnalysis: false, forecastReview: false, correlationMatrix: false, carwash: false,
+          timingAnalysis: false, forecastReview: false, correlationMatrix: false, carwash: false, crossInsights: false,
         }));
       });
   };
@@ -1146,6 +1156,56 @@ export default function DashboardPage() {
                     🌧️ {carwashSummary.weatherInsight}
                   </div>
                 )}
+              </ClickableCard>
+            );
+          })() : null}
+
+          {/* 🔀 크로스 인사이트 */}
+          {loading.crossInsights ? <CardSkeleton /> : crossInsights ? (() => {
+            const wt = crossInsights.weatherTriple;
+            const dh = crossInsights.dowHighlight;
+            const sd = crossInsights.similarDays;
+            const cc = crossInsights.competitorCascade;
+            return (
+              <ClickableCard href="/dashboard/cross-insights" className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">크로스 인사이트</div>
+                <div className="space-y-2.5">
+                  {/* 세차 드리븐 주유 */}
+                  <div className="text-[12px]">
+                    <span className={`font-bold ${wt.carwashDrivenFuel ? "text-emerald-600" : "text-text-secondary"}`}>
+                      {wt.carwashDrivenFuel ? "✓ 세차 드리븐 주유 확인" : "세차·주유 독립적"}
+                    </span>
+                    <div className="text-[11px] text-text-tertiary mt-0.5">{wt.insight}</div>
+                  </div>
+                  {/* 요일 프로파일 */}
+                  <div className="text-[12px] pt-2 border-t border-border">
+                    <span className="text-text-secondary">전환율 최고</span>{" "}
+                    <span className="font-bold text-purple-500">{dh.bestConversionDay.label} {dh.bestConversionDay.conversionPct}%</span>
+                    <span className="text-text-tertiary mx-1.5">·</span>
+                    <span className="text-text-secondary">프리미엄 최고</span>{" "}
+                    <span className="font-bold text-purple-500">{dh.bestPremiumDay.label} {dh.bestPremiumDay.premiumPct}%</span>
+                  </div>
+                  {/* 유사 사례 */}
+                  {sd.count >= 3 && sd.avgFuelCount && sd.avgCarwashCount && (
+                    <div className="text-[12px] pt-2 border-t border-border">
+                      <div className="text-text-secondary">
+                        오늘 유사 과거 <span className="font-bold text-text-primary">{sd.count}일</span>
+                        <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${sd.confidence === "high" ? "text-emerald-600 bg-emerald-50" : sd.confidence === "medium" ? "text-amber-600 bg-amber-50" : "text-slate-500 bg-slate-100"}`}>
+                          {sd.confidence === "high" ? "신뢰↑" : sd.confidence === "medium" ? "보통" : "참고"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-text-tertiary mt-0.5">
+                        평균 주유 {sd.avgFuelCount}대 · 세차 {sd.avgCarwashCount}대 · 전환율 {sd.avgConversionPct}%
+                      </div>
+                    </div>
+                  )}
+                  {/* 경쟁사 데이터 상태 */}
+                  {cc.dataStatus === "accumulating" && (
+                    <div className="text-[11px] text-text-tertiary pt-2 border-t border-border">
+                      ⏳ 경쟁사 연쇄 효과: {cc.insight}
+                    </div>
+                  )}
+                </div>
               </ClickableCard>
             );
           })() : null}

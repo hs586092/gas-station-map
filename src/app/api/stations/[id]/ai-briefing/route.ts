@@ -34,15 +34,17 @@ export async function GET(
   let weatherData: Record<string, unknown> | null = null;
   let weatherImpactData: Record<string, unknown> | null = null;
   let forecastData: Record<string, unknown> | null = null;
+  let crossData: Record<string, unknown> | null = null;
 
   try {
-    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes, forecastRes] = await Promise.all([
+    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes, forecastRes, crossRes] = await Promise.all([
       fetch(`${baseUrl}/api/stations/${id}/dashboard-insights`, { next: { revalidate: 1800 } }),
       fetch(`${baseUrl}/api/stations/${id}/sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/timing-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/weather`, { next: { revalidate: 600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/weather-sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
       fetch(`${baseUrl}/api/stations/${id}/forecast-review?t=${Date.now()}`, { cache: "no-store" }).catch(() => null),
+      fetch(`${baseUrl}/api/stations/${id}/cross-insights?compact=1`, { next: { revalidate: 1800 } }).catch(() => null),
     ]);
 
     if (insightsRes.ok) insights = await insightsRes.json();
@@ -51,6 +53,7 @@ export async function GET(
     if (weatherRes?.ok) weatherData = await weatherRes.json();
     if (weatherImpactRes?.ok) weatherImpactData = await weatherImpactRes.json();
     if (forecastRes?.ok) forecastData = await forecastRes.json();
+    if (crossRes?.ok) crossData = await crossRes.json();
   } catch {
     // 데이터 수집 실패 시 insights 없이 진행
   }
@@ -174,6 +177,16 @@ export async function GET(
     if (heavy?.diffPct != null && heavy.n >= 3) {
       dataPrompt += `비다음날세차: 강한비 후 세차 ${heavy.diffPct >= 0 ? "+" : ""}${heavy.diffPct}% (n=${heavy.n})\n`;
     }
+  }
+
+  // 크로스 인사이트 (유사 사례)
+  const cx = crossData as Record<string, any> | null;
+  if (cx?.similarDays?.count >= 3) {
+    const sd = cx!.similarDays;
+    dataPrompt += `유사과거사례: ${sd.count}일 평균 주유 ${sd.avgFuelCount}대, 세차 ${sd.avgCarwashCount}대, 전환율 ${sd.avgConversionPct}% [${sd.confidence}]\n`;
+  }
+  if (cx?.weatherTriple?.carwashDrivenFuel) {
+    dataPrompt += `교차분석: 세차 드리븐 주유 확인 — ${cx.weatherTriple.insight}\n`;
   }
 
   dataPrompt += `\n기존규칙기반추천: ${rec.message || "없음"} (타입: ${rec.type || "?"})`;
