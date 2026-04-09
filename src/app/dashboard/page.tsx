@@ -855,9 +855,9 @@ export default function DashboardPage() {
               </div>
               <span
                 onClick={() => router.push("/dashboard/briefing")}
-                className="text-[14px] font-semibold text-text-secondary flex items-center gap-0.5 shrink-0 cursor-pointer hover:text-text-primary transition-colors"
+                className="text-[14px] font-semibold text-blue-600 flex items-center gap-0.5 shrink-0 cursor-pointer hover:text-blue-800 transition-colors"
               >
-                근거 보기
+                상세
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
               </span>
             </div>
