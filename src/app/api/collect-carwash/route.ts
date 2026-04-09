@@ -36,18 +36,18 @@ export async function GET(request: Request) {
       dates = [specificDate];
     } else if (backfill) {
       // 전체 백필: 세차장 최초 날짜부터 어제까지
-      const { data: earliest } = await carwash
+      const { data: earliestRows, error: eErr } = await carwash
         .from("transactions")
         .select("date")
         .eq("business_id", BUSINESS_ID)
         .eq("is_deleted", false)
         .order("date", { ascending: true })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (!earliest) {
-        return NextResponse.json({ error: "No carwash data found" }, { status: 404 });
+      if (eErr || !earliestRows || earliestRows.length === 0) {
+        return NextResponse.json({ error: "No carwash data found", detail: eErr?.message }, { status: 404 });
       }
+      const earliest = earliestRows[0];
 
       const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
       dates = getDateRange(earliest.date, yesterday);
