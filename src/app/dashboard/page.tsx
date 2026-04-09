@@ -1699,53 +1699,54 @@ export default function DashboardPage() {
             </ClickableCard>
           )}
 
-          {/* ⑧ 경쟁사 프로파일링 */}
+          {/* ⑧ 경쟁사 프로파일링 + ⑩ 가격 시뮬레이터 (2열 나란히) */}
           {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
-            <div className="md:col-span-2 bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
-                <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {insights.competitorProfiles.slice(0, 6).map((p) => {
-                  const typeColors = {
-                    leader: { bg: "bg-red-50 border border-red-100", text: "text-red-700", badge: "bg-red-900/50 text-red-700" },
-                    follower: { bg: "bg-amber-50 border border-amber-100", text: "text-amber-700", badge: "bg-amber-900/50 text-amber-700" },
-                    steady: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-600", badge: "bg-slate-100 text-slate-700" },
-                    unknown: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-500", badge: "bg-slate-100 text-slate-600" },
-                  };
-                  const tc = typeColors[p.type];
-                  return (
-                    <div key={p.id} className={`rounded-lg px-3 py-2.5 ${tc.bg}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[p.brand] || "#9BA8B7" }} />
-                          <span className="text-[12px] font-medium text-text-primary truncate">{p.name}</span>
-                        </div>
-                        <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tc.badge}`}>
-                          {p.type === "leader" ? "선제형" : p.type === "follower" ? "추종형" : "안정형"}
-                        </span>
-                        {(() => { const ch = changes?.changes.find(c => c.id === p.id); const diff = ch?.gasoline_diff ?? 0; return diff !== 0 ? (
-                          <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${diff > 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
-                            오늘 {diff > 0 ? "↑" : "↓"}{Math.abs(diff)}원
+            <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+              {/* 왼쪽: 경쟁사 프로파일 */}
+              <div className="bg-surface-raised rounded-xl p-5 border border-border flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
+                  <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
+                </div>
+                <div className="grid grid-cols-1 gap-2 flex-1">
+                  {insights.competitorProfiles.slice(0, 6).map((p) => {
+                    const typeColors = {
+                      leader: { bg: "bg-red-50 border border-red-100", text: "text-red-700", badge: "bg-red-900/50 text-red-700" },
+                      follower: { bg: "bg-amber-50 border border-amber-100", text: "text-amber-700", badge: "bg-amber-900/50 text-amber-700" },
+                      steady: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-600", badge: "bg-slate-100 text-slate-700" },
+                      unknown: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-500", badge: "bg-slate-100 text-slate-600" },
+                    };
+                    const tc = typeColors[p.type];
+                    return (
+                      <div key={p.id} className={`rounded-lg px-3 py-2.5 ${tc.bg}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[p.brand] || "#9BA8B7" }} />
+                            <span className="text-[12px] font-medium text-text-primary truncate">{p.name}</span>
+                          </div>
+                          <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tc.badge}`}>
+                            {p.type === "leader" ? "선제형" : p.type === "follower" ? "추종형" : "안정형"}
                           </span>
-                        ) : null; })()}
+                          {(() => { const ch = changes?.changes.find(c => c.id === p.id); const diff = ch?.gasoline_diff ?? 0; return diff !== 0 ? (
+                            <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${diff > 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                              오늘 {diff > 0 ? "↑" : "↓"}{Math.abs(diff)}원
+                            </span>
+                          ) : null; })()}
+                        </div>
+                        <div className="text-[12px] text-text-secondary">
+                          {p.changeCount}회 변경 · 평균 {p.avgChangeSize}원폭
+                          {p.currentPrice && <span className="ml-1">· 현재 {p.currentPrice.toLocaleString()}원</span>}
+                        </div>
                       </div>
-                      <div className="text-[12px] text-text-secondary">
-                        {p.changeCount}회 변경 · 평균 {p.avgChangeSize}원폭
-                        {p.currentPrice && <span className="ml-1">· 현재 {p.currentPrice.toLocaleString()}원</span>}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                <div className="mt-3 text-[12px] text-text-tertiary">
+                  * 최근 18일 가격 변경 빈도 기반 분류 (5회 이상: 선제형, 3~4회: 추종형, 2회 이하: 안정형)
+                </div>
               </div>
-              <div className="mt-3 text-[12px] text-text-tertiary">
-                * 최근 18일 가격 변경 빈도 기반 분류 (5회 이상: 선제형, 3~4회: 추종형, 2회 이하: 안정형)
-              </div>
-            </div>
-          )}
 
-          {/* ⑩ 가격 시뮬레이터 */}
+          {/* 오른쪽: 가격 시뮬레이터 */}
           {!loading.competitors && competitors && competitors.competitors.length > 0 && (() => {
             const myGas = competitors.baseStation.gasoline_price;
             if (!myGas) return null;
@@ -1764,7 +1765,6 @@ export default function DashboardPage() {
                   sumWeight += weight;
                 }
                 if (sumWeight > 0) {
-                  // volumeChangeRate per 가격변동원 → 10원 기준 환산
                   weightedElasticity = (sumWeightedVol / sumWeight);
                 }
               }
@@ -1788,7 +1788,6 @@ export default function DashboardPage() {
               const simPrice = myGas + delta;
               const simPrices = [simPrice, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
               const simRank = simPrices.indexOf(simPrice) + 1;
-              // 예상 판매 변동: (가중탄력성 / 실제평균변동원) × delta원 + 날씨보정
               let salesImpact: number | null = null;
               if (dowElasticity != null && salesAnalysis) {
                 const validEvents = salesAnalysis.events.filter(e => e.priceChange !== 0);
@@ -1808,7 +1807,7 @@ export default function DashboardPage() {
             const contextLabel = weatherLabel ? `${dowLabel} · ${weatherLabel}` : dowLabel;
 
             return (
-              <div className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
+              <div className="bg-surface-raised rounded-xl p-5 border border-border flex flex-col">
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">가격 시뮬레이터</div>
                   {dowElasticity != null && (
@@ -1818,33 +1817,37 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위 — 가격 변경 시 순위·판매량 변화 예측</div>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-1 gap-2 flex-1">
                   {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
                     const isUp = delta > 0;
                     return (
-                      <div key={delta} className={`rounded-lg p-3 text-center border ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
-                        <div className={`text-[12px] font-bold ${isUp ? "text-red-600" : "text-blue-600"}`}>
-                          {delta > 0 ? "+" : ""}{delta}원
-                        </div>
-                        <div className="text-[16px] font-extrabold text-text-primary tnum tracking-tight mt-1">{simPrice.toLocaleString()}</div>
-                        <div className="text-[14px] text-text-secondary mt-1">
-                          {total}개 중 <span className="font-bold">{simRank}위</span>
-                        </div>
-                        {rankChange !== 0 && (
-                          <div className={`text-[12px] font-medium mt-0.5 ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
-                            {rankChange > 0 ? `▼${rankChange}단계` : `▲${Math.abs(rankChange)}단계`}
+                      <div key={delta} className={`rounded-lg px-4 py-3 border flex items-center justify-between ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`text-[13px] font-bold w-12 ${isUp ? "text-red-600" : "text-blue-600"}`}>
+                            {delta > 0 ? "+" : ""}{delta}원
                           </div>
-                        )}
-                        {rankChange === 0 && (
-                          <div className="text-[12px] text-text-tertiary mt-0.5">변동 없음</div>
-                        )}
-                        {salesImpact != null && (
-                          <div className={`text-[11px] font-bold mt-1 pt-1 border-t ${
-                            isUp ? "border-red-200" : "border-blue-200"
-                          } ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
-                            판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
+                          <div className="text-[15px] font-extrabold text-text-primary tnum tracking-tight">{simPrice.toLocaleString()}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-[13px] text-text-secondary">
+                            {total}개 중 <span className="font-bold">{simRank}위</span>
                           </div>
-                        )}
+                          {rankChange !== 0 && (
+                            <div className={`text-[12px] font-medium ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
+                              {rankChange > 0 ? `▼${rankChange}` : `▲${Math.abs(rankChange)}`}
+                            </div>
+                          )}
+                          {rankChange === 0 && (
+                            <div className="text-[12px] text-text-tertiary">-</div>
+                          )}
+                          {salesImpact != null && (
+                            <div className={`text-[11px] font-bold pl-2 border-l ${
+                              isUp ? "border-red-200" : "border-blue-200"
+                            } ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
+                              판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1859,6 +1862,8 @@ export default function DashboardPage() {
               </div>
             );
           })()}
+            </div>
+          )}
 
           {/* ⑤ 국제유가 + 향후 전망 */}
           {loading.oilPrices ? <CardSkeleton /> : oilPrices && (() => {
