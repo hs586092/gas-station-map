@@ -54,7 +54,7 @@ export default function CarwashPage() {
       <div className="min-h-screen bg-surface">
         <DetailHeader title="세차장 분석" description="세차 대수, 날씨 영향 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
-          <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-text-secondary">
+          <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-slate-600">
             세차 데이터를 불러올 수 없습니다.
           </div>
         </div>
@@ -76,9 +76,9 @@ export default function CarwashPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* 오늘 예상 */}
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <div className="text-[11px] text-text-tertiary font-medium mb-2">오늘 예상 ({data.today.dowLabel})</div>
+            <div className="text-[11px] text-slate-400 font-medium mb-2">오늘 예상 ({data.today.dowLabel})</div>
             <div className="text-[28px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>
-              {data.today.expectedCount.toLocaleString()}<span className="text-[14px] text-text-tertiary ml-1">대</span>
+              {data.today.expectedCount.toLocaleString()}<span className="text-[14px] text-slate-400 ml-1">대</span>
             </div>
             {data.today.weatherAdjustment && (
               <div className="text-[12px] text-amber-500 mt-1">⚡ {data.today.weatherAdjustment}</div>
@@ -87,9 +87,9 @@ export default function CarwashPage() {
           {/* 어제 실적 */}
           {data.yesterday && (
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="text-[11px] text-text-tertiary font-medium mb-2">어제 {data.yesterday.date.slice(5)}</div>
-              <div className="text-[28px] font-extrabold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {data.yesterday.count.toLocaleString()}<span className="text-[14px] text-text-tertiary ml-1">대</span>
+              <div className="text-[11px] text-slate-400 font-medium mb-2">어제 {data.yesterday.date.slice(5)}</div>
+              <div className="text-[28px] font-extrabold text-slate-900" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {data.yesterday.count.toLocaleString()}<span className="text-[14px] text-slate-400 ml-1">대</span>
               </div>
               <div className="flex items-center gap-2">
                 {data.yesterday.vsLastWeekPct != null && (
@@ -102,8 +102,8 @@ export default function CarwashPage() {
           )}
           {/* 날씨 인사이트 */}
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <div className="text-[11px] text-text-tertiary font-medium mb-2">날씨 인사이트</div>
-            <div className="text-[14px] text-text-primary leading-relaxed">
+            <div className="text-[11px] text-slate-400 font-medium mb-2">날씨 인사이트</div>
+            <div className="text-[14px] text-slate-900 leading-relaxed">
               {data.weatherInsight || "날씨 데이터 대기 중"}
             </div>
           </div>
@@ -111,7 +111,7 @@ export default function CarwashPage() {
 
         {/* 30일 추이 차트 */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">30일 세차 대수 추이</h2>
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">30일 세차 대수 추이</h2>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={data.trend} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" />
@@ -123,7 +123,7 @@ export default function CarwashPage() {
                   const p = payload[0].payload;
                   return (
                     <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-[12px] shadow-md">
-                      <div className="text-text-tertiary">{p.date}</div>
+                      <div className="text-slate-400">{p.date}</div>
                       <div>세차: <span className="font-bold">{p.count}대</span></div>
                     </div>
                   );
@@ -137,21 +137,21 @@ export default function CarwashPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* 요일별 평균 */}
           <div className="bg-surface-raised rounded-xl p-6 border border-border">
-            <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">요일별 평균 대수</h2>
+            <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">요일별 평균 대수</h2>
             <div className="space-y-2">
               {data.dowStats.map(d => (
                 <div key={d.dow} className="flex items-center gap-3">
-                  <span className="text-[13px] font-bold text-text-primary w-6 text-right">{d.label}</span>
+                  <span className="text-[13px] font-bold text-slate-900 w-6 text-right">{d.label}</span>
                   <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full bg-purple-400"
                       style={{ width: `${maxDowCount > 0 ? (d.avgCount / maxDowCount) * 100 : 0}%`, opacity: 0.75 }}
                     />
                   </div>
-                  <span className="text-[12px] font-bold text-text-primary w-12 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <span className="text-[12px] font-bold text-slate-900 w-12 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
                     {d.avgCount}대
                   </span>
-                  <span className="text-[10px] text-text-tertiary w-6 text-right">n={d.n}</span>
+                  <span className="text-[10px] text-slate-400 w-6 text-right">n={d.n}</span>
                 </div>
               ))}
             </div>
@@ -159,36 +159,36 @@ export default function CarwashPage() {
 
           {/* 날씨별 세차 대수 */}
           <div className="bg-surface-raised rounded-xl p-6 border border-border">
-            <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">날씨별 세차 대수</h2>
+            <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">날씨별 세차 대수</h2>
             <div className="space-y-4">
               <div>
-                <div className="text-[12px] text-text-tertiary font-medium mb-2">당일 날씨</div>
+                <div className="text-[12px] text-slate-400 font-medium mb-2">당일 날씨</div>
                 {data.weatherStats.map(w => (
                   <div key={w.key} className="flex items-center justify-between py-1.5">
-                    <span className="text-[13px] text-text-secondary">{w.label}</span>
+                    <span className="text-[13px] text-slate-600">{w.label}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-bold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{w.avgCount}대</span>
-                      <span className="text-[10px] text-text-tertiary">n={w.n}</span>
+                      <span className="text-[14px] font-bold text-slate-900" style={{ fontVariantNumeric: "tabular-nums" }}>{w.avgCount}대</span>
+                      <span className="text-[10px] text-slate-400">n={w.n}</span>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="border-t border-border pt-3">
-                <div className="text-[12px] text-text-tertiary font-medium mb-2">비 다음날 세차 (lag-1)</div>
+                <div className="text-[12px] text-slate-400 font-medium mb-2">비 다음날 세차 (lag-1)</div>
                 {data.lagWeatherStats.map(w => {
                   const dryAvg = data.lagWeatherStats.find(l => l.key === "dry")?.avgCount ?? 0;
                   const diffPct = dryAvg > 0 ? +(((w.avgCount - dryAvg) / dryAvg) * 100).toFixed(1) : null;
                   return (
                     <div key={w.key} className="flex items-center justify-between py-1.5">
-                      <span className="text-[13px] text-text-secondary">{w.label}</span>
+                      <span className="text-[13px] text-slate-600">{w.label}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-bold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{w.avgCount}대</span>
+                        <span className="text-[14px] font-bold text-slate-900" style={{ fontVariantNumeric: "tabular-nums" }}>{w.avgCount}대</span>
                         {diffPct != null && w.key !== "dry" && (
                           <span className={`text-[12px] font-bold ${diffPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                             {diffPct >= 0 ? "+" : ""}{diffPct}%
                           </span>
                         )}
-                        <span className="text-[10px] text-text-tertiary">n={w.n}</span>
+                        <span className="text-[10px] text-slate-400">n={w.n}</span>
                       </div>
                     </div>
                   );
@@ -200,7 +200,7 @@ export default function CarwashPage() {
 
         {/* 종류별 대수 추이 */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">종류별 대수 추이 (30일)</h2>
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">종류별 대수 추이 (30일)</h2>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.typeBreakdownTrend} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" />
@@ -212,7 +212,7 @@ export default function CarwashPage() {
                   const p = payload[0].payload;
                   return (
                     <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-[12px] shadow-md">
-                      <div className="text-text-tertiary mb-1">{p.date}</div>
+                      <div className="text-slate-400 mb-1">{p.date}</div>
                       <div>기본: <span className="font-bold">{p.basic}</span></div>
                       <div>프리미엄: <span className="font-bold">{p.premium}</span></div>
                       {p.taxi > 0 && <div>택시: <span className="font-bold">{p.taxi}</span></div>}
@@ -228,7 +228,7 @@ export default function CarwashPage() {
               <Bar dataKey="free" stackId="a" fill="#CBD5E1" name="무료" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <div className="flex items-center gap-4 mt-2 text-[11px] text-text-tertiary">
+          <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-400">
             <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-400 inline-block" />기본 (5~6천)</span>
             <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-purple-500 inline-block" />프리미엄 (7천~1만)</span>
             <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-amber-400 inline-block" />택시</span>
@@ -239,7 +239,7 @@ export default function CarwashPage() {
         {/* 주유 대수 vs 세차 대수 산점도 */}
         {data.scatterData.length > 0 && (
           <div className="bg-surface-raised rounded-xl p-6 border border-border">
-            <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">주유 대수 vs 세차 대수 상관관계</h2>
+            <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">주유 대수 vs 세차 대수 상관관계</h2>
             <ResponsiveContainer width="100%" height={350}>
               <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" />
@@ -260,7 +260,7 @@ export default function CarwashPage() {
                     const p = payload[0].payload;
                     return (
                       <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-[12px] shadow-md">
-                        <div className="text-text-tertiary">{p.date}</div>
+                        <div className="text-slate-400">{p.date}</div>
                         <div>주유: <span className="font-bold">{p.fuelCount}대</span></div>
                         <div>세차: <span className="font-bold">{p.carwashCount}대</span></div>
                       </div>

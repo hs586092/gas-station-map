@@ -58,7 +58,7 @@ export default function CrossInsightsPage() {
       <div className="min-h-screen bg-surface">
         <DetailHeader title="크로스 인사이트" description="데이터 교차 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
-          <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-text-secondary">데이터를 불러올 수 없습니다.</div>
+          <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-slate-600">데이터를 불러올 수 없습니다.</div>
         </div>
       </div>
     );
@@ -78,39 +78,39 @@ export default function CrossInsightsPage() {
 
         {/* 핵심 발견 배너 */}
         <div className={`rounded-xl p-5 border ${wt.carwashDrivenFuel ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200"}`}>
-          <div className="text-[15px] font-bold text-text-primary mb-1">
+          <div className="text-[15px] font-bold text-slate-900 mb-1">
             {wt.carwashDrivenFuel ? "✓ 세차 드리븐 주유 확인" : "세차와 주유는 독립적"}
           </div>
-          <div className="text-[13px] text-text-secondary">{wt.insight}</div>
+          <div className="text-[13px] text-slate-600">{wt.insight}</div>
         </div>
 
         {/* ── 분석 1: 날씨 × 세차 × 주유 3중 교차 ── */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">날씨 × 세차 × 주유 3중 교차</h2>
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">날씨 × 세차 × 주유 3중 교차</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 당일 효과 */}
             <div>
-              <h3 className="text-[13px] font-bold text-text-secondary m-0 mb-3">당일 날씨 효과</h3>
+              <h3 className="text-[13px] font-bold text-slate-600 m-0 mb-3">당일 날씨 효과</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-2 text-text-tertiary font-semibold">날씨</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">주유</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">세차</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">전환율</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">n</th>
+                      <th className="text-left py-2 text-slate-400 font-semibold">날씨</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">주유</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">세차</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">전환율</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">n</th>
                     </tr>
                   </thead>
                   <tbody>
                     {wt.sameDay.map(r => (
                       <tr key={r.intensity} className="border-b border-border/50">
-                        <td className="py-2 font-medium text-text-primary">{r.label}</td>
+                        <td className="py-2 font-medium text-slate-900">{r.label}</td>
                         <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{r.fuelCount}대</td>
                         <td className="py-2 text-right font-bold text-purple-600" style={{ fontVariantNumeric: "tabular-nums" }}>{r.carwashCount}대</td>
                         <td className="py-2 text-right font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{r.conversionPct ?? "-"}%</td>
-                        <td className="py-2 text-right text-text-tertiary">{r.n}</td>
+                        <td className="py-2 text-right text-slate-400">{r.n}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -120,16 +120,16 @@ export default function CrossInsightsPage() {
 
             {/* lag-1 효과 */}
             <div>
-              <h3 className="text-[13px] font-bold text-text-secondary m-0 mb-3">비 다음날 효과 (lag-1)</h3>
+              <h3 className="text-[13px] font-bold text-slate-600 m-0 mb-3">비 다음날 효과 (lag-1)</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-2 text-text-tertiary font-semibold">전날 날씨</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">주유</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">세차</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">전환율</th>
-                      <th className="text-right py-2 text-text-tertiary font-semibold">n</th>
+                      <th className="text-left py-2 text-slate-400 font-semibold">전날 날씨</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">주유</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">세차</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">전환율</th>
+                      <th className="text-right py-2 text-slate-400 font-semibold">n</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -138,7 +138,7 @@ export default function CrossInsightsPage() {
                       const diff = r.conversionPct != null && dryConv ? +(r.conversionPct - dryConv).toFixed(1) : null;
                       return (
                         <tr key={r.prevIntensity} className="border-b border-border/50">
-                          <td className="py-2 font-medium text-text-primary">{r.label}</td>
+                          <td className="py-2 font-medium text-slate-900">{r.label}</td>
                           <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{r.fuelCount}대</td>
                           <td className="py-2 text-right font-bold text-purple-600" style={{ fontVariantNumeric: "tabular-nums" }}>{r.carwashCount}대</td>
                           <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -149,7 +149,7 @@ export default function CrossInsightsPage() {
                               </span>
                             )}
                           </td>
-                          <td className="py-2 text-right text-text-tertiary">{r.n}</td>
+                          <td className="py-2 text-right text-slate-400">{r.n}</td>
                         </tr>
                       );
                     })}
@@ -161,14 +161,14 @@ export default function CrossInsightsPage() {
 
           {/* 기온대별 */}
           <div className="mt-6 pt-4 border-t border-border">
-            <h3 className="text-[13px] font-bold text-text-secondary m-0 mb-3">기온대별</h3>
+            <h3 className="text-[13px] font-bold text-slate-600 m-0 mb-3">기온대별</h3>
             <div className="flex gap-4">
               {wt.tempBand.map(t => (
                 <div key={t.band} className="flex-1 rounded-lg border border-border p-4 text-center">
-                  <div className="text-[12px] text-text-tertiary mb-1">{t.label}</div>
-                  <div className="text-[18px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>{t.carwashAvg}<span className="text-[11px] text-text-tertiary ml-0.5">대</span></div>
-                  <div className="text-[12px] text-text-secondary">주유 {t.fuelAvg}대</div>
-                  <div className="text-[10px] text-text-tertiary">n={t.n}</div>
+                  <div className="text-[12px] text-slate-400 mb-1">{t.label}</div>
+                  <div className="text-[18px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>{t.carwashAvg}<span className="text-[11px] text-slate-400 ml-0.5">대</span></div>
+                  <div className="text-[12px] text-slate-600">주유 {t.fuelAvg}대</div>
+                  <div className="text-[10px] text-slate-400">n={t.n}</div>
                 </div>
               ))}
             </div>
@@ -177,12 +177,12 @@ export default function CrossInsightsPage() {
 
         {/* ── 분석 3: 요일 × 세차 프로파일 ── */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">요일 × 세차 프로파일</h2>
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">요일 × 세차 프로파일</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 전환율 + 프리미엄 비율 차트 */}
             <div>
-              <h3 className="text-[13px] font-bold text-text-secondary m-0 mb-3">전환율 · 프리미엄 비율</h3>
+              <h3 className="text-[13px] font-bold text-slate-600 m-0 mb-3">전환율 · 프리미엄 비율</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={data.dowProfile} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" />
@@ -204,7 +204,7 @@ export default function CrossInsightsPage() {
                   <Bar dataKey="premiumPct" fill="#60A5FA" name="프리미엄" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              <div className="flex items-center gap-4 mt-1 text-[11px] text-text-tertiary">
+              <div className="flex items-center gap-4 mt-1 text-[11px] text-slate-400">
                 <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-purple-500 inline-block" />전환율</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-400 inline-block" />프리미엄 비율</span>
               </div>
@@ -212,22 +212,22 @@ export default function CrossInsightsPage() {
 
             {/* 건당 주유량 테이블 */}
             <div>
-              <h3 className="text-[13px] font-bold text-text-secondary m-0 mb-3">요일별 상세</h3>
+              <h3 className="text-[13px] font-bold text-slate-600 m-0 mb-3">요일별 상세</h3>
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 text-text-tertiary font-semibold">요일</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">세차</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">주유</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">건당L</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">전환율</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">프리미엄</th>
+                    <th className="text-left py-2 text-slate-400 font-semibold">요일</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">세차</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">주유</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">건당L</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">전환율</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">프리미엄</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.dowProfile.map(d => (
                     <tr key={d.dow} className="border-b border-border/50">
-                      <td className="py-2 font-bold text-text-primary">{d.label}</td>
+                      <td className="py-2 font-bold text-slate-900">{d.label}</td>
                       <td className="py-2 text-right text-purple-600 font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{d.avgCarwash}</td>
                       <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{d.avgFuel}</td>
                       <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{d.fuelPerTxn}L</td>
@@ -243,8 +243,8 @@ export default function CrossInsightsPage() {
 
         {/* ── 분석 4: 유사 사례 매칭 ── */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-2">오늘과 유사한 과거 사례</h2>
-          <div className="text-[12px] text-text-tertiary mb-4">
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-2">오늘과 유사한 과거 사례</h2>
+          <div className="text-[12px] text-slate-400 mb-4">
             오늘 조건: {sd.todayConditions.dowLabel}요일 · {sd.todayConditions.weather === "dry" ? "맑음" : sd.todayConditions.weather === "light" ? "약한비" : "강한비"}
             {sd.todayConditions.tempBand && ` · ${sd.todayConditions.tempBand === "cold" ? "10도 미만" : "10도 이상"}`}
             {` · 유가 ${sd.todayConditions.oilDirection === "rising" ? "상승" : sd.todayConditions.oilDirection === "falling" ? "하락" : "횡보"}`}
@@ -261,28 +261,28 @@ export default function CrossInsightsPage() {
                     </span>
                   </div>
                   <div className="flex gap-6 mt-2 text-[14px]">
-                    <div>주유 <span className="font-extrabold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{sd.avgFuelCount}</span>대</div>
+                    <div>주유 <span className="font-extrabold text-slate-900" style={{ fontVariantNumeric: "tabular-nums" }}>{sd.avgFuelCount}</span>대</div>
                     <div>세차 <span className="font-extrabold text-purple-600" style={{ fontVariantNumeric: "tabular-nums" }}>{sd.avgCarwashCount}</span>대</div>
-                    <div>전환율 <span className="font-extrabold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{sd.avgConversionPct}%</span></div>
+                    <div>전환율 <span className="font-extrabold text-slate-900" style={{ fontVariantNumeric: "tabular-nums" }}>{sd.avgConversionPct}%</span></div>
                   </div>
                 </div>
               )}
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 text-text-tertiary font-semibold">날짜</th>
-                    <th className="text-left py-2 text-text-tertiary font-semibold">조건</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">주유</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">세차</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">전환율</th>
-                    <th className="text-right py-2 text-text-tertiary font-semibold">유사도</th>
+                    <th className="text-left py-2 text-slate-400 font-semibold">날짜</th>
+                    <th className="text-left py-2 text-slate-400 font-semibold">조건</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">주유</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">세차</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">전환율</th>
+                    <th className="text-right py-2 text-slate-400 font-semibold">유사도</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sd.matches.map(m => (
                     <tr key={m.date} className="border-b border-border/50">
-                      <td className="py-2 text-text-primary">{m.date.slice(5)}</td>
-                      <td className="py-2 text-text-secondary text-[12px]">{m.conditions}</td>
+                      <td className="py-2 text-slate-900">{m.date.slice(5)}</td>
+                      <td className="py-2 text-slate-600 text-[12px]">{m.conditions}</td>
                       <td className="py-2 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{m.fuelCount}</td>
                       <td className="py-2 text-right text-purple-600 font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{m.carwashCount}</td>
                       <td className="py-2 text-right font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{m.conversionPct}%</td>
@@ -297,15 +297,15 @@ export default function CrossInsightsPage() {
               </table>
             </>
           ) : (
-            <div className="text-[14px] text-text-tertiary text-center py-8">유사 사례가 부족합니다. 데이터가 축적되면 표시됩니다.</div>
+            <div className="text-[14px] text-slate-400 text-center py-8">유사 사례가 부족합니다. 데이터가 축적되면 표시됩니다.</div>
           )}
         </div>
 
         {/* ── 분석 2: 경쟁사 연쇄 (축적 중) ── */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-2">경쟁사 → 주유 → 세차 연쇄 효과</h2>
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-2">경쟁사 → 주유 → 세차 연쇄 효과</h2>
           <div className="flex items-center gap-3 py-8 justify-center">
-            <div className="text-[14px] text-text-tertiary">⏳ {data.competitorCascade.insight}</div>
+            <div className="text-[14px] text-slate-400">⏳ {data.competitorCascade.insight}</div>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-2">
             <div
@@ -313,7 +313,7 @@ export default function CrossInsightsPage() {
               style={{ width: `${(data.competitorCascade.daysCollected / data.competitorCascade.daysNeeded) * 100}%` }}
             />
           </div>
-          <div className="text-[11px] text-text-tertiary mt-1 text-right">{data.competitorCascade.daysCollected}/{data.competitorCascade.daysNeeded}일</div>
+          <div className="text-[11px] text-slate-400 mt-1 text-right">{data.competitorCascade.daysCollected}/{data.competitorCascade.daysNeeded}일</div>
         </div>
       </div>
     </div>

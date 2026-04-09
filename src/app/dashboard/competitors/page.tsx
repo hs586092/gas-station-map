@@ -125,20 +125,20 @@ export default function CompetitorsPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-text-secondary mb-1">총 경쟁사</div>
-            <div className="text-[22px] font-extrabold text-text-primary">{competitors.length}<span className="text-[12px] font-normal">개</span></div>
+            <div className="text-[13px] text-slate-600 mb-1">총 경쟁사</div>
+            <div className="text-[22px] font-extrabold text-slate-900">{competitors.length}<span className="text-[12px] font-normal">개</span></div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-text-secondary mb-1">이번 주 인상</div>
+            <div className="text-[13px] text-slate-600 mb-1">이번 주 인상</div>
             <div className="text-[22px] font-extrabold text-coral">{weeklyTrend?.risingCount ?? 0}<span className="text-[12px] font-normal">곳</span></div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-text-secondary mb-1">이번 주 인하</div>
+            <div className="text-[13px] text-slate-600 mb-1">이번 주 인하</div>
             <div className="text-[22px] font-extrabold text-blue-600">{weeklyTrend?.fallingCount ?? 0}<span className="text-[12px] font-normal">곳</span></div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-text-secondary mb-1">선제형 경쟁사</div>
-            <div className="text-[22px] font-extrabold text-text-primary">{profiles.filter((p) => p.type === "leader").length}<span className="text-[12px] font-normal">곳</span></div>
+            <div className="text-[13px] text-slate-600 mb-1">선제형 경쟁사</div>
+            <div className="text-[22px] font-extrabold text-slate-900">{profiles.filter((p) => p.type === "leader").length}<span className="text-[12px] font-normal">곳</span></div>
           </div>
         </div>
 
@@ -147,19 +147,19 @@ export default function CompetitorsPage() {
           <div className={`mb-6 rounded-2xl px-5 py-4 ${
             weeklyTrend.action === "rising" ? "bg-red-50" : weeklyTrend.action === "falling" ? "bg-blue-50" : "bg-slate-50"
           }`}>
-            <div className="text-[13px] font-semibold text-text-primary">{weeklyTrend.message}</div>
+            <div className="text-[13px] font-semibold text-slate-900">{weeklyTrend.message}</div>
           </div>
         )}
 
         {/* 필터 */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-2">
-            <button onClick={() => setSelectedFuel("gasoline")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-surface-raised text-text-secondary border-border"}`}>휘발유</button>
-            <button onClick={() => setSelectedFuel("diesel")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-surface-raised text-text-secondary border-border"}`}>경유</button>
+            <button onClick={() => setSelectedFuel("gasoline")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-surface-raised text-slate-600 border-border"}`}>휘발유</button>
+            <button onClick={() => setSelectedFuel("diesel")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-surface-raised text-slate-600 border-border"}`}>경유</button>
           </div>
           <div className="flex gap-1">
             {(["distance", "price", "changes"] as const).map((s) => (
-              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-200 text-white border-slate-700" : "bg-surface-raised text-text-secondary border-border"}`}>
+              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${sortBy === s ? "bg-slate-200 text-white border-slate-700" : "bg-surface-raised text-slate-600 border-border"}`}>
                 {s === "distance" ? "거리순" : s === "price" ? "가격순" : "변경순"}
               </button>
             ))}
@@ -187,10 +187,10 @@ export default function CompetitorsPage() {
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[13px] font-semibold text-text-primary truncate">{c.name}</span>
-                          <span className="text-[12px] text-text-tertiary">{BRAND_LABELS[c.brand] || ""}</span>
+                          <span className="text-[13px] font-semibold text-slate-900 truncate">{c.name}</span>
+                          <span className="text-[12px] text-slate-400">{BRAND_LABELS[c.brand] || ""}</span>
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[12px] text-text-secondary">
+                        <div className="flex items-center gap-2 mt-0.5 text-[12px] text-slate-600">
                           <span>{c.distance_km}km</span>
                           {prof && (
                             <span className={`px-1.5 py-0.5 rounded-full font-bold text-[12px] ${typeColor(prof.type)}`}>
@@ -198,7 +198,7 @@ export default function CompetitorsPage() {
                             </span>
                           )}
                           {corrVal != null && (
-                            <span className={`text-[12px] font-medium ${corrVal >= 0.7 ? "text-emerald" : corrVal >= 0.3 ? "text-amber-600" : "text-text-tertiary"}`}>
+                            <span className={`text-[12px] font-medium ${corrVal >= 0.7 ? "text-emerald" : corrVal >= 0.3 ? "text-amber-600" : "text-slate-400"}`}>
                               연동 {corrVal.toFixed(2)}
                             </span>
                           )}
@@ -206,9 +206,9 @@ export default function CompetitorsPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <div className="text-[16px] font-bold text-text-primary">{price?.toLocaleString() || "-"}<span className="text-[12px] font-normal">원</span></div>
+                      <div className="text-[16px] font-bold text-slate-900">{price?.toLocaleString() || "-"}<span className="text-[12px] font-normal">원</span></div>
                       {diff != null && (
-                        <div className={`text-[13px] font-bold ${diff > 0 ? "text-coral" : diff < 0 ? "text-blue-600" : "text-text-tertiary"}`}>
+                        <div className={`text-[13px] font-bold ${diff > 0 ? "text-coral" : diff < 0 ? "text-blue-600" : "text-slate-400"}`}>
                           나보다 {diff > 0 ? `+${diff}` : diff}원
                         </div>
                       )}
@@ -230,7 +230,7 @@ export default function CompetitorsPage() {
                       </div>
                     ) : chartData.length > 0 ? (
                       <div className="pt-3">
-                        <div className="text-[13px] text-text-secondary mb-2">{c.name} · 최근 30일 {selectedFuel === "gasoline" ? "휘발유" : "경유"}</div>
+                        <div className="text-[13px] text-slate-600 mb-2">{c.name} · 최근 30일 {selectedFuel === "gasoline" ? "휘발유" : "경유"}</div>
                         <ResponsiveContainer width="100%" height={200}>
                           <LineChart data={chartData.map((d) => ({ ...d, date: d.date.slice(5) }))}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
@@ -242,7 +242,7 @@ export default function CompetitorsPage() {
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <div className="text-[12px] text-text-tertiary text-center py-6">가격 이력 데이터가 없습니다.</div>
+                      <div className="text-[12px] text-slate-400 text-center py-6">가격 이력 데이터가 없습니다.</div>
                     )}
                   </div>
                 )}
@@ -254,8 +254,8 @@ export default function CompetitorsPage() {
         {/* 가격 연동성 */}
         {correlations.length > 0 && (
           <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
-            <div className="text-[16px] font-bold text-text-primary mb-1">가격 연동성 분석</div>
-            <div className="text-[13px] text-text-secondary mb-4">나와 가격이 같이 움직이는 경쟁사 (Pearson 상관계수, 30일 기준)</div>
+            <div className="text-[16px] font-bold text-slate-900 mb-1">가격 연동성 분석</div>
+            <div className="text-[13px] text-slate-600 mb-4">나와 가격이 같이 움직이는 경쟁사 (Pearson 상관계수, 30일 기준)</div>
             <div className="space-y-3">
               {correlations
                 .filter((c) => (selectedFuel === "gasoline" ? c.gasoline_correlation : c.diesel_correlation) != null)
@@ -275,15 +275,15 @@ export default function CompetitorsPage() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }} />
-                          <span className="text-[12px] text-text-primary truncate">{c.name}</span>
-                          <span className="text-[12px] text-text-tertiary">{c.distance_km}km</span>
+                          <span className="text-[12px] text-slate-900 truncate">{c.name}</span>
+                          <span className="text-[12px] text-slate-400">{c.distance_km}km</span>
                         </div>
-                        <span className="text-[12px] font-bold text-text-primary shrink-0 ml-2">{val.toFixed(2)}</span>
+                        <span className="text-[12px] font-bold text-slate-900 shrink-0 ml-2">{val.toFixed(2)}</span>
                       </div>
                       <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-1">
                         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(absVal * 100, 5)}%` }} />
                       </div>
-                      <div className="text-[12px] text-text-secondary">{label} · 데이터 {c.data_points}일</div>
+                      <div className="text-[12px] text-slate-600">{label} · 데이터 {c.data_points}일</div>
                     </div>
                   );
                 })}
@@ -294,7 +294,7 @@ export default function CompetitorsPage() {
         {/* 프로파일 요약 */}
         {profiles.length > 0 && (
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
-            <div className="text-[16px] font-bold text-text-primary mb-4">경쟁사 행동 프로파일</div>
+            <div className="text-[16px] font-bold text-slate-900 mb-4">경쟁사 행동 프로파일</div>
             <div className="grid grid-cols-3 gap-3 mb-4">
               {(["leader", "follower", "steady"] as const).map((t) => {
                 const count = profiles.filter((p) => p.type === t).length;
@@ -307,7 +307,7 @@ export default function CompetitorsPage() {
                 );
               })}
             </div>
-            <div className="text-[12px] text-text-tertiary">
+            <div className="text-[12px] text-slate-400">
               * 18일간 가격 변경 빈도: 5회 이상 선제형, 3~4회 추종형, 2회 이하 안정형
             </div>
           </div>

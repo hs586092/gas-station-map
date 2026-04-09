@@ -167,11 +167,11 @@ export default function OilReflectionPage() {
           }`}>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[18px]">{reflection.direction === "up" ? "📈" : reflection.direction === "down" ? "📉" : "➡️"}</span>
-              <span className="text-[15px] font-bold text-text-primary">현재 반영 상태</span>
+              <span className="text-[15px] font-bold text-slate-900">현재 반영 상태</span>
             </div>
-            <p className="text-[14px] font-semibold text-text-primary m-0">{reflection.message}</p>
+            <p className="text-[14px] font-semibold text-slate-900 m-0">{reflection.message}</p>
             {reflection.priceChange !== null && (
-              <p className="text-[12px] text-text-secondary m-0 mt-1">
+              <p className="text-[12px] text-slate-600 m-0 mt-1">
                 소매가 2주간 {reflection.priceChange >= 0 ? "+" : ""}{reflection.priceChange}원 · Brent 2주간 {reflection.brentChange >= 0 ? "+" : ""}{reflection.brentChange.toFixed(1)}%
               </p>
             )}
@@ -181,17 +181,17 @@ export default function OilReflectionPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-text-secondary mb-1">감지된 유가 이벤트</div>
-            <div className="text-[22px] font-extrabold text-text-primary">{events.length}<span className="text-[12px] font-normal">건</span></div>
+            <div className="text-[13px] text-slate-600 mb-1">감지된 유가 이벤트</div>
+            <div className="text-[22px] font-extrabold text-slate-900">{events.length}<span className="text-[12px] font-normal">건</span></div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-text-secondary mb-1">평균 반영 속도</div>
-            <div className="text-[22px] font-extrabold text-text-primary">
-              {avgReflectDays != null ? <>{avgReflectDays}<span className="text-[12px] font-normal">일</span></> : <span className="text-[14px] text-text-tertiary">데이터 부족</span>}
+            <div className="text-[13px] text-slate-600 mb-1">평균 반영 속도</div>
+            <div className="text-[22px] font-extrabold text-slate-900">
+              {avgReflectDays != null ? <>{avgReflectDays}<span className="text-[12px] font-normal">일</span></> : <span className="text-[14px] text-slate-400">데이터 부족</span>}
             </div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-text-secondary mb-1">반영 완료율</div>
+            <div className="text-[13px] text-slate-600 mb-1">반영 완료율</div>
             <div className="text-[22px] font-extrabold text-emerald">
               {events.length > 0
                 ? `${Math.round((events.filter((e) => e.reflected).length / events.length) * 100)}%`
@@ -203,15 +203,15 @@ export default function OilReflectionPage() {
         {/* 흐름 분석 스토리 */}
         {oilStory && (
           <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
-            <div className="text-[13px] font-bold text-text-primary mb-2">흐름 분석</div>
-            <div className="text-[12px] text-text-secondary leading-relaxed">{oilStory}</div>
+            <div className="text-[13px] font-bold text-slate-900 mb-2">흐름 분석</div>
+            <div className="text-[12px] text-slate-600 leading-relaxed">{oilStory}</div>
           </div>
         )}
 
         {/* Brent vs 소매가 시차 차트 */}
         <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
-          <div className="text-[16px] font-bold text-text-primary mb-1">Brent 유가 → 소매가 시차 비교</div>
-          <div className="text-[13px] text-text-secondary mb-4">Brent 유가와 2주 후 내 소매가를 같은 시점에 겹쳐 표시</div>
+          <div className="text-[16px] font-bold text-slate-900 mb-1">Brent 유가 → 소매가 시차 비교</div>
+          <div className="text-[13px] text-slate-600 mb-4">Brent 유가와 2주 후 내 소매가를 같은 시점에 겹쳐 표시</div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={overlayData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F0F2F5" vertical={false} />
@@ -237,11 +237,11 @@ export default function OilReflectionPage() {
 
         {/* 유가 변동 이벤트 타임라인 */}
         <div className="bg-surface-raised rounded-xl p-5 border border-border">
-          <div className="text-[16px] font-bold text-text-primary mb-1">유가 변동 이벤트</div>
-          <div className="text-[13px] text-text-secondary mb-4">Brent 주간 변동 ±$3 이상 감지</div>
+          <div className="text-[16px] font-bold text-slate-900 mb-1">유가 변동 이벤트</div>
+          <div className="text-[13px] text-slate-600 mb-4">Brent 주간 변동 ±$3 이상 감지</div>
 
           {events.length === 0 ? (
-            <div className="text-[13px] text-text-tertiary text-center py-8">
+            <div className="text-[13px] text-slate-400 text-center py-8">
               60일간 감지된 유가 변동 이벤트가 없습니다.
             </div>
           ) : (
@@ -259,24 +259,24 @@ export default function OilReflectionPage() {
 
                     <div className={`rounded-xl p-4 ${ev.direction === "up" ? "bg-red-50" : "bg-blue-50"}`}>
                       <div className="flex items-center justify-between mb-1">
-                        <div className="text-[12px] font-bold text-text-primary">
+                        <div className="text-[12px] font-bold text-slate-900">
                           {ev.endDate.slice(5)} · Brent {ev.direction === "up" ? "▲" : "▼"}${Math.abs(ev.change).toFixed(1)}
                         </div>
                         <span className={`text-[12px] px-2 py-0.5 rounded-full font-bold ${
-                          ev.reflected ? "bg-emerald-900/50 text-emerald-700" : "bg-slate-100 text-text-tertiary"
+                          ev.reflected ? "bg-emerald-900/50 text-emerald-700" : "bg-slate-100 text-slate-400"
                         }`}>
                           {ev.reflected ? "반영 완료" : "미반영"}
                         </span>
                       </div>
-                      <div className="text-[13px] text-text-secondary">
+                      <div className="text-[13px] text-slate-600">
                         Brent ${ev.brentStart.toFixed(1)} → ${ev.brentEnd.toFixed(1)}
-                        <span className="text-text-tertiary"> ({ev.startDate.slice(5)} ~ {ev.endDate.slice(5)})</span>
+                        <span className="text-slate-400"> ({ev.startDate.slice(5)} ~ {ev.endDate.slice(5)})</span>
                       </div>
                       {ev.retailChange != null && (
-                        <div className="text-[13px] text-text-secondary mt-1">
+                        <div className="text-[13px] text-slate-600 mt-1">
                           내 소매가: {ev.retailChange >= 0 ? "+" : ""}{ev.retailChange}원
                           {ev.daysToReflect != null && (
-                            <span className="text-text-tertiary"> (반영까지 {ev.daysToReflect}일)</span>
+                            <span className="text-slate-400"> (반영까지 {ev.daysToReflect}일)</span>
                           )}
                         </div>
                       )}

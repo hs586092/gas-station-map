@@ -159,10 +159,10 @@ export default function WeatherImpactPage() {
           {rainy && dry && (
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[13px] font-semibold text-text-secondary">본격 비 영향</div>
+                <div className="text-[13px] font-semibold text-slate-600">본격 비 영향</div>
                 {data.tTest && (
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    data.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-slate-100 text-text-tertiary"
+                    data.tTest.significant ? "bg-emerald/15 text-emerald" : "bg-slate-100 text-slate-400"
                   }`}>
                     {data.tTest.label}
                   </span>
@@ -171,10 +171,10 @@ export default function WeatherImpactPage() {
               <div className="text-[32px] font-extrabold text-red-500 leading-tight">
                 {rainy.adjustedDiffPct >= 0 ? "+" : ""}{rainy.adjustedDiffPct}%
               </div>
-              <div className="text-[12px] text-text-tertiary mt-1">
+              <div className="text-[12px] text-slate-400 mt-1">
                 건조일 대비 (요일 보정 후 · n={rainy.n})
               </div>
-              <div className="text-[11px] text-text-tertiary mt-2 leading-relaxed">
+              <div className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                 본격 비(≥5mm) 오는 날은 건조일보다 판매량이 평균 {Math.abs(rainy.adjustedDiffPct)}% 감소합니다.
               </div>
             </div>
@@ -183,22 +183,22 @@ export default function WeatherImpactPage() {
           {/* 건당 주유량 분해 */}
           {data.perTxnDecomposition.countDiffPct != null && (
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="text-[13px] font-semibold text-text-secondary mb-2">비 오는 날 행동 분해</div>
+              <div className="text-[13px] font-semibold text-slate-600 mb-2">비 오는 날 행동 분해</div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-text-secondary">손님 수</span>
+                  <span className="text-[12px] text-slate-600">손님 수</span>
                   <span className={`text-[18px] font-extrabold ${data.perTxnDecomposition.countDiffPct < 0 ? "text-red-500" : "text-emerald"}`}>
                     {data.perTxnDecomposition.countDiffPct >= 0 ? "+" : ""}{data.perTxnDecomposition.countDiffPct}%
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-text-secondary">건당 주유량</span>
-                  <span className={`text-[18px] font-extrabold ${Math.abs(data.perTxnDecomposition.perTxnDiffPct ?? 0) < 2 ? "text-text-tertiary" : (data.perTxnDecomposition.perTxnDiffPct ?? 0) > 0 ? "text-emerald" : "text-red-500"}`}>
+                  <span className="text-[12px] text-slate-600">건당 주유량</span>
+                  <span className={`text-[18px] font-extrabold ${Math.abs(data.perTxnDecomposition.perTxnDiffPct ?? 0) < 2 ? "text-slate-400" : (data.perTxnDecomposition.perTxnDiffPct ?? 0) > 0 ? "text-emerald" : "text-red-500"}`}>
                     {(data.perTxnDecomposition.perTxnDiffPct ?? 0) >= 0 ? "+" : ""}{data.perTxnDecomposition.perTxnDiffPct}%
                   </span>
                 </div>
               </div>
-              <div className="text-[11px] text-text-tertiary mt-3 leading-relaxed">
+              <div className="text-[11px] text-slate-400 mt-3 leading-relaxed">
                 {Math.abs(data.perTxnDecomposition.perTxnDiffPct ?? 0) < 2
                   ? "건수만 줄고 건당 주유량은 그대로. '안 오는' 것이지 '덜 넣는' 게 아님."
                   : (data.perTxnDecomposition.perTxnDiffPct ?? 0) > 0
@@ -211,8 +211,8 @@ export default function WeatherImpactPage() {
 
         {/* ── 강수강도별 판매량 막대 ── */}
         <section className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
-          <h2 className="text-[16px] font-bold text-text-primary mb-1">강수 강도별 평균 판매량</h2>
-          <p className="text-[12px] text-text-secondary mb-4">
+          <h2 className="text-[16px] font-bold text-slate-900 mb-1">강수 강도별 평균 판매량</h2>
+          <p className="text-[12px] text-slate-600 mb-4">
             강수량 실측 기준: 건조 (&lt;1mm) · 약한 비 (1~5mm) · 본격 비 (≥5mm)
           </p>
           <div className="space-y-3">
@@ -223,15 +223,15 @@ export default function WeatherImpactPage() {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[18px]">{INTENSITY_ICON[b.key]}</span>
-                      <span className="text-[14px] font-semibold text-text-primary">{b.label}</span>
-                      <span className="text-[11px] text-text-tertiary">n={b.n}</span>
+                      <span className="text-[14px] font-semibold text-slate-900">{b.label}</span>
+                      <span className="text-[11px] text-slate-400">n={b.n}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-bold text-text-primary">{b.volumeMean.toLocaleString()}L</span>
+                      <span className="text-[14px] font-bold text-slate-900">{b.volumeMean.toLocaleString()}L</span>
                       <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded ${
                         b.adjustedDiffPct > 1 ? "bg-emerald/15 text-emerald"
                         : b.adjustedDiffPct < -1 ? "bg-red-50 text-red-500"
-                        : "bg-slate-100 text-text-tertiary"
+                        : "bg-slate-100 text-slate-400"
                       }`}>
                         {b.adjustedDiffPct >= 0 ? "+" : ""}{b.adjustedDiffPct}%
                       </span>
@@ -246,7 +246,7 @@ export default function WeatherImpactPage() {
                       }`}
                       style={{ width: `${barWidth}%` }}
                     />
-                    <div className="absolute inset-y-0 left-2 flex items-center text-[11px] text-text-secondary">
+                    <div className="absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-600">
                       건당 {b.perTxnMean}L · 건수 {b.countMean.toLocaleString()}
                     </div>
                   </div>
@@ -254,7 +254,7 @@ export default function WeatherImpactPage() {
               );
             })}
           </div>
-          <div className="text-[11px] text-text-tertiary mt-4 leading-relaxed border-t border-border pt-3">
+          <div className="text-[11px] text-slate-400 mt-4 leading-relaxed border-t border-border pt-3">
             Δ% 는 요일 효과를 제거한 순수 날씨 효과입니다. 요일별 평균 판매량이 크게 다르므로(예: 금요일 {data.dowMean["5"]?.toLocaleString()}L vs 일요일 {data.dowMean["0"]?.toLocaleString()}L), 단순 평균 대신 가법 모델로 보정했습니다.
           </div>
         </section>
@@ -262,12 +262,12 @@ export default function WeatherImpactPage() {
         {/* ── 요일 × 강수 히트맵 ── */}
         <section className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-[16px] font-bold text-text-primary">요일 × 강수 히트맵</h2>
+            <h2 className="text-[16px] font-bold text-slate-900">요일 × 강수 히트맵</h2>
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
               <button
                 onClick={() => setMode("additive")}
                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                  mode === "additive" ? "bg-surface-raised text-text-primary shadow-sm" : "text-text-tertiary"
+                  mode === "additive" ? "bg-surface-raised text-slate-900 shadow-sm" : "text-slate-400"
                 }`}
               >
                 가법 모델
@@ -275,14 +275,14 @@ export default function WeatherImpactPage() {
               <button
                 onClick={() => setMode("observed")}
                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                  mode === "observed" ? "bg-surface-raised text-text-primary shadow-sm" : "text-text-tertiary"
+                  mode === "observed" ? "bg-surface-raised text-slate-900 shadow-sm" : "text-slate-400"
                 }`}
               >
                 관측값
               </button>
             </div>
           </div>
-          <p className="text-[12px] text-text-secondary mb-4">
+          <p className="text-[12px] text-slate-600 mb-4">
             {mode === "additive"
               ? "요일 효과 + 날씨 효과의 가법 모델 기대치. 모든 셀이 신뢰 가능."
               : "실제 관측 평균. n<3 셀은 표본 부족으로 회색 처리."}
@@ -292,9 +292,9 @@ export default function WeatherImpactPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="text-[11px] font-semibold text-text-tertiary text-left p-2"></th>
+                  <th className="text-[11px] font-semibold text-slate-400 text-left p-2"></th>
                   {INTENSITY_ORDER.map((intensity) => (
-                    <th key={intensity} className="text-[11px] font-semibold text-text-tertiary p-2">
+                    <th key={intensity} className="text-[11px] font-semibold text-slate-400 p-2">
                       {INTENSITY_ICON[intensity]} {INTENSITY_LABEL[intensity]}
                     </th>
                   ))}
@@ -303,7 +303,7 @@ export default function WeatherImpactPage() {
               <tbody>
                 {DOW_NAMES.map((name, dow) => (
                   <tr key={dow}>
-                    <td className="text-[12px] font-semibold text-text-secondary p-2">{name}요일</td>
+                    <td className="text-[12px] font-semibold text-slate-600 p-2">{name}요일</td>
                     {INTENSITY_ORDER.map((intensity) => {
                       if (mode === "additive") {
                         const cell = data.additiveHeatmap.find((c) => c.dow === dow && c.intensity === intensity)!;
@@ -347,29 +347,29 @@ export default function WeatherImpactPage() {
             </table>
           </div>
 
-          <div className="text-[11px] text-text-tertiary mt-4 leading-relaxed border-t border-border pt-3">
+          <div className="text-[11px] text-slate-400 mt-4 leading-relaxed border-t border-border pt-3">
             셀 색상은 전체 평균(baseline) 대비 편차. 초록 = 평균 이상, 빨강 = 평균 이하. 회색 = 표본 부족(n&lt;3).
           </div>
         </section>
 
         {/* ── 상관계수 ── */}
         <section className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
-          <h2 className="text-[16px] font-bold text-text-primary mb-3">상관계수 (Pearson r)</h2>
+          <h2 className="text-[16px] font-bold text-slate-900 mb-3">상관계수 (Pearson r)</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-[12px] text-text-secondary mb-1">강수량 × 판매량</div>
-              <div className="text-[24px] font-extrabold text-text-primary">
+              <div className="text-[12px] text-slate-600 mb-1">강수량 × 판매량</div>
+              <div className="text-[24px] font-extrabold text-slate-900">
                 {data.correlation.precipVsVolume >= 0 ? "+" : ""}{data.correlation.precipVsVolume.toFixed(3)}
               </div>
-              <div className="text-[11px] text-text-tertiary mt-1">
+              <div className="text-[11px] text-slate-400 mt-1">
                 {Math.abs(data.correlation.precipVsVolume) >= 0.3
                   ? "약~중간 음의 상관: 강수량이 많을수록 판매량 감소 경향"
                   : "상관 약함"}
               </div>
             </div>
             <div>
-              <div className="text-[12px] text-text-secondary mb-1">평균기온 × 판매량</div>
-              <div className="text-[24px] font-extrabold text-text-primary">
+              <div className="text-[12px] text-slate-600 mb-1">평균기온 × 판매량</div>
+              <div className="text-[24px] font-extrabold text-slate-900">
                 {data.correlation.tempVsVolume >= 0 ? "+" : ""}{data.correlation.tempVsVolume.toFixed(3)}
               </div>
               <div className="text-[11px] text-amber-600 mt-1">

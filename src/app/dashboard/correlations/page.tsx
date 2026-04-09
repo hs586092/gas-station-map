@@ -138,7 +138,7 @@ export default function CorrelationsPage() {
       <div className="min-h-screen bg-surface">
         <DetailHeader title="변수 상관관계 분석" description="판매량에 영향을 미치는 변수 간 상관관계 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
-          <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-text-secondary">
+          <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-slate-600">
             데이터를 불러올 수 없습니다.
           </div>
         </div>
@@ -189,8 +189,8 @@ export default function CorrelationsPage() {
         {/* 영향력 순위 바 차트 */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[15px] font-bold text-text-primary m-0">판매량 영향력 순위</h2>
-            <div className="flex items-center gap-4 text-[11px] text-text-tertiary">
+            <h2 className="text-[15px] font-bold text-slate-900 m-0">판매량 영향력 순위</h2>
+            <div className="flex items-center gap-4 text-[11px] text-slate-400">
               <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#1D9E75" }} /> 양의 상관</span>
               <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> 음의 상관</span>
               <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#7F77DD" }} /> 요일 효과</span>
@@ -202,7 +202,7 @@ export default function CorrelationsPage() {
               <span className="w-2 h-2 rounded-full bg-amber-500" />
               <span className="text-[12px] font-bold text-amber-400">판매량</span>
             </span>
-            <span className="text-[11px] text-text-tertiary">← 중심 변수 · 변수 클릭 → 아래 산점도</span>
+            <span className="text-[11px] text-slate-400">← 중심 변수 · 변수 클릭 → 아래 산점도</span>
           </div>
           {/* 그룹별 바 */}
           <div className="space-y-3">
@@ -212,7 +212,7 @@ export default function CorrelationsPage() {
               const meta = groupMeta[group];
               return (
                 <div key={group} className="rounded-md py-3 pr-4 pl-4" style={{ borderLeft: `3px solid ${meta.borderColor}` }}>
-                  <div className="text-[11px] text-text-tertiary mb-2 font-medium">{meta.label}</div>
+                  <div className="text-[11px] text-slate-400 mb-2 font-medium">{meta.label}</div>
                   <div className="space-y-1.5">
                     {items.map((v) => {
                       const barWidth = Math.max(4, (v.absEffect / maxEffect) * 100);
@@ -227,7 +227,7 @@ export default function CorrelationsPage() {
                           className={`flex items-center gap-3 py-1 px-2 rounded cursor-pointer transition-colors ${isSelected ? "bg-slate-100" : "hover:bg-slate-50"}`}
                           onClick={() => setSelectedNode((prev) => prev === v.id ? null : v.id)}
                         >
-                          <span className="text-[13px] text-text-secondary w-[100px] truncate text-right flex-shrink-0 font-medium" title={v.label}>{v.label}</span>
+                          <span className="text-[13px] text-slate-600 w-[100px] truncate text-right flex-shrink-0 font-medium" title={v.label}>{v.label}</span>
                           <div className="flex-1 h-[18px] rounded-sm overflow-hidden relative" style={{ backgroundColor: "#f0f0f0" }}>
                             <div
                               className="h-full rounded-sm transition-all duration-500"
@@ -253,17 +253,17 @@ export default function CorrelationsPage() {
         {selectedVar && selectedNode !== "day_of_week" && scatterPairs.length > 0 && (
           <div className="bg-surface-raised rounded-xl p-6 border border-border">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[15px] font-bold text-text-primary m-0">
+              <h2 className="text-[15px] font-bold text-slate-900 m-0">
                 {selectedVar.label} vs 판매량 산점도
               </h2>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="text-[12px] text-text-tertiary hover:text-text-primary cursor-pointer bg-transparent border-none"
+                className="text-[12px] text-slate-400 hover:text-slate-900 cursor-pointer bg-transparent border-none"
               >
                 닫기
               </button>
             </div>
-            <div className="text-[12px] text-text-tertiary mb-3">
+            <div className="text-[12px] text-slate-400 mb-3">
               n={scatterPairs.length}
               {selectedVar.r != null && (
                 <> · r={selectedVar.r.toFixed(3)}</>
@@ -315,7 +315,7 @@ export default function CorrelationsPage() {
                     const pt = payload[0].payload;
                     return (
                       <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-[12px] shadow-md">
-                        <div className="text-text-tertiary">{pt.date}</div>
+                        <div className="text-slate-400">{pt.date}</div>
                         <div>
                           {selectedVar!.label}: <span className="font-bold">{typeof pt.x === "number" ? pt.x.toLocaleString() : pt.x}</span>
                         </div>
@@ -336,12 +336,12 @@ export default function CorrelationsPage() {
         {selectedNode === "day_of_week" && (
           <div className="bg-surface-raised rounded-xl p-6 border border-border">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[15px] font-bold text-text-primary m-0">
+              <h2 className="text-[15px] font-bold text-slate-900 m-0">
                 요일별 평균 판매량
               </h2>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="text-[12px] text-text-tertiary hover:text-text-primary cursor-pointer bg-transparent border-none"
+                className="text-[12px] text-slate-400 hover:text-slate-900 cursor-pointer bg-transparent border-none"
               >
                 닫기
               </button>
@@ -369,29 +369,29 @@ export default function CorrelationsPage() {
                     const barWidth = overallAvg > 0 ? Math.max(5, (d.avg / (overallAvg * 1.5)) * 100) : 50;
                     return (
                       <div key={d.day} className="flex items-center gap-3">
-                        <span className="text-[13px] font-bold text-text-primary w-6 text-right">{d.day}</span>
+                        <span className="text-[13px] font-bold text-slate-900 w-6 text-right">{d.day}</span>
                         <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden relative">
                           <div
                             className="h-full rounded-full bg-purple-400"
                             style={{ width: `${Math.min(100, barWidth)}%`, opacity: 0.7 }}
                           />
                         </div>
-                        <span className="text-[12px] font-bold text-text-primary w-16 text-right tabular-nums">
+                        <span className="text-[12px] font-bold text-slate-900 w-16 text-right tabular-nums">
                           {d.avg.toLocaleString()}L
                         </span>
                         <span
                           className={`text-[11px] font-bold w-12 text-right ${
-                            pct >= 3 ? "text-emerald-600" : pct <= -3 ? "text-red-500" : "text-text-tertiary"
+                            pct >= 3 ? "text-emerald-600" : pct <= -3 ? "text-red-500" : "text-slate-400"
                           }`}
                         >
                           {pct >= 0 ? "+" : ""}
                           {pct.toFixed(1)}%
                         </span>
-                        <span className="text-[10px] text-text-tertiary w-8 text-right">n={d.n}</span>
+                        <span className="text-[10px] text-slate-400 w-8 text-right">n={d.n}</span>
                       </div>
                     );
                   })}
-                  <div className="text-[11px] text-text-tertiary mt-2">
+                  <div className="text-[11px] text-slate-400 mt-2">
                     * 전체 평균 대비 %. η²={data.variables.find((v) => v.id === "day_of_week")?.etaSq?.toFixed(3) ?? "—"}
                   </div>
                 </div>
@@ -402,21 +402,21 @@ export default function CorrelationsPage() {
 
         {/* 영향력 순위 테이블 */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">
             판매량 영향 변수 순위
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 text-text-tertiary font-semibold">#</th>
-                  <th className="text-left py-2 text-text-tertiary font-semibold">변수</th>
-                  <th className="text-left py-2 text-text-tertiary font-semibold">그룹</th>
-                  <th className="text-right py-2 text-text-tertiary font-semibold">효과 크기</th>
-                  <th className="text-right py-2 text-text-tertiary font-semibold">상관계수/η²</th>
-                  <th className="text-right py-2 text-text-tertiary font-semibold">p-value</th>
-                  <th className="text-right py-2 text-text-tertiary font-semibold">n</th>
-                  <th className="text-center py-2 text-text-tertiary font-semibold">유의성</th>
+                  <th className="text-left py-2 text-slate-400 font-semibold">#</th>
+                  <th className="text-left py-2 text-slate-400 font-semibold">변수</th>
+                  <th className="text-left py-2 text-slate-400 font-semibold">그룹</th>
+                  <th className="text-right py-2 text-slate-400 font-semibold">효과 크기</th>
+                  <th className="text-right py-2 text-slate-400 font-semibold">상관계수/η²</th>
+                  <th className="text-right py-2 text-slate-400 font-semibold">p-value</th>
+                  <th className="text-right py-2 text-slate-400 font-semibold">n</th>
+                  <th className="text-center py-2 text-slate-400 font-semibold">유의성</th>
                 </tr>
               </thead>
               <tbody>
@@ -432,14 +432,14 @@ export default function CorrelationsPage() {
                         )
                       }
                     >
-                      <td className="py-2.5 text-text-tertiary">{i + 1}</td>
+                      <td className="py-2.5 text-slate-400">{i + 1}</td>
                       <td className="py-2.5">
                         <span className="flex items-center gap-2">
                           <span
                             className="w-2.5 h-2.5 rounded-full shrink-0"
                             style={{ background: v?.color || "#9CA3AF" }}
                           />
-                          <span className="font-medium text-text-primary">{item.label}</span>
+                          <span className="font-medium text-slate-900">{item.label}</span>
                           {v?.lowSample && (
                             <span className="text-[9px] font-bold text-amber-500 bg-amber-50 border border-amber-200 px-1 py-0 rounded-full">
                               표본 부족
@@ -447,10 +447,10 @@ export default function CorrelationsPage() {
                           )}
                         </span>
                       </td>
-                      <td className="py-2.5 text-text-secondary">
+                      <td className="py-2.5 text-slate-600">
                         {GROUP_LABELS[v?.group || ""] || v?.group}
                       </td>
-                      <td className="py-2.5 text-right font-bold text-text-primary tabular-nums">
+                      <td className="py-2.5 text-right font-bold text-slate-900 tabular-nums">
                         {item.absEffect.toFixed(3)}
                       </td>
                       <td className="py-2.5 text-right tabular-nums">
@@ -468,14 +468,14 @@ export default function CorrelationsPage() {
                             : `${item.r >= 0 ? "+" : ""}${item.r.toFixed(3)}`}
                         </span>
                       </td>
-                      <td className="py-2.5 text-right text-text-secondary tabular-nums">
+                      <td className="py-2.5 text-right text-slate-600 tabular-nums">
                         {v?.p != null
                           ? v.p < 0.001
                             ? "<0.001"
                             : v.p.toFixed(3)
                           : "—"}
                       </td>
-                      <td className="py-2.5 text-right text-text-secondary tabular-nums">
+                      <td className="py-2.5 text-right text-slate-600 tabular-nums">
                         {item.n}
                       </td>
                       <td className="py-2.5 text-center">
@@ -495,7 +495,7 @@ export default function CorrelationsPage() {
               </tbody>
             </table>
           </div>
-          <div className="mt-3 text-[11px] text-text-tertiary space-y-0.5">
+          <div className="mt-3 text-[11px] text-slate-400 space-y-0.5">
             <p className="m-0">* 실선 = 통계적 유의 (p&lt;0.05 또는 η²&gt;0.06), 점선 = 참고용</p>
             <p className="m-0">* 효과 크기: |r| 또는 &radic;(η²) — 값이 클수록 판매량과 강한 관계</p>
           </div>
@@ -503,7 +503,7 @@ export default function CorrelationsPage() {
 
         {/* 상관관계 매트릭스 테이블 */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
-          <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">
+          <h2 className="text-[15px] font-bold text-slate-900 m-0 mb-4">
             상관관계 매트릭스 (판매량 기준)
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -529,7 +529,7 @@ export default function CorrelationsPage() {
                     )
                   }
                 >
-                  <div className="text-[12px] font-bold text-text-primary mb-1">
+                  <div className="text-[12px] font-bold text-slate-900 mb-1">
                     {m.label}
                   </div>
                   <div
@@ -546,7 +546,7 @@ export default function CorrelationsPage() {
                       : `${r >= 0 ? "+" : ""}${r.toFixed(2)}`}
                   </div>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-[10px] text-text-tertiary">n={m.n}</span>
+                    <span className="text-[10px] text-slate-400">n={m.n}</span>
                     {m.significant ? (
                       <span className="text-[9px] font-bold text-emerald-600">유의</span>
                     ) : (
