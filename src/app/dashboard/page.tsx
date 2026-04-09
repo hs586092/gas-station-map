@@ -1822,20 +1822,18 @@ export default function DashboardPage() {
               }
             }
 
-            // 날씨 보정 계수
-            const weatherAdj = integratedForecast?.forecast?.diffVsDryPct ?? weatherImpact?.todayForecast?.diffVsDryPct ?? 0;
-
             const simulations = [10, 20, 30, -10, -20].map((delta) => {
               const simPrice = myGas + delta;
               const simPrices = [simPrice, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
               const simRank = simPrices.indexOf(simPrice) + 1;
+              // 가격 변동에 의한 순수 판매 효과만 계산 (날씨는 기저 상황이므로 제외)
               let salesImpact: number | null = null;
               if (dowElasticity != null && salesAnalysis) {
                 const validEvents = salesAnalysis.events.filter(e => e.priceChange !== 0);
                 const avgAbsChange = validEvents.length > 0
                   ? validEvents.reduce((s, e) => s + Math.abs(e.priceChange), 0) / validEvents.length
                   : 10;
-                salesImpact = +(((dowElasticity / avgAbsChange) * delta) + weatherAdj).toFixed(1);
+                salesImpact = +((dowElasticity / avgAbsChange) * delta).toFixed(1);
               }
               return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank, salesImpact };
             });
@@ -1897,7 +1895,6 @@ export default function DashboardPage() {
                   <div className="mt-2 text-[10px] text-text-tertiary">
                     * 과거 가격변경 {salesAnalysis?.events.length ?? 0}건의 가중평균 탄력성 기반
                     {salesAnalysis?.splitElasticity && isWeekendNow !== undefined && ` · ${dowLabel} 보정`}
-                    {weatherAdj !== 0 && ` · 날씨 영향 ${weatherAdj > 0 ? "+" : ""}${weatherAdj}% 반영`}
                   </div>
                 )}
               </div>
