@@ -25,8 +25,8 @@ export async function GET(
   const { id } = await params;
   const compact = request.nextUrl.searchParams.get("compact") === "1";
 
-  // ── 1. carwash_daily + weather_daily 병렬 조회 ──
-  const [cwRes, weatherRes, wxForecastRes] = await Promise.all([
+  // ── 1. carwash_daily + weather_daily + forecast_history + sales_data 병렬 조회 ──
+  const [cwRes, weatherRes, wxForecastRes, fcRes, salesCountRes] = await Promise.all([
     supabase
       .from("carwash_daily")
       .select("date, total_count, total_revenue, breakdown, payment_breakdown")
@@ -39,6 +39,18 @@ export async function GET(
       .order("date", { ascending: false })
       .limit(90),
     fetch(`${request.nextUrl.origin}/api/weather`, { next: { revalidate: 600 } }).then(r => r.ok ? r.json() : null).catch(() => null),
+    supabase
+      .from("forecast_history")
+      .select("id, forecast_date, predicted_carwash, actual_carwash")
+      .eq("station_id", id)
+      .order("forecast_date", { ascending: false })
+      .limit(30),
+    supabase
+      .from("sales_data")
+      .select("date, gasoline_count, diesel_count")
+      .eq("station_id", id)
+      .order("date", { ascending: false })
+      .limit(10),
   ]);
 
   if (!cwRes.data || cwRes.data.length === 0) {
@@ -191,6 +203,72 @@ export async function GET(
     }
   }
 
+  // ── 7. forecast_history lazy-sync + 어제 복기 ──
+  const forecasts = fcRes.data || [];
+  const cwMap = new Map(days.map(d => [d.date, d.total_count]));
+
+  // lazy-sync: actual_carwash가 null이면 carwash_daily에서 채우기
+  for (const fc of forecasts) {
+    const actual = cwMap.get(fc.forecast_date);
+    if (actual != null && fc.actual_carwash == null) {
+      fc.actual_carwash = actual;
+      await supabase
+        .from("forecast_history")
+        .update({ actual_carwash: actual })
+        .eq("id", fc.id);
+    }
+  }
+
+  // 어제 복기
+  const yesterdayFc = forecasts.find(f => f.forecast_date === yesterdayStr);
+  let review: {
+    predicted: number;
+    actual: number | null;
+    errorPct: number | null;
+  } | null = null;
+
+  if (yesterdayFc?.predicted_carwash != null) {
+    const pred = Number(yesterdayFc.predicted_carwash);
+    const act = yesterdayFc.actual_carwash != null ? Number(yesterdayFc.actual_carwash) : null;
+    const errorPct = act != null && pred > 0 ? +(((act - pred) / pred) * 100).toFixed(1) : null;
+    review = { predicted: pred, actual: act, errorPct };
+  }
+
+  // 7일 평균 정확도
+  const completed = forecasts.filter(f => f.predicted_carwash != null && f.actual_carwash != null);
+  const recent7 = completed.slice(0, 7);
+  let accuracy7: { avgErrorPct: number; accuracy: number; count: number } | null = null;
+  if (recent7.length > 0) {
+    const errors = recent7.map(f => {
+      const pred = Number(f.predicted_carwash);
+      const act = Number(f.actual_carwash);
+      return pred > 0 ? Math.abs((act - pred) / pred) * 100 : 0;
+    });
+    const avgErr = +(errors.reduce((a, b) => a + b, 0) / errors.length).toFixed(1);
+    accuracy7 = { avgErrorPct: avgErr, accuracy: +(100 - avgErr).toFixed(1), count: recent7.length };
+  }
+
+  // ── 8. 오늘 예측 forecast_history에 저장 (upsert) ──
+  if (expectedCount > 0) {
+    supabase
+      .from("forecast_history")
+      .upsert({
+        station_id: id,
+        forecast_date: todayStr,
+        predicted_carwash: expectedCount,
+      }, { onConflict: "station_id,forecast_date", ignoreDuplicates: false })
+      .then(() => {});
+  }
+
+  // ── 9. 세차 전환율 (어제 주유 대수 대비 세차 대수) ──
+  const salesYesterday = (salesCountRes.data || []).find(s => s.date === yesterdayStr);
+  const fuelCount = salesYesterday
+    ? (Number(salesYesterday.gasoline_count) || 0) + (Number(salesYesterday.diesel_count) || 0)
+    : null;
+  const conversionRate = fuelCount && fuelCount > 0 && yesterday
+    ? { fuelCount, carwashCount: yesterday.total_count, pct: +(yesterday.total_count / fuelCount * 100).toFixed(1) }
+    : null;
+
   // ── compact 모드 (대시보드 카드) ──
   if (compact) {
     return NextResponse.json({
@@ -209,6 +287,9 @@ export async function GET(
       } : null,
       typeRatio,
       weatherInsight,
+      review,
+      accuracy7,
+      conversionRate,
     }, {
       headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" },
     });
