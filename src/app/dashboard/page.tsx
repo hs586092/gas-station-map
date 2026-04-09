@@ -966,9 +966,7 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* 📊 예측 복기 + 가격 시뮬레이터 (2열) */}
-          <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 왼쪽: 예측 복기 · 어제 */}
+          {/* 📊 예측 복기 · 어제 */}
           {loading.forecastReview ? <CardSkeleton /> : forecastReview && (() => {
             const y = forecastReview.yesterday;
             const acc = forecastReview.accuracy;
@@ -1181,7 +1179,6 @@ export default function DashboardPage() {
               </div>
             );
           })()}
-          </div>
 
           {/* ── 분석 카드 (dashboard-all 통합 API에서 로드) ── */}
 
@@ -1859,12 +1856,12 @@ export default function DashboardPage() {
 
           {/* ⑧ 경쟁사 프로파일링 */}
           {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
-            <div className="md:col-span-2 lg:col-span-3 bg-surface-raised rounded-xl p-5 border border-border">
+            <div className="md:col-span-2 bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {insights.competitorProfiles.slice(0, 6).map((p) => {
                   const typeColors = {
                     leader: { bg: "bg-red-50 border border-red-100", text: "text-red-700", badge: "bg-red-900/50 text-red-700" },
