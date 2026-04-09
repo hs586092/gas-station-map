@@ -1492,6 +1492,109 @@ export default function DashboardPage() {
             );
           })() : null}
 
+          {/* 📅 이번 주 판매 현황 */}
+          {forecastReview && (() => {
+            const history = ((forecastReview as Record<string, any>).history as Array<{ date: string; predicted: number; actual: number }> | undefined) ?? [];
+            const dowMean = (integratedForecast as Record<string, any>)?.coefficients?.dowMean as Record<number, number> | undefined;
+            if (history.length < 2 && !dowMean) return null;
+
+            // KST 기준 이번 주 (월~일)
+            const nowKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+            const todayStr = nowKST.toISOString().slice(0, 10);
+            const kstDow = nowKST.getDay(); // 0=일 ~ 6=토
+            const mondayOffset = kstDow === 0 ? -6 : 1 - kstDow;
+            const monday = new Date(nowKST);
+            monday.setDate(monday.getDate() + mondayOffset);
+            const mondayStr = monday.toISOString().slice(0, 10);
+
+            // 이번 주 + 지난주 데이터
+            const lastMonday = new Date(monday);
+            lastMonday.setDate(lastMonday.getDate() - 7);
+            const lastMondayStr = lastMonday.toISOString().slice(0, 10);
+
+            const thisWeek = history.filter(h => h.date >= mondayStr && h.date <= todayStr && h.actual > 0);
+            const lastWeek = history.filter(h => h.date >= lastMondayStr && h.date < mondayStr && h.actual > 0);
+
+            const thisWeekTotal = thisWeek.reduce((s, h) => s + h.actual, 0);
+            const lastWeekTotal = lastWeek.reduce((s, h) => s + h.actual, 0);
+            const lastWeekSameDays = lastWeek.slice(0, thisWeek.length);
+            const lastWeekSameTotal = lastWeekSameDays.reduce((s, h) => s + h.actual, 0);
+            const weekDiffPct = lastWeekSameTotal > 0 ? +((thisWeekTotal - lastWeekSameTotal) / lastWeekSameTotal * 100).toFixed(1) : null;
+
+            // 요일별 미니 바 (월~일)
+            const DOW_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+            const DOW_MAP = [1, 2, 3, 4, 5, 6, 0]; // 월~일 → JS dow
+            const bars = DOW_MAP.map((jsDow, i) => {
+              const avg = dowMean?.[jsDow] ?? 0;
+              const dayData = thisWeek.find(h => {
+                const d = new Date(h.date + "T00:00:00Z");
+                return d.getUTCDay() === jsDow;
+              });
+              const targetDate = new Date(monday);
+              targetDate.setDate(targetDate.getDate() + i);
+              const dateStr = targetDate.toISOString().slice(0, 10);
+              const isToday = dateStr === todayStr;
+              const isPast = dateStr < todayStr;
+              const isFuture = dateStr > todayStr;
+              return { label: DOW_LABELS[i], avg: Math.round(avg), actual: dayData?.actual ?? null, isToday, isPast, isFuture };
+            });
+            const maxVol = Math.max(...bars.map(b => Math.max(b.avg, b.actual ?? 0)), 1);
+
+            return (
+              <div className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-2">이번 주 판매</div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-[24px] font-extrabold text-text-primary tnum tracking-tight">
+                    {thisWeekTotal > 0 ? thisWeekTotal.toLocaleString() : "-"}
+                  </span>
+                  <span className="text-[12px] text-text-secondary">L 누적</span>
+                  {weekDiffPct != null && (
+                    <span className={`text-[13px] font-bold ${weekDiffPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {weekDiffPct >= 0 ? "+" : ""}{weekDiffPct}%
+                    </span>
+                  )}
+                </div>
+                {weekDiffPct != null && (
+                  <div className="text-[11px] text-text-tertiary mb-3">지난주 같은 기간({lastWeekSameDays.length}일) 대비</div>
+                )}
+                <div className="flex items-end gap-1 h-20">
+                  {bars.map((b) => {
+                    const avgH = maxVol > 0 ? (b.avg / maxVol) * 100 : 0;
+                    const actH = b.actual != null && maxVol > 0 ? (b.actual / maxVol) * 100 : 0;
+                    return (
+                      <div key={b.label} className="flex-1 flex flex-col items-center gap-0.5">
+                        <div className="w-full flex flex-col items-center justify-end h-16 relative">
+                          {/* 평균 바 (배경) */}
+                          <div
+                            className="w-full rounded-t bg-slate-200 absolute bottom-0"
+                            style={{ height: `${Math.max(avgH, 4)}%` }}
+                          />
+                          {/* 실제 바 (전경) */}
+                          {b.actual != null && (
+                            <div
+                              className={`w-3/4 rounded-t absolute bottom-0 z-10 ${
+                                b.isToday ? "bg-blue-500" : b.actual >= b.avg ? "bg-emerald-500" : "bg-red-400"
+                              }`}
+                              style={{ height: `${Math.max(actH, 4)}%` }}
+                            />
+                          )}
+                        </div>
+                        <span className={`text-[10px] ${b.isToday ? "font-bold text-blue-600" : b.isFuture ? "text-text-tertiary" : "text-text-secondary"}`}>
+                          {b.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-200 inline-block" /> 요일 평균</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500 inline-block" /> 실제(평균 이상)</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400 inline-block" /> 실제(평균 이하)</span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 🌤️ 오늘 날씨 (하남시) */}
           {loading.weather ? <CardSkeleton /> : weather && weather.today && (() => {
             const todayW = weatherCodeLabel(weather.today.weatherCode);
