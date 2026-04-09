@@ -415,11 +415,18 @@ export default function DashboardPage() {
     }>;
   } | null>(null);
 
+  const [carwashSummary, setCarwashSummary] = useState<{
+    today: { expectedCount: number; expectedRevenue: number; dowLabel: string; weatherAdjustment: string | null };
+    yesterday: { date: string; count: number; revenue: number; vsLastWeekPct: number | null } | null;
+    typeRatio: { basic: { count: number; pct: number }; premium: { count: number; pct: number }; taxi: { count: number; pct: number }; free: { count: number; pct: number } } | null;
+    weatherInsight: string | null;
+  } | null>(null);
+
   const [loading, setLoading] = useState({
     competitors: true, changes: true, benchmark: true,
     detail: true, oilPrices: true, priceHistory: true, insights: true,
     salesAnalysis: true, timingAnalysis: true, forecastReview: true,
-    correlationMatrix: true, weather: true, weatherImpact: true,
+    correlationMatrix: true, weather: true, weatherImpact: true, carwash: true,
   });
 
   const [syncing, setSyncing] = useState(false);
@@ -433,7 +440,7 @@ export default function DashboardPage() {
       competitors: true, changes: true, benchmark: true,
       detail: true, oilPrices: true, priceHistory: true, insights: true,
       salesAnalysis: true, timingAnalysis: true, forecastReview: true,
-      correlationMatrix: true, weather: true, weatherImpact: true,
+      correlationMatrix: true, weather: true, weatherImpact: true, carwash: true,
     });
 
     // ── 빠른 개별 API (가격, 경쟁사 등 — 카드별 독립 로딩) ──
@@ -487,11 +494,14 @@ export default function DashboardPage() {
 
         if (data.correlation && !data.correlation.error) setCorrelationMatrix(data.correlation);
         setLoading((p) => ({ ...p, correlationMatrix: false }));
+
+        if (data.carwash && !data.carwash.error) setCarwashSummary(data.carwash);
+        setLoading((p) => ({ ...p, carwash: false }));
       })
       .catch(() => {
         setLoading((p) => ({
           ...p, insights: false, salesAnalysis: false, weatherImpact: false,
-          timingAnalysis: false, forecastReview: false, correlationMatrix: false,
+          timingAnalysis: false, forecastReview: false, correlationMatrix: false, carwash: false,
         }));
       });
   };
@@ -1041,6 +1051,71 @@ export default function DashboardPage() {
               </div>
             </ClickableCard>
           )}
+
+          {/* 🚿 세차장 */}
+          {loading.carwash ? <CardSkeleton /> : carwashSummary && (() => {
+            const t = carwashSummary.today;
+            const y = carwashSummary.yesterday;
+            const tr = carwashSummary.typeRatio;
+            return (
+              <ClickableCard href="/dashboard/carwash" className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">세차장</div>
+                  <span className="text-[11px] text-purple-500 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full font-medium">{t.dowLabel}요일</span>
+                </div>
+                {/* 오늘 예상 */}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[12px] text-text-secondary">오늘 예상</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[22px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>{t.expectedCount.toLocaleString()}</span>
+                    <span className="text-[12px] text-text-tertiary">대</span>
+                    <span className="text-[13px] font-bold text-text-secondary ml-1">{Math.round(t.expectedRevenue / 10000).toLocaleString()}만원</span>
+                  </div>
+                </div>
+                {t.weatherAdjustment && (
+                  <div className="text-[11px] text-amber-500 mb-2">⚡ {t.weatherAdjustment}</div>
+                )}
+                {/* 어제 실적 */}
+                {y && (
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-[12px] text-text-secondary">어제 {y.date.slice(5)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-bold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{y.count.toLocaleString()}대</span>
+                      <span className="text-[12px] text-text-secondary">{Math.round(y.revenue / 10000)}만원</span>
+                      {y.vsLastWeekPct != null && (
+                        <span className={`text-[12px] font-bold ${y.vsLastWeekPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                          {y.vsLastWeekPct >= 0 ? "+" : ""}{y.vsLastWeekPct}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* 종류별 */}
+                {tr && (tr.basic.count + tr.premium.count > 0) && (
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <div className="flex items-center gap-1 h-3 rounded-full overflow-hidden">
+                      {tr.basic.pct > 0 && <div className="h-full bg-blue-400 rounded-l-full" style={{ width: `${tr.basic.pct}%` }} title={`기본 ${tr.basic.pct}%`} />}
+                      {tr.premium.pct > 0 && <div className="h-full bg-purple-500" style={{ width: `${tr.premium.pct}%` }} title={`프리미엄 ${tr.premium.pct}%`} />}
+                      {tr.taxi.pct > 0 && <div className="h-full bg-amber-400" style={{ width: `${tr.taxi.pct}%` }} title={`택시 ${tr.taxi.pct}%`} />}
+                      {tr.free.pct > 0 && <div className="h-full bg-slate-300 rounded-r-full" style={{ width: `${tr.free.pct}%` }} title={`무료 ${tr.free.pct}%`} />}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-tertiary">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400" />기본 {tr.basic.pct}%</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" />프리미엄 {tr.premium.pct}%</span>
+                      {tr.taxi.pct > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" />택시 {tr.taxi.pct}%</span>}
+                      {tr.free.pct > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" />무료 {tr.free.pct}%</span>}
+                    </div>
+                  </div>
+                )}
+                {/* 날씨 인사이트 */}
+                {carwashSummary.weatherInsight && (
+                  <div className="mt-2 pt-2 border-t border-border text-[12px] text-text-secondary">
+                    🌧️ {carwashSummary.weatherInsight}
+                  </div>
+                )}
+              </ClickableCard>
+            );
+          })()}
 
           {/* 🌤️ 오늘 날씨 (하남시) */}
           {loading.weather ? <CardSkeleton /> : weather && weather.today && (() => {

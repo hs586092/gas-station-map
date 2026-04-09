@@ -35,6 +35,7 @@ export async function GET(
     timing,
     forecast,
     correlation,
+    carwash,
   ] = await Promise.all([
     safeFetch(`${base}/dashboard-insights`),
     safeFetch(`${base}/sales-analysis`),
@@ -42,10 +43,11 @@ export async function GET(
     safeFetch(`${base}/timing-analysis`),
     safeFetch(`${base}/forecast-review?t=${Date.now()}`),
     safeFetch(`${base}/correlation-matrix?compact=1`),
+    safeFetch(`${base}/carwash-summary?compact=1`),
   ]);
 
   return NextResponse.json(
-    { insights, salesAnalysis, weatherSales, timing, forecast, correlation },
+    { insights, salesAnalysis, weatherSales, timing, forecast, correlation, carwash },
     {
       headers: {
         "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60",
