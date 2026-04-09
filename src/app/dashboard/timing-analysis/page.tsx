@@ -141,7 +141,7 @@ export default function TimingAnalysisPage() {
                 {competitorSpeed.map((c, i) => (
                   <div key={i} className="flex items-center justify-between text-[12px]">
                     <span className="text-slate-900 font-medium">{c.rank}위 {c.name}</span>
-                    <span className="text-slate-600">
+                    <span className="text-slate-800">
                       {c.avgDaysToReact != null ? `평균 ${c.avgDaysToReact}일 (${c.reactionCount}회)` : "반응 기록 없음"}
                     </span>
                   </div>
@@ -149,7 +149,7 @@ export default function TimingAnalysisPage() {
               </div>
             </>
           ) : (
-            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-slate-400">
+            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-slate-700">
               경쟁사 반응 데이터가 아직 없습니다. price_history가 쌓이면 자동으로 분석됩니다.
             </div>
           )}
@@ -176,12 +176,12 @@ export default function TimingAnalysisPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-slate-400">
+            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-slate-700">
               데이터 축적 중 ({dataStatus.totalEvents}개 이벤트 / 최소 2개 필요)
             </div>
           )}
           {timingImpact && (
-            <div className="bg-slate-50 rounded-lg p-3 mt-3 text-[12px] text-slate-600">
+            <div className="bg-slate-50 rounded-lg p-3 mt-3 text-[12px] text-slate-800">
               {timingImpact.earlyResponse.avgSalesChange > timingImpact.lateResponse.avgSalesChange ? (
                 <p className="m-0">💡 경쟁사보다 먼저 대응하면 판매량 손실이 {Math.abs(timingImpact.earlyResponse.avgSalesChange - timingImpact.lateResponse.avgSalesChange).toFixed(1)}%p 적습니다.
                   {timingImpact.optimalDays && ` 경쟁사 반응 후 ${timingImpact.optimalDays}일 이내 대응을 권장합니다.`}</p>
@@ -198,7 +198,7 @@ export default function TimingAnalysisPage() {
             유가 이벤트 타임라인 ({oilEvents.length}건)
           </h2>
           {oilEvents.length === 0 ? (
-            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-slate-400">
+            <div className="bg-slate-50 rounded-lg p-4 text-center text-[12px] text-slate-700">
               <p className="m-0">±$2 이상의 유가 변동 이벤트가 감지되지 않았습니다.</p>
               <p className="m-0 mt-1">데이터 기간: {dataStatus.dataRange.from ? formatDate(dataStatus.dataRange.from) : "—"} ~ {dataStatus.dataRange.to ? formatDate(dataStatus.dataRange.to) : "—"}</p>
             </div>
@@ -216,7 +216,7 @@ export default function TimingAnalysisPage() {
                       </span>
                       <span className="text-[13px] font-bold text-slate-900">{formatDate(ev.date)}</span>
                     </div>
-                    <span className="text-[13px] text-slate-400">${ev.brentPrice.toFixed(1)}</span>
+                    <span className="text-[13px] text-slate-700">${ev.brentPrice.toFixed(1)}</span>
                   </div>
 
                   {/* 반응 타임라인 */}
@@ -227,14 +227,14 @@ export default function TimingAnalysisPage() {
                         <span className="text-slate-900 font-medium w-[90px] shrink-0 truncate">{r.name}</span>
                         {r.reactionDate ? (
                           <>
-                            <span className="text-slate-600">{r.daysToReact}일 후</span>
-                            <span className="text-slate-400">({formatDate(r.reactionDate)})</span>
+                            <span className="text-slate-800">{r.daysToReact}일 후</span>
+                            <span className="text-slate-700">({formatDate(r.reactionDate)})</span>
                             <span className={`font-semibold ${r.priceChange! > 0 ? "text-red-500" : "text-blue-500"}`}>
                               {r.priceChange! > 0 ? "+" : ""}{r.priceChange}원
                             </span>
                           </>
                         ) : (
-                          <span className="text-slate-400">미반응</span>
+                          <span className="text-slate-700">미반응</span>
                         )}
                       </div>
                     ))}
@@ -244,14 +244,14 @@ export default function TimingAnalysisPage() {
                       <span className="text-emerald-700 font-bold w-[90px] shrink-0">우리 주유소</span>
                       {ev.myReaction.reactionDate ? (
                         <>
-                          <span className="text-slate-600">{ev.myReaction.daysToReact}일 후</span>
-                          <span className="text-slate-400">({formatDate(ev.myReaction.reactionDate)})</span>
+                          <span className="text-slate-800">{ev.myReaction.daysToReact}일 후</span>
+                          <span className="text-slate-700">({formatDate(ev.myReaction.reactionDate)})</span>
                           <span className={`font-semibold ${ev.myReaction.priceChange! > 0 ? "text-red-500" : "text-blue-500"}`}>
                             {ev.myReaction.priceChange! > 0 ? "+" : ""}{ev.myReaction.priceChange}원
                           </span>
                         </>
                       ) : (
-                        <span className="text-slate-400">미반응</span>
+                        <span className="text-slate-700">미반응</span>
                       )}
                     </div>
                   </div>
@@ -259,9 +259,9 @@ export default function TimingAnalysisPage() {
                   {/* 판매량 영향 */}
                   {ev.salesImpact && (
                     <div className="mt-2 pt-2 border-t border-border text-[13px] flex items-center gap-3">
-                      <span className="text-slate-600">판매량:</span>
-                      <span className="text-slate-600">{ev.salesImpact.beforeAvg.toLocaleString()}L →</span>
-                      <span className="text-slate-600">{ev.salesImpact.afterAvg.toLocaleString()}L</span>
+                      <span className="text-slate-800">판매량:</span>
+                      <span className="text-slate-800">{ev.salesImpact.beforeAvg.toLocaleString()}L →</span>
+                      <span className="text-slate-800">{ev.salesImpact.afterAvg.toLocaleString()}L</span>
                       <span className={`font-bold ${ev.salesImpact.changeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
                         ({ev.salesImpact.changeRate > 0 ? "+" : ""}{ev.salesImpact.changeRate}%)
                       </span>
@@ -274,8 +274,8 @@ export default function TimingAnalysisPage() {
         </section>
 
         {/* ── 5. 데이터 안내 ── */}
-        <div className="bg-slate-50 rounded-xl p-4 text-[13px] text-slate-400 space-y-1">
-          <p className="m-0 font-semibold text-slate-600">데이터 현황</p>
+        <div className="bg-slate-50 rounded-xl p-4 text-[13px] text-slate-700 space-y-1">
+          <p className="m-0 font-semibold text-slate-800">데이터 현황</p>
           <p className="m-0">유가 이벤트: {dataStatus.totalEvents}건 (최소 {dataStatus.minRequired}건 필요, {dataStatus.isReliable ? "✅ 신뢰 가능" : "⏳ 축적 중"})</p>
           <p className="m-0">분석 기간: {dataStatus.dataRange.from ? formatDate(dataStatus.dataRange.from) : "—"} ~ {dataStatus.dataRange.to ? formatDate(dataStatus.dataRange.to) : "—"} (price_history 기준)</p>
           <p className="m-0">유가 이벤트 기준: Brent 주간 변동 ±$2 이상</p>

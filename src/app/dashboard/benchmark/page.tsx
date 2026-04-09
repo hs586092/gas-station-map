@@ -115,7 +115,7 @@ export default function BenchmarkPage() {
           <button
             onClick={() => setSelectedFuel("gasoline")}
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-              selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-surface-raised text-slate-600 border-border"
+              selectedFuel === "gasoline" ? "bg-coral text-white border-coral" : "bg-surface-raised text-slate-800 border-border"
             }`}
           >
             휘발유
@@ -123,7 +123,7 @@ export default function BenchmarkPage() {
           <button
             onClick={() => setSelectedFuel("diesel")}
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
-              selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-surface-raised text-slate-600 border-border"
+              selectedFuel === "diesel" ? "bg-navy text-white border-navy" : "bg-surface-raised text-slate-800 border-border"
             }`}
           >
             경유
@@ -133,7 +133,7 @@ export default function BenchmarkPage() {
         {/* 적정가 범위 카드 */}
         <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[16px] font-bold text-slate-900 mb-1">적정 가격 범위</div>
-          <div className="text-[13px] text-slate-600 mb-4">{refBenchmark.label} 기준 Q1~Q3 범위</div>
+          <div className="text-[13px] text-slate-800 mb-4">{refBenchmark.label} 기준 Q1~Q3 범위</div>
 
           {/* 범위 시각화 */}
           <div className="relative h-12 mb-3">
@@ -164,22 +164,22 @@ export default function BenchmarkPage() {
               );
             })()}
           </div>
-          <div className="flex justify-between text-[12px] text-slate-400 mb-4">
+          <div className="flex justify-between text-[12px] text-slate-700 mb-4">
             <span>{dMin.toLocaleString()}원</span>
             <span>{dMax.toLocaleString()}원</span>
           </div>
 
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-blue-50 rounded-xl p-3">
-              <div className="text-[12px] text-slate-600 mb-1">Q1 (하위 25%)</div>
+              <div className="text-[12px] text-slate-800 mb-1">Q1 (하위 25%)</div>
               <div className="text-[16px] font-bold text-blue-600">{fairMin.toLocaleString()}</div>
             </div>
             <div className="bg-emerald-light rounded-xl p-3">
-              <div className="text-[12px] text-slate-600 mb-1">중앙값</div>
+              <div className="text-[12px] text-slate-800 mb-1">중앙값</div>
               <div className="text-[16px] font-bold text-emerald">{fairMedian.toLocaleString()}</div>
             </div>
             <div className="bg-red-50 rounded-xl p-3">
-              <div className="text-[12px] text-slate-600 mb-1">Q3 (상위 25%)</div>
+              <div className="text-[12px] text-slate-800 mb-1">Q3 (상위 25%)</div>
               <div className="text-[16px] font-bold text-coral">{fairMax.toLocaleString()}</div>
             </div>
           </div>
@@ -201,11 +201,11 @@ export default function BenchmarkPage() {
         {/* 히스토그램 */}
         <div className="bg-surface-raised rounded-xl p-5 border border-border mb-6">
           <div className="text-[16px] font-bold text-slate-900 mb-1">가격 분포 히스토그램</div>
-          <div className="text-[13px] text-slate-600 mb-4">{distribution.source} · {distribution.prices.length}개</div>
+          <div className="text-[13px] text-slate-800 mb-4">{distribution.source} · {distribution.prices.length}개</div>
           <div className="flex items-end gap-1 h-40">
             {bins.map((bin, i) => (
               <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                <div className="text-[8px] text-slate-400 mb-1">
+                <div className="text-[8px] text-slate-700 mb-1">
                   {bin.count > 0 ? bin.count : ""}
                 </div>
                 <div
@@ -218,7 +218,7 @@ export default function BenchmarkPage() {
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-[12px] text-slate-400">
+          <div className="flex justify-between mt-2 text-[12px] text-slate-700">
             <span>{dMin.toLocaleString()}</span>
             <span>{Math.round((dMin + dMax) / 2).toLocaleString()}</span>
             <span>{dMax.toLocaleString()}</span>
@@ -238,7 +238,7 @@ export default function BenchmarkPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <div className="text-[13px] font-bold text-slate-900">{bm.label}</div>
-                      <div className="text-[12px] text-slate-400">{bm.count}개 중 {bm.rank}위 · 상위 {bm.percentile}%</div>
+                      <div className="text-[12px] text-slate-700">{bm.count}개 중 {bm.rank}위 · 상위 {bm.percentile}%</div>
                     </div>
                     <div className="text-right">
                       <div className={`text-[18px] font-extrabold ${diffColor}`}>
@@ -278,7 +278,7 @@ export default function BenchmarkPage() {
                       );
                     })()}
                   </div>
-                  <div className="flex justify-between text-[12px] text-slate-400 mt-1">
+                  <div className="flex justify-between text-[12px] text-slate-700 mt-1">
                     <span>최저 {bm.min.toLocaleString()}</span>
                     <span>평균 {bm.avg.toLocaleString()}</span>
                     <span>최고 {bm.max.toLocaleString()}</span>
@@ -293,7 +293,7 @@ export default function BenchmarkPage() {
         {data.benchmarks.population && (
           <div className="bg-surface-raised rounded-xl p-5 border border-border">
             <div className="text-[16px] font-bold text-slate-900 mb-2">유동인구 유사 지역 비교</div>
-            <div className="text-[13px] text-slate-600 mb-3">
+            <div className="text-[13px] text-slate-800 mb-3">
               유동인구 {(data.benchmarks.population as PopulationTier).level} 수준 · {(data.benchmarks.population as PopulationTier).districts.join(", ")}
             </div>
             <div className="bg-slate-50 rounded-lg px-4 py-3">

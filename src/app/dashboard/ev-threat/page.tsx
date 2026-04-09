@@ -79,19 +79,19 @@ export default function EvThreatPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <div className="text-[12px] text-slate-600">총 충전소</div>
+              <div className="text-[12px] text-slate-800">총 충전소</div>
               <div className="text-[20px] font-extrabold text-slate-900">{summary.stations}<span className="text-[13px] font-normal">개소</span></div>
             </div>
             <div>
-              <div className="text-[12px] text-slate-600">급속 충전소</div>
+              <div className="text-[12px] text-slate-800">급속 충전소</div>
               <div className="text-[20px] font-extrabold text-slate-900">{summary.fastStations}<span className="text-[13px] font-normal">개소</span></div>
             </div>
             <div>
-              <div className="text-[12px] text-slate-600">급속 충전기</div>
+              <div className="text-[12px] text-slate-800">급속 충전기</div>
               <div className="text-[20px] font-extrabold text-slate-900">{summary.totalFast}<span className="text-[13px] font-normal">대</span></div>
             </div>
             <div>
-              <div className="text-[12px] text-slate-600">완속 충전기</div>
+              <div className="text-[12px] text-slate-800">완속 충전기</div>
               <div className="text-[20px] font-extrabold text-slate-900">{summary.totalSlow}<span className="text-[13px] font-normal">대</span></div>
             </div>
           </div>
@@ -99,10 +99,10 @@ export default function EvThreatPage() {
 
         {/* 뷰 모드 전환 */}
         <div className="flex gap-2 mb-4">
-          <button onClick={() => setViewMode("map")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "map" ? "bg-navy text-white border-navy" : "bg-surface-raised text-slate-600 border-border"}`}>
+          <button onClick={() => setViewMode("map")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "map" ? "bg-navy text-white border-navy" : "bg-surface-raised text-slate-800 border-border"}`}>
             지도
           </button>
-          <button onClick={() => setViewMode("list")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "list" ? "bg-navy text-white border-navy" : "bg-surface-raised text-slate-600 border-border"}`}>
+          <button onClick={() => setViewMode("list")} className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${viewMode === "list" ? "bg-navy text-white border-navy" : "bg-surface-raised text-slate-800 border-border"}`}>
             목록
           </button>
         </div>
@@ -164,21 +164,21 @@ export default function EvThreatPage() {
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 px-2 text-slate-600 font-semibold">충전소명</th>
-                    <th className="text-left py-2 px-2 text-slate-600 font-semibold">운영사</th>
-                    <th className="text-right py-2 px-2 text-slate-600 font-semibold">급속</th>
-                    <th className="text-right py-2 px-2 text-slate-600 font-semibold">완속</th>
-                    <th className="text-right py-2 px-2 text-slate-600 font-semibold">거리</th>
+                    <th className="text-left py-2 px-2 text-slate-800 font-semibold">충전소명</th>
+                    <th className="text-left py-2 px-2 text-slate-800 font-semibold">운영사</th>
+                    <th className="text-right py-2 px-2 text-slate-800 font-semibold">급속</th>
+                    <th className="text-right py-2 px-2 text-slate-800 font-semibold">완속</th>
+                    <th className="text-right py-2 px-2 text-slate-800 font-semibold">거리</th>
                   </tr>
                 </thead>
                 <tbody>
                   {chargers.map((c) => (
                     <tr key={c.station_id} className="border-b border-border/50 hover:bg-surface transition-colors">
                       <td className="py-2 px-2 text-slate-900 font-medium">{c.station_name}</td>
-                      <td className="py-2 px-2 text-slate-600">{c.operator}</td>
+                      <td className="py-2 px-2 text-slate-800">{c.operator}</td>
                       <td className="py-2 px-2 text-right font-bold text-coral">{c.fast_count > 0 ? c.fast_count : "-"}</td>
-                      <td className="py-2 px-2 text-right text-slate-600">{c.slow_count > 0 ? c.slow_count : "-"}</td>
-                      <td className="py-2 px-2 text-right text-slate-600">{c.distance_km}km</td>
+                      <td className="py-2 px-2 text-right text-slate-800">{c.slow_count > 0 ? c.slow_count : "-"}</td>
+                      <td className="py-2 px-2 text-right text-slate-800">{c.distance_km}km</td>
                     </tr>
                   ))}
                 </tbody>
@@ -195,10 +195,10 @@ export default function EvThreatPage() {
               {top5Fast.map((c, i) => (
                 <div key={c.station_id} className="flex items-center justify-between rounded-lg bg-surface px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-[14px] font-bold text-slate-400 w-5">{i + 1}</span>
+                    <span className="text-[14px] font-bold text-slate-700 w-5">{i + 1}</span>
                     <div>
                       <div className="text-[12px] font-semibold text-slate-900">{c.station_name}</div>
-                      <div className="text-[12px] text-slate-600">{c.operator} · 급속 {c.fast_count}대</div>
+                      <div className="text-[12px] text-slate-800">{c.operator} · 급속 {c.fast_count}대</div>
                     </div>
                   </div>
                   <div className="text-[13px] font-bold text-slate-900">{c.distance_km}km</div>

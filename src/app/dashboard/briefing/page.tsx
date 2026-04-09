@@ -206,7 +206,7 @@ export default function BriefingPage() {
           <h2 className="text-[16px] font-bold text-slate-900 m-0 mb-3">찬반 요약</h2>
           <div className="rounded-xl border border-border overflow-hidden bg-surface-raised">
             {/* 헤더 */}
-            <div className="grid grid-cols-3 text-[13px] font-semibold text-slate-600 bg-slate-50 border-b border-border">
+            <div className="grid grid-cols-3 text-[13px] font-semibold text-slate-800 bg-slate-50 border-b border-border">
               <div className="px-3 py-2">항목</div>
               <div className="px-3 py-2 text-red-600">🔺 인상 찬성</div>
               <div className="px-3 py-2 text-blue-600">🔻 인상 반대</div>
@@ -243,10 +243,10 @@ export default function BriefingPage() {
               <span className="text-[28px] font-bold text-slate-900">
                 {rec.suggestedRange.min}~{rec.suggestedRange.max}원
               </span>
-              <span className="text-[12px] text-slate-600">경쟁사 평균 기준</span>
+              <span className="text-[12px] text-slate-800">경쟁사 평균 기준</span>
             </div>
             {bf.position.avgPrice && (
-              <p className="text-[12px] text-slate-400 m-0 mt-1">
+              <p className="text-[12px] text-slate-700 m-0 mt-1">
                 현재 경쟁사 평균: {bf.position.avgPrice.toLocaleString()}원
                 {bf.position.myPrice && ` / 내 가격: ${bf.position.myPrice.toLocaleString()}원`}
               </p>
@@ -255,7 +255,7 @@ export default function BriefingPage() {
         )}
 
         {/* ── 5. 면책조항 ── */}
-        <p className="text-[13px] text-slate-400 m-0 leading-relaxed pb-6">
+        <p className="text-[13px] text-slate-700 m-0 leading-relaxed pb-6">
           * 본 분석은 국제유가·경쟁사 가격·시장 추세 데이터를 기반으로 자동 생성된 참고 정보입니다. 최종 가격 결정은 사장님의 판단에 따릅니다.
         </p>
       </main>
@@ -273,7 +273,7 @@ function FactorCard({ factor, index, insights }: { factor: Factor; index: number
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[13px] font-bold text-slate-600">
+          <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[13px] font-bold text-slate-800">
             {labels[index]}
           </span>
           <span className="text-[16px] font-bold text-slate-900">{factor.label}</span>
@@ -284,7 +284,7 @@ function FactorCard({ factor, index, insights }: { factor: Factor; index: number
       </div>
 
       {/* 상세 데이터 */}
-      <div className="text-[12px] text-slate-600 space-y-1 mb-2">
+      <div className="text-[12px] text-slate-800 space-y-1 mb-2">
         {index === 0 && (
           <>
             {bf.oil.latestBrent != null && (

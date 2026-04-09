@@ -126,13 +126,13 @@ export default function OilPricesPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">Brent 현재</div>
+            <div className="text-[13px] text-slate-800 mb-1">Brent 현재</div>
             <div className="text-[20px] font-extrabold text-slate-900">
               ${brentLatest.toFixed(1)}
             </div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">2주 변동</div>
+            <div className="text-[13px] text-slate-800 mb-1">2주 변동</div>
             <div className={`text-[20px] font-extrabold ${
               (summary?.brentChange ?? 0) > 0 ? "text-coral" : (summary?.brentChange ?? 0) < 0 ? "text-blue-600" : "text-slate-900"
             }`}>
@@ -140,11 +140,11 @@ export default function OilPricesPage() {
             </div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">60일 평균</div>
+            <div className="text-[13px] text-slate-800 mb-1">60일 평균</div>
             <div className="text-[20px] font-extrabold text-slate-900">${brentAvg.toFixed(1)}</div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">60일 범위</div>
+            <div className="text-[13px] text-slate-800 mb-1">60일 범위</div>
             <div className="text-[14px] font-bold text-slate-900">
               ${brentMin.toFixed(1)} ~ ${brentMax.toFixed(1)}
             </div>
@@ -196,7 +196,7 @@ export default function OilPricesPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="text-[16px] font-bold text-slate-900">유가 → 소매가 시차 분석</div>
-              <div className="text-[13px] text-slate-600 mt-0.5">
+              <div className="text-[13px] text-slate-800 mt-0.5">
                 Brent 유가와 2주 후 내 소매가를 같은 시점에 겹쳐 표시
               </div>
             </div>
@@ -205,7 +205,7 @@ export default function OilPricesPage() {
               className={`px-3 py-1.5 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
                 showRetail
                   ? "bg-emerald-light text-emerald border-emerald"
-                  : "bg-surface-raised text-slate-600 border-border"
+                  : "bg-surface-raised text-slate-800 border-border"
               }`}
             >
               소매가 {showRetail ? "ON" : "OFF"}
@@ -251,7 +251,7 @@ export default function OilPricesPage() {
               <div className="text-[36px] font-extrabold text-slate-900">
                 {correlation.toFixed(2)}
               </div>
-              <div className="text-[13px] text-slate-600 mt-1">Pearson 상관계수</div>
+              <div className="text-[13px] text-slate-800 mt-1">Pearson 상관계수</div>
             </div>
             <div className="flex-1">
               <div className="h-3 bg-slate-100 rounded-full overflow-hidden mb-2">
@@ -264,7 +264,7 @@ export default function OilPricesPage() {
                   style={{ width: `${Math.max(Math.abs(correlation) * 100, 5)}%` }}
                 />
               </div>
-              <div className="text-[12px] text-slate-600 leading-relaxed">
+              <div className="text-[12px] text-slate-800 leading-relaxed">
                 {correlation >= 0.7
                   ? "국제유가와 소매가의 상관관계가 높습니다. 유가 변동이 2주 후 소매가에 강하게 반영되는 패턴입니다."
                   : correlation >= 0.3
@@ -289,7 +289,7 @@ export default function OilPricesPage() {
                   ? `Brent 유가가 2주간 $${Math.abs(summary.brentChange ?? 0).toFixed(1)} 하락했습니다. 향후 2주 내 소매가 인하 여력이 생길 수 있습니다.`
                   : `Brent 유가가 2주간 큰 변동 없이 안정적입니다. 소매가 유지가 적절한 시점입니다.`}
               </div>
-              <div className="text-[13px] text-slate-600 mt-2">
+              <div className="text-[13px] text-slate-800 mt-2">
                 * 국제유가 → 국내 소매가 반영에는 약 2주의 시차가 있으며, 실제 반영은 경쟁 환경에 따라 달라질 수 있습니다.
               </div>
             </div>

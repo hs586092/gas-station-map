@@ -142,21 +142,21 @@ export default function PriceHistoryPage() {
         {/* 요약 카드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">현재가</div>
+            <div className="text-[13px] text-slate-800 mb-1">현재가</div>
             <div className="text-[20px] font-extrabold text-slate-900">{latestPrice.toLocaleString()}<span className="text-[12px] font-normal">원</span></div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">30일 변동</div>
+            <div className="text-[13px] text-slate-800 mb-1">30일 변동</div>
             <div className={`text-[20px] font-extrabold ${totalChange > 0 ? "text-coral" : totalChange < 0 ? "text-blue-600" : "text-slate-900"}`}>
               {totalChange > 0 ? "+" : ""}{totalChange}<span className="text-[12px] font-normal">원</span>
             </div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">30일 평균</div>
+            <div className="text-[13px] text-slate-800 mb-1">30일 평균</div>
             <div className="text-[20px] font-extrabold text-slate-900">{avgPrice.toLocaleString()}<span className="text-[12px] font-normal">원</span></div>
           </div>
           <div className="bg-surface-raised rounded-xl p-4 border border-border">
-            <div className="text-[13px] text-slate-600 mb-1">최저↔최고</div>
+            <div className="text-[13px] text-slate-800 mb-1">최저↔최고</div>
             <div className="text-[14px] font-bold text-slate-900">
               {minPrice.toLocaleString()} ~ {maxPrice.toLocaleString()}
             </div>
@@ -170,7 +170,7 @@ export default function PriceHistoryPage() {
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
               selectedFuel === "gasoline"
                 ? "bg-coral text-white border-coral"
-                : "bg-surface-raised text-slate-600 border-border hover:border-text-secondary"
+                : "bg-surface-raised text-slate-800 border-border hover:border-text-secondary"
             }`}
           >
             휘발유
@@ -180,7 +180,7 @@ export default function PriceHistoryPage() {
             className={`px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
               selectedFuel === "diesel"
                 ? "bg-navy text-white border-navy"
-                : "bg-surface-raised text-slate-600 border-border hover:border-text-secondary"
+                : "bg-surface-raised text-slate-800 border-border hover:border-text-secondary"
             }`}
           >
             경유
@@ -280,7 +280,7 @@ export default function PriceHistoryPage() {
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors cursor-pointer ${
                     overlayIds.has(c.id)
                       ? "border-emerald bg-emerald-light text-emerald"
-                      : "border-border bg-surface-raised text-slate-600 hover:border-text-secondary"
+                      : "border-border bg-surface-raised text-slate-800 hover:border-text-secondary"
                   }`}
                 >
                   <span
@@ -288,7 +288,7 @@ export default function PriceHistoryPage() {
                     style={{ background: BRAND_COLORS[c.brand] || "#9BA8B7" }}
                   />
                   {c.name}
-                  <span className="text-[12px] text-slate-400">{c.distance_km}km</span>
+                  <span className="text-[12px] text-slate-700">{c.distance_km}km</span>
                 </button>
               ))}
             </div>
@@ -299,7 +299,7 @@ export default function PriceHistoryPage() {
         <div className="bg-surface-raised rounded-xl p-5 border border-border">
           <div className="text-[13px] font-bold text-slate-900 mb-4">가격 변경 이력</div>
           {changeHistory.length === 0 ? (
-            <div className="text-[13px] text-slate-400 text-center py-8">
+            <div className="text-[13px] text-slate-700 text-center py-8">
               30일간 가격 변경 이력이 없습니다.
             </div>
           ) : (
@@ -307,11 +307,11 @@ export default function PriceHistoryPage() {
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 px-3 text-slate-600 font-semibold">날짜</th>
-                    <th className="text-right py-2 px-3 text-slate-600 font-semibold">휘발유</th>
-                    <th className="text-right py-2 px-3 text-slate-600 font-semibold">변동</th>
-                    <th className="text-right py-2 px-3 text-slate-600 font-semibold">경유</th>
-                    <th className="text-right py-2 px-3 text-slate-600 font-semibold">변동</th>
+                    <th className="text-left py-2 px-3 text-slate-800 font-semibold">날짜</th>
+                    <th className="text-right py-2 px-3 text-slate-800 font-semibold">휘발유</th>
+                    <th className="text-right py-2 px-3 text-slate-800 font-semibold">변동</th>
+                    <th className="text-right py-2 px-3 text-slate-800 font-semibold">경유</th>
+                    <th className="text-right py-2 px-3 text-slate-800 font-semibold">변동</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -329,7 +329,7 @@ export default function PriceHistoryPage() {
                               {c.gasDiff > 0 ? "▲" : "▼"}{Math.abs(c.gasDiff)}
                             </span>
                           ) : (
-                            <span className="text-slate-400">-</span>
+                            <span className="text-slate-700">-</span>
                           )}
                         </td>
                         <td className="py-2.5 px-3 text-right text-slate-900">
@@ -341,7 +341,7 @@ export default function PriceHistoryPage() {
                               {c.dieselDiff > 0 ? "▲" : "▼"}{Math.abs(c.dieselDiff)}
                             </span>
                           ) : (
-                            <span className="text-slate-400">-</span>
+                            <span className="text-slate-700">-</span>
                           )}
                         </td>
                       </tr>
