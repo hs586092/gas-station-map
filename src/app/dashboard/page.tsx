@@ -483,8 +483,8 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => { setPriceHistory(d); setLoading((p) => ({ ...p, priceHistory: false })); });
 
-    // ── 통합 API: 6개 분석 데이터를 서버에서 병렬 수집 후 한 번에 반환 ──
-    fetch(`${base}/dashboard-all${cb}`)
+    // ── 1단계: essential (브리핑+판매분석+날씨영향+예측복기+세차 — 위쪽 카드) ──
+    fetch(`${base}/dashboard-all?tier=essential${cb ? "&" + cb.slice(1) : ""}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.insights) setInsights(data.insights);
@@ -496,25 +496,35 @@ export default function DashboardPage() {
         if (data.weatherSales && !data.weatherSales.error) setWeatherImpact(data.weatherSales);
         setLoading((p) => ({ ...p, weatherImpact: false }));
 
-        if (data.timing && data.timing.currentSituation) setTimingAnalysis(data.timing);
-        setLoading((p) => ({ ...p, timingAnalysis: false }));
-
         if (data.forecast && !data.forecast.error) setForecastReview(data.forecast);
         setLoading((p) => ({ ...p, forecastReview: false }));
 
+        if (data.carwash && !data.carwash.error) setCarwashSummary(data.carwash);
+        setLoading((p) => ({ ...p, carwash: false }));
+      })
+      .catch(() => {
+        setLoading((p) => ({
+          ...p, insights: false, salesAnalysis: false, weatherImpact: false,
+          forecastReview: false, carwash: false,
+        }));
+      });
+
+    // ── 2단계: extended (상관관계+타이밍+크로스인사이트 — 아래쪽 카드) ──
+    fetch(`${base}/dashboard-all?tier=extended`)
+      .then((r) => r.json())
+      .then((data) => {
         if (data.correlation && !data.correlation.error) setCorrelationMatrix(data.correlation);
         setLoading((p) => ({ ...p, correlationMatrix: false }));
 
-        if (data.carwash && !data.carwash.error) setCarwashSummary(data.carwash);
-        setLoading((p) => ({ ...p, carwash: false }));
+        if (data.timing && data.timing.currentSituation) setTimingAnalysis(data.timing);
+        setLoading((p) => ({ ...p, timingAnalysis: false }));
 
         if (data.crossInsights && !data.crossInsights.error) setCrossInsights(data.crossInsights);
         setLoading((p) => ({ ...p, crossInsights: false }));
       })
       .catch(() => {
         setLoading((p) => ({
-          ...p, insights: false, salesAnalysis: false, weatherImpact: false,
-          timingAnalysis: false, forecastReview: false, correlationMatrix: false, carwash: false, crossInsights: false,
+          ...p, correlationMatrix: false, timingAnalysis: false, crossInsights: false,
         }));
       });
   };

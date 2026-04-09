@@ -321,7 +321,7 @@ export async function GET(
         confidence: similarDays.confidence,
         insight: similarDays.insight,
       },
-    }, { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" } });
+    }, { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600" } });
   }
 
   return NextResponse.json({
@@ -330,5 +330,5 @@ export async function GET(
     dowProfile,
     similarDays,
     dataRange: { from: allDates[0], to: allDates[allDates.length - 1], totalDays: allDates.length },
-  }, { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" } });
+  }, { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600" } });
 }

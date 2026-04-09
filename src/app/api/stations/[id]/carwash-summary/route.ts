@@ -291,7 +291,7 @@ export async function GET(
       accuracy7,
       conversionRate,
     }, {
-      headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" },
+      headers: { "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=3600" },
     });
   }
 
