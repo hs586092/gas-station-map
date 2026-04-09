@@ -189,6 +189,19 @@ function CardSkeleton() {
   );
 }
 
+// ─── 섹션 구분선 ───
+function SectionDivider({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="md:col-span-2 lg:col-span-3 flex items-center gap-3 pt-4 pb-1">
+      <div>
+        <div className="text-[14px] font-bold text-text-primary">{title}</div>
+        {description && <div className="text-[11px] text-text-tertiary">{description}</div>}
+      </div>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
+
 // ─── 인사이트 배지 (다크 테마) ───
 function InsightBadge({ children, color = "slate" }: { children: React.ReactNode; color?: "slate" | "blue" | "red" | "emerald" | "amber" }) {
   const colors = {
@@ -867,6 +880,8 @@ export default function DashboardPage() {
         {/* 카드 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-text-primary">
 
+          <SectionDivider title="오늘의 판단" description="예측 · 시뮬레이션 · 복기" />
+
           {/* 🌧️ 통합 판매량 예측 (날씨 + 가격 + 경쟁사) */}
           {(loading.weatherImpact && loading.integratedForecast) ? <CardSkeleton /> : (() => {
             const ig = integratedForecast?.forecast;
@@ -1180,7 +1195,7 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* ── 분석 카드 (dashboard-all 통합 API에서 로드) ── */}
+          <SectionDivider title="내 매출 현황" description="판매량 · 세차 · 영향 요인" />
 
           {/* ⑪ 영향력 순위 바 차트 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
@@ -1531,6 +1546,8 @@ export default function DashboardPage() {
               </div>
             );
           })()}
+
+          <SectionDivider title="경쟁 환경" description="경쟁사 동향 · 포지션 · 벤치마크" />
 
           {/* ② 경쟁사 행동 패턴 */}
           {loading.changes ? <CardSkeleton /> : changes && (
@@ -1899,6 +1916,8 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          <SectionDivider title="시장 흐름" description="유가 · 가격 추이" />
 
           {/* ⑤ 국제유가 + 향후 전망 */}
           {loading.oilPrices ? <CardSkeleton /> : oilPrices && (() => {
