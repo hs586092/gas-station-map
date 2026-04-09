@@ -1775,6 +1775,8 @@ export default function DashboardPage() {
             </ClickableCard>
           )}
 
+          {/* 타이밍 · 연동성 · 프로파일 (3열 나란히) */}
+          <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* ⑨ 타이밍 분석 */}
           {loading.timingAnalysis ? <CardSkeleton /> : timingAnalysis && (
             <ClickableCard href="/dashboard/timing-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -1873,12 +1875,12 @@ export default function DashboardPage() {
 
           {/* ⑧ 경쟁사 프로파일링 */}
           {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
-            <div className="md:col-span-2 bg-surface-raised rounded-xl p-5 border border-border">
+            <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
                 <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 {insights.competitorProfiles.slice(0, 6).map((p) => {
                   const typeColors = {
                     leader: { bg: "bg-red-50 border border-red-100", text: "text-red-700", badge: "bg-red-900/50 text-red-700" },
@@ -1916,6 +1918,7 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+          </div>
 
           <SectionDivider title="시장 흐름" description="유가 · 가격 추이" />
 
