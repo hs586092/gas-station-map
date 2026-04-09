@@ -541,6 +541,29 @@ export default function DashboardPage() {
 
         if (data.integratedForecast && !data.integratedForecast.error) setIntegratedForecast(data.integratedForecast);
         setLoading((p) => ({ ...p, integratedForecast: false }));
+
+        // ── 스냅샷 스키마 갱신 감지: 필수 필드 누락 시 자동 리빌드 ──
+        const REQUIRED_KEYS = ["integratedForecast"] as const;
+        const missing = REQUIRED_KEYS.filter((k) => !(k in data) || data[k] == null);
+        if (missing.length > 0) {
+          console.log(`[snapshot] 누락 필드 감지 (${missing.join(",")}), 리빌드 트리거`);
+          // 누락된 데이터만 실시간 fetch
+          fetch(`${base}/dashboard-all?tier=essential${cb ? "&" + cb.slice(1) : ""}`)
+            .then((r) => r.json())
+            .then((fresh) => {
+              if (fresh.integratedForecast && !fresh.integratedForecast.error) {
+                setIntegratedForecast(fresh.integratedForecast);
+              }
+              setLoading((p) => ({ ...p, integratedForecast: false }));
+            })
+            .catch(() => setLoading((p) => ({ ...p, integratedForecast: false })));
+          // 백그라운드 리빌드 (다음 로드부터 스냅샷에 포함)
+          fetch("/api/snapshot/rebuild", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stationId: STATION_ID }),
+          }).catch(() => {});
+        }
       })
       .catch(() => {
         // 스냅샷 없음 → fallback: dashboard-all 실시간 호출 + 스냅샷 자동 생성
