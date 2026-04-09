@@ -50,12 +50,7 @@ export async function GET(request: Request) {
         .limit(1);
 
       if (eErr || !earliestRows || earliestRows.length === 0) {
-        return NextResponse.json({
-          error: "No carwash data found",
-          detail: eErr?.message,
-          businessId: BUSINESS_ID,
-          carwashUrl: process.env.CARWASH_SUPABASE_URL?.slice(0, 30),
-        }, { status: 404 });
+        return NextResponse.json({ error: "No carwash data found", detail: eErr?.message }, { status: 404 });
       }
       minDate = earliestRows[0].date;
       maxDate = new Date(Date.now() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
