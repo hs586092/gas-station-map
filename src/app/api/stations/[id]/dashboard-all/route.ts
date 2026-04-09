@@ -40,7 +40,7 @@ export async function GET(
     safeFetch(`${base}/sales-analysis`),
     safeFetch(`${base}/weather-sales-analysis`),
     safeFetch(`${base}/timing-analysis`),
-    safeFetch(`${base}/forecast-review`),
+    safeFetch(`${base}/forecast-review?t=${Date.now()}`),
     safeFetch(`${base}/correlation-matrix?compact=1`),
   ]);
 

@@ -89,11 +89,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         fc.actual_count = salesCnt;
         updates.actual_count = salesCnt;
       }
-      supabase
+      await supabase
         .from("forecast_history")
         .update(updates)
-        .eq("id", fc.id)
-        .then(() => {});
+        .eq("id", fc.id);
     }
   }
 
