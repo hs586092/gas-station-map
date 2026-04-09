@@ -37,7 +37,7 @@ export default function CarwashPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="세차장 분석" description="세차 대수, 날씨 영향 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="animate-pulse space-y-4">
@@ -51,7 +51,7 @@ export default function CarwashPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="세차장 분석" description="세차 대수, 날씨 영향 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-slate-800">
@@ -65,7 +65,7 @@ export default function CarwashPage() {
   const maxDowCount = Math.max(...data.dowStats.map(d => d.avgCount));
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader
         title="세차장 분석"
         description={`${data.dataRange.totalDays}일 데이터 (${data.dataRange.from} ~ ${data.dataRange.to})`}

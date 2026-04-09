@@ -158,7 +158,7 @@ export default function BriefingPage() {
 
   if (loading || !insights) {
     return (
-      <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+      <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
         <DetailHeader title="경영 브리핑 상세" description="종합 추천의 판단 근거를 투명하게 공개합니다" />
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-border border-t-emerald rounded-full animate-spin" />
@@ -174,7 +174,7 @@ export default function BriefingPage() {
   const rec = insights.recommendation;
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader title="경영 브리핑 상세" description="종합 추천의 판단 근거를 투명하게 공개합니다" />
 
       <main className="px-5 pb-10 space-y-5">

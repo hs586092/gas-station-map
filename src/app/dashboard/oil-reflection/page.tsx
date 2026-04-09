@@ -144,7 +144,7 @@ export default function OilReflectionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="유가 반영 분석" description="국제유가 변동의 소매가 반영 타임라인" />
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-border border-t-emerald rounded-full animate-spin" />
@@ -154,7 +154,7 @@ export default function OilReflectionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader title="유가 반영 분석" description="셀프광장주유소 · 국제유가 변동의 소매가 반영 타임라인" />
 
       <main className="px-5 pb-10">

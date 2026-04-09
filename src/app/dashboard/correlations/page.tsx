@@ -121,7 +121,7 @@ export default function CorrelationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="변수 상관관계 분석" description="판매량에 영향을 미치는 변수 간 상관관계 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="animate-pulse space-y-4">
@@ -135,7 +135,7 @@ export default function CorrelationsPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="변수 상관관계 분석" description="판매량에 영향을 미치는 변수 간 상관관계 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-slate-800">
@@ -179,7 +179,7 @@ export default function CorrelationsPage() {
   const scatterPairs = selectedNode ? getScatterPairs(selectedNode) : [];
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader
         title="변수 상관관계 분석"
         description={`판매량 중심 · ${data.dataRange.totalDays}일 데이터 (${data.dataRange.from} ~ ${data.dataRange.to})`}

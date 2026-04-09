@@ -65,7 +65,7 @@ export default function BenchmarkPage() {
 
   if (loading || !data) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="적정가 벤치마크" description="다양한 기준으로 내 가격 위치 분석" />
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-border border-t-emerald rounded-full animate-spin" />
@@ -106,7 +106,7 @@ export default function BenchmarkPage() {
   const fairMedian = refBenchmark.median;
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader title="적정가 벤치마크" description="셀프광장주유소 · 다양한 비교 기준으로 내 가격 위치 분석" />
 
       <main className="px-5 pb-10">

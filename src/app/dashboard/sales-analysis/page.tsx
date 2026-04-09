@@ -151,7 +151,7 @@ export default function SalesAnalysisPage() {
 
   if (loading || !data) {
     return (
-      <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+      <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
         <DetailHeader title="판매량 · 가격 분석" description="가격 변경이 판매량에 미치는 영향을 분석합니다" />
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-border border-t-emerald rounded-full animate-spin" />
@@ -167,7 +167,7 @@ export default function SalesAnalysisPage() {
   const orderedWeekday = [1, 2, 3, 4, 5, 6, 0].map((i) => weekdayPattern[i]);
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader title="판매량 · 가격 분석" description="가격 변경이 판매량에 미치는 영향을 분석합니다" />
 
       <main className="px-5 pb-10 space-y-5">

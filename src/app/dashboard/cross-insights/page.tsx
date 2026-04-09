@@ -44,7 +44,7 @@ export default function CrossInsightsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="크로스 인사이트" description="데이터 교차 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="animate-pulse space-y-4"><div className="h-48 bg-slate-100 rounded-xl" /><div className="h-48 bg-slate-100 rounded-xl" /></div>
@@ -55,7 +55,7 @@ export default function CrossInsightsPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="크로스 인사이트" description="데이터 교차 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-slate-800">데이터를 불러올 수 없습니다.</div>
@@ -68,7 +68,7 @@ export default function CrossInsightsPage() {
   const sd = data.similarDays;
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader
         title="크로스 인사이트"
         description={`${data.dataRange.totalDays}일 교차 분석 (${data.dataRange.from} ~ ${data.dataRange.to})`}

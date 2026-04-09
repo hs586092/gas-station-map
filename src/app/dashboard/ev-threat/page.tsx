@@ -41,7 +41,7 @@ export default function EvThreatPage() {
 
   if (loading || !data) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-surface text-slate-900">
         <DetailHeader title="EV 충전소 위협 분석" description="반경 3km EV 충전 인프라 현황" />
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-border border-t-emerald rounded-full animate-spin" />
@@ -65,7 +65,7 @@ export default function EvThreatPage() {
   const opColors = ["#3b82f6", "#f97316", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#f59e0b", "#ec4899"];
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader title="EV 충전소 위협 분석" description="셀프광장주유소 · 반경 3km EV 충전 인프라 현황" />
 
       <main className="px-5 pb-10">

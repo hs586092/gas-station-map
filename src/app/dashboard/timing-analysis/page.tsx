@@ -80,7 +80,7 @@ export default function TimingAnalysisPage() {
 
   if (loading || !data) {
     return (
-      <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+      <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
         <DetailHeader title="타이밍 분석" description="유가 변동 → 경쟁사 반응 → 최적 대응 시점 분석" />
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-2 border-border border-t-emerald rounded-full animate-spin" />
@@ -92,7 +92,7 @@ export default function TimingAnalysisPage() {
   const { oilEvents, competitorSpeed, timingImpact, currentSituation, dataStatus } = data;
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader title="타이밍 분석" description="유가 변동 → 경쟁사 반응 → 최적 대응 시점 분석" />
 
       <main className="px-5 pb-10 space-y-5">
