@@ -750,67 +750,6 @@ export default function DashboardPage() {
         {/* 카드 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-text-primary">
 
-          {/* 🚿 세차장 현황 */}
-          {loading.carwash ? <CardSkeleton /> : carwashSummary ? (() => {
-            const t = carwashSummary.today;
-            const y = carwashSummary.yesterday;
-            const tr = carwashSummary.typeRatio;
-            return (
-              <ClickableCard href="/dashboard/carwash" className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">세차장 현황</div>
-                  <span className="text-[11px] text-purple-500 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full font-medium">{t.dowLabel}요일</span>
-                </div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[12px] text-text-secondary">오늘 예상</span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[22px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>{t.expectedCount.toLocaleString()}</span>
-                    <span className="text-[12px] text-text-tertiary">대</span>
-                    <span className="text-[13px] font-bold text-text-secondary ml-1">{Math.round(t.expectedRevenue / 10000).toLocaleString()}만원</span>
-                  </div>
-                </div>
-                {t.weatherAdjustment && (
-                  <div className="text-[11px] text-amber-500 mb-2">⚡ {t.weatherAdjustment}</div>
-                )}
-                {y && (
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className="text-[12px] text-text-secondary">어제 {y.date.slice(5)}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-bold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{y.count.toLocaleString()}대</span>
-                      <span className="text-[12px] text-text-secondary">{Math.round(y.revenue / 10000)}만원</span>
-                      {y.vsLastWeekPct != null && (
-                        <span className={`text-[12px] font-bold ${y.vsLastWeekPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                          {y.vsLastWeekPct >= 0 ? "+" : ""}{y.vsLastWeekPct}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {tr && (tr.basic.count + tr.premium.count > 0) && (
-                  <div className="mt-2 pt-2 border-t border-border">
-                    <div className="flex items-center gap-1 h-3 rounded-full overflow-hidden">
-                      {tr.basic.pct > 0 && <div className="h-full bg-blue-400 rounded-l-full" style={{ width: `${tr.basic.pct}%` }} title={`기본 ${tr.basic.pct}%`} />}
-                      {tr.premium.pct > 0 && <div className="h-full bg-purple-500" style={{ width: `${tr.premium.pct}%` }} title={`프리미엄 ${tr.premium.pct}%`} />}
-                      {tr.taxi.pct > 0 && <div className="h-full bg-amber-400" style={{ width: `${tr.taxi.pct}%` }} title={`택시 ${tr.taxi.pct}%`} />}
-                      {tr.free.pct > 0 && <div className="h-full bg-slate-300 rounded-r-full" style={{ width: `${tr.free.pct}%` }} title={`무료 ${tr.free.pct}%`} />}
-                    </div>
-                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-tertiary">
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400" />기본 {tr.basic.pct}%</span>
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" />프리미엄 {tr.premium.pct}%</span>
-                      {tr.taxi.pct > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" />택시 {tr.taxi.pct}%</span>}
-                      {tr.free.pct > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" />무료 {tr.free.pct}%</span>}
-                    </div>
-                  </div>
-                )}
-                {carwashSummary.weatherInsight && (
-                  <div className="mt-2 pt-2 border-t border-border text-[12px] text-text-secondary">
-                    🌧️ {carwashSummary.weatherInsight}
-                  </div>
-                )}
-              </ClickableCard>
-            );
-          })() : null}
-
           {/* 🌧️ 날씨 영향 (판매량 예측) */}
           {loading.weatherImpact ? <CardSkeleton /> : weatherImpact?.todayForecast && (() => {
             const f = weatherImpact.todayForecast!;
@@ -1112,6 +1051,67 @@ export default function DashboardPage() {
               </div>
             </ClickableCard>
           )}
+
+          {/* 🚿 세차장 현황 */}
+          {loading.carwash ? <CardSkeleton /> : carwashSummary ? (() => {
+            const t = carwashSummary.today;
+            const y = carwashSummary.yesterday;
+            const tr = carwashSummary.typeRatio;
+            return (
+              <ClickableCard href="/dashboard/carwash" className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">세차장 현황</div>
+                  <span className="text-[11px] text-purple-500 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full font-medium">{t.dowLabel}요일</span>
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[12px] text-text-secondary">오늘 예상</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[22px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>{t.expectedCount.toLocaleString()}</span>
+                    <span className="text-[12px] text-text-tertiary">대</span>
+                    <span className="text-[13px] font-bold text-text-secondary ml-1">{Math.round(t.expectedRevenue / 10000).toLocaleString()}만원</span>
+                  </div>
+                </div>
+                {t.weatherAdjustment && (
+                  <div className="text-[11px] text-amber-500 mb-2">⚡ {t.weatherAdjustment}</div>
+                )}
+                {y && (
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="text-[12px] text-text-secondary">어제 {y.date.slice(5)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-bold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{y.count.toLocaleString()}대</span>
+                      <span className="text-[12px] text-text-secondary">{Math.round(y.revenue / 10000)}만원</span>
+                      {y.vsLastWeekPct != null && (
+                        <span className={`text-[12px] font-bold ${y.vsLastWeekPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                          {y.vsLastWeekPct >= 0 ? "+" : ""}{y.vsLastWeekPct}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {tr && (tr.basic.count + tr.premium.count > 0) && (
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <div className="flex items-center gap-1 h-3 rounded-full overflow-hidden">
+                      {tr.basic.pct > 0 && <div className="h-full bg-blue-400 rounded-l-full" style={{ width: `${tr.basic.pct}%` }} title={`기본 ${tr.basic.pct}%`} />}
+                      {tr.premium.pct > 0 && <div className="h-full bg-purple-500" style={{ width: `${tr.premium.pct}%` }} title={`프리미엄 ${tr.premium.pct}%`} />}
+                      {tr.taxi.pct > 0 && <div className="h-full bg-amber-400" style={{ width: `${tr.taxi.pct}%` }} title={`택시 ${tr.taxi.pct}%`} />}
+                      {tr.free.pct > 0 && <div className="h-full bg-slate-300 rounded-r-full" style={{ width: `${tr.free.pct}%` }} title={`무료 ${tr.free.pct}%`} />}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-tertiary">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400" />기본 {tr.basic.pct}%</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500" />프리미엄 {tr.premium.pct}%</span>
+                      {tr.taxi.pct > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" />택시 {tr.taxi.pct}%</span>}
+                      {tr.free.pct > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-300" />무료 {tr.free.pct}%</span>}
+                    </div>
+                  </div>
+                )}
+                {carwashSummary.weatherInsight && (
+                  <div className="mt-2 pt-2 border-t border-border text-[12px] text-text-secondary">
+                    🌧️ {carwashSummary.weatherInsight}
+                  </div>
+                )}
+              </ClickableCard>
+            );
+          })() : null}
 
           {/* 🌤️ 오늘 날씨 (하남시) */}
           {loading.weather ? <CardSkeleton /> : weather && weather.today && (() => {
