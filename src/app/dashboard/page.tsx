@@ -1662,19 +1662,19 @@ export default function DashboardPage() {
                     const tc = typeColors[p.type];
                     return (
                       <div key={p.id} className={`rounded-lg px-3 py-2.5 ${tc.bg}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[p.brand] || "#9BA8B7" }} />
-                            <span className="text-[12px] font-medium text-text-primary truncate">{p.name}</span>
-                          </div>
-                          <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tc.badge}`}>
-                            {p.type === "leader" ? "선제형" : p.type === "follower" ? "추종형" : "안정형"}
-                          </span>
-                          {(() => { const ch = changes?.changes.find(c => c.id === p.id); const diff = ch?.gasoline_diff ?? 0; return diff !== 0 ? (
-                            <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0 ${diff > 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
-                              오늘 {diff > 0 ? "↑" : "↓"}{Math.abs(diff)}원
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[p.brand] || "#9BA8B7" }} />
+                          <span className="text-[12px] font-medium text-text-primary truncate">{p.name}</span>
+                          <div className="flex items-center gap-1 ml-auto shrink-0">
+                            <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full ${tc.badge}`}>
+                              {p.type === "leader" ? "선제형" : p.type === "follower" ? "추종형" : "안정형"}
                             </span>
-                          ) : null; })()}
+                            {(() => { const ch = changes?.changes.find(c => c.id === p.id); const diff = ch?.gasoline_diff ?? 0; return diff !== 0 ? (
+                              <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full ${diff > 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                                오늘 {diff > 0 ? "↑" : "↓"}{Math.abs(diff)}원
+                              </span>
+                            ) : null; })()}
+                          </div>
                         </div>
                         <div className="text-[12px] text-text-secondary">
                           {p.changeCount}회 변경 · 평균 {p.avgChangeSize}원폭
