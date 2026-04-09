@@ -853,9 +853,6 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between">
                         <div className="text-[12px] text-text-secondary">
                           🚿 세차 <span className="font-bold text-purple-500">{y.carwashCount.toLocaleString()}대</span>
-                          {y.carwashRevenue != null && y.carwashRevenue > 0 && (
-                            <span className="text-text-tertiary ml-1.5">({Math.round(y.carwashRevenue / 10000)}만원)</span>
-                          )}
                         </div>
                       </div>
                     )}
@@ -1075,7 +1072,6 @@ export default function DashboardPage() {
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-[22px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>{t.expectedCount.toLocaleString()}</span>
                     <span className="text-[12px] text-text-tertiary">대</span>
-                    <span className="text-[13px] font-bold text-text-secondary ml-1">{Math.round(t.expectedRevenue / 10000).toLocaleString()}만원</span>
                   </div>
                 </div>
                 {t.weatherAdjustment && (
@@ -1100,7 +1096,6 @@ export default function DashboardPage() {
                         ) : (
                           <>
                             <span className="text-[14px] font-bold text-text-primary" style={{ fontVariantNumeric: "tabular-nums" }}>{y.count.toLocaleString()}대</span>
-                            <span className="text-[12px] text-text-secondary">{Math.round(y.revenue / 10000)}만원</span>
                             {y.vsLastWeekPct != null && (
                               <span className={`text-[12px] font-bold ${y.vsLastWeekPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                                 {y.vsLastWeekPct >= 0 ? "+" : ""}{y.vsLastWeekPct}%
@@ -1110,20 +1105,6 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    {/* 매출 + 전주비 (review 모드일 때 별도 표시) */}
-                    {rv && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-[12px] text-text-tertiary">매출</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[12px] text-text-secondary">{Math.round(y.revenue / 10000)}만원</span>
-                          {y.vsLastWeekPct != null && (
-                            <span className={`text-[11px] font-bold ${y.vsLastWeekPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                              전주비 {y.vsLastWeekPct >= 0 ? "+" : ""}{y.vsLastWeekPct}%
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
                 {/* 세차 전환율 + 7일 정확도 */}

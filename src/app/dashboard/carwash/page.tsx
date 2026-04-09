@@ -38,7 +38,7 @@ export default function CarwashPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-surface">
-        <DetailHeader title="세차장 분석" description="세차 대수, 매출, 날씨 영향 분석" />
+        <DetailHeader title="세차장 분석" description="세차 대수, 날씨 영향 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="animate-pulse space-y-4">
             <div className="h-48 bg-slate-100 rounded-xl" />
@@ -52,7 +52,7 @@ export default function CarwashPage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-surface">
-        <DetailHeader title="세차장 분석" description="세차 대수, 매출, 날씨 영향 분석" />
+        <DetailHeader title="세차장 분석" description="세차 대수, 날씨 영향 분석" />
         <div className="max-w-[1280px] mx-auto px-6 py-8">
           <div className="bg-surface-raised rounded-xl p-8 border border-border text-center text-text-secondary">
             세차 데이터를 불러올 수 없습니다.
@@ -80,7 +80,6 @@ export default function CarwashPage() {
             <div className="text-[28px] font-extrabold text-purple-500" style={{ fontVariantNumeric: "tabular-nums" }}>
               {data.today.expectedCount.toLocaleString()}<span className="text-[14px] text-text-tertiary ml-1">대</span>
             </div>
-            <div className="text-[14px] font-bold text-text-secondary">{Math.round(data.today.expectedRevenue / 10000).toLocaleString()}만원</div>
             {data.today.weatherAdjustment && (
               <div className="text-[12px] text-amber-500 mt-1">⚡ {data.today.weatherAdjustment}</div>
             )}
@@ -93,7 +92,6 @@ export default function CarwashPage() {
                 {data.yesterday.count.toLocaleString()}<span className="text-[14px] text-text-tertiary ml-1">대</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[14px] font-bold text-text-secondary">{Math.round(data.yesterday.revenue / 10000).toLocaleString()}만원</span>
                 {data.yesterday.vsLastWeekPct != null && (
                   <span className={`text-[13px] font-bold ${data.yesterday.vsLastWeekPct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     전주 대비 {data.yesterday.vsLastWeekPct >= 0 ? "+" : ""}{data.yesterday.vsLastWeekPct}%
@@ -127,7 +125,6 @@ export default function CarwashPage() {
                     <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-[12px] shadow-md">
                       <div className="text-text-tertiary">{p.date}</div>
                       <div>세차: <span className="font-bold">{p.count}대</span></div>
-                      <div>매출: <span className="font-bold">{Math.round(p.revenue / 10000)}만원</span></div>
                     </div>
                   );
                 }}
@@ -201,7 +198,7 @@ export default function CarwashPage() {
           </div>
         </div>
 
-        {/* 종류별 매출 비율 추이 */}
+        {/* 종류별 대수 추이 */}
         <div className="bg-surface-raised rounded-xl p-6 border border-border">
           <h2 className="text-[15px] font-bold text-text-primary m-0 mb-4">종류별 대수 추이 (30일)</h2>
           <ResponsiveContainer width="100%" height={280}>

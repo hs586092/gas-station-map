@@ -164,7 +164,6 @@ export async function GET(
   const cwYesterday = fc?.yesterday;
   if (cwYesterday?.carwashCount != null) {
     dataPrompt += `세차: 어제 ${cwYesterday.carwashCount}대`;
-    if (cwYesterday.carwashRevenue != null) dataPrompt += ` 매출 ${Math.round(cwYesterday.carwashRevenue / 10000)}만원`;
     dataPrompt += `\n`;
   }
 
