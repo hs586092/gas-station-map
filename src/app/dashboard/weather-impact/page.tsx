@@ -62,14 +62,49 @@ interface Analysis {
   } | null;
 }
 
+interface Contribution {
+  name: string;
+  label: string;
+  value: number;
+  pct: number;
+  n: number;
+  reliable: boolean;
+  badge: string;
+  method: "measured" | "estimated" | "fallback";
+}
+
+interface IntegratedForecastData {
+  forecast: {
+    expectedVolume: number;
+    expectedCount: number;
+    confidence: "high" | "medium" | "low";
+    explanation: string;
+    baseline: number;
+    baselineCount: number;
+    diffVsDryPct: number;
+    weatherOnly: number;
+    modelVersion: string;
+    totalDataDays: number;
+    contributions: Contribution[];
+  } | null;
+  coefficients: {
+    myPriceElasticity: { perWon: number; n: number; reliable: boolean } | null;
+    compGapElasticity: { perWon: number; n: number; reliable: boolean } | null;
+    interactions: {
+      rainWeekend: { coeff: number; n: number; reliable: boolean } | null;
+      rainCompDrop: { coeff: number; n: number; reliable: boolean } | null;
+    };
+    overallMean: number;
+  };
+}
+
 const DOW_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 const INTENSITY_ORDER: Array<"dry" | "light" | "heavy"> = ["dry", "light", "heavy"];
 const INTENSITY_LABEL: Record<string, string> = { dry: "건조", light: "약한 비", heavy: "본격 비" };
 const INTENSITY_ICON: Record<string, string> = { dry: "☀️", light: "🌦️", heavy: "🌧️" };
 
-// ── 셀 색상: Δ% 기준 emerald(+)↔red(-)
 function cellColor(diffPct: number | null, n: number) {
-  if (n < 3 || diffPct == null) return { bg: "#F1F4F8", text: "#9BA8B7" }; // 회색 (표본 부족)
+  if (n < 3 || diffPct == null) return { bg: "#F1F4F8", text: "#9BA8B7" };
   const clamped = Math.max(-25, Math.min(25, diffPct));
   if (clamped >= 0) {
     const alpha = Math.min(1, clamped / 15);
@@ -82,80 +117,209 @@ function cellColor(diffPct: number | null, n: number) {
 
 export default function WeatherImpactPage() {
   const [data, setData] = useState<Analysis | null>(null);
+  const [integrated, setIntegrated] = useState<IntegratedForecastData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"additive" | "observed">("additive");
 
   useEffect(() => {
-    fetch(`/api/stations/${STATION_ID}/weather-sales-analysis`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) {
-          setError(d.error);
-        } else {
-          setData(d);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("데이터를 불러올 수 없습니다.");
-        setLoading(false);
-      });
+    Promise.all([
+      fetch(`/api/stations/${STATION_ID}/weather-sales-analysis`).then((r) => r.json()),
+      fetch(`/api/stations/${STATION_ID}/integrated-forecast`).then((r) => r.json()).catch(() => null),
+    ]).then(([weatherData, intData]) => {
+      if (weatherData.error) {
+        setError(weatherData.error);
+      } else {
+        setData(weatherData);
+      }
+      if (intData && !intData.error) setIntegrated(intData);
+      setLoading(false);
+    }).catch(() => {
+      setError("데이터를 불러올 수 없습니다.");
+      setLoading(false);
+    });
   }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-surface">
-        <DetailHeader title="날씨 영향 분석" description="데이터 로딩 중..." />
+        <DetailHeader title="통합 판매 예측" description="데이터 로딩 중..." />
       </div>
     );
   }
   if (error || !data) {
     return (
       <div className="min-h-screen bg-surface">
-        <DetailHeader title="날씨 영향 분석" description={error || "데이터 없음"} />
+        <DetailHeader title="통합 판매 예측" description={error || "데이터 없음"} />
       </div>
     );
   }
 
+  const ig = integrated?.forecast;
+  const coeffs = integrated?.coefficients;
   const rainy = data.byIntensity.find((b) => b.key === "heavy");
   const dry = data.byIntensity.find((b) => b.key === "dry");
 
   return (
-    <div className="min-h-screen bg-surface h-screen overflow-y-auto">
+    <div className="min-h-screen bg-surface h-screen overflow-y-auto text-slate-900">
       <DetailHeader
-        title="날씨 × 판매량 다차원 분석"
-        description={`${data.dataRange.from} ~ ${data.dataRange.to} · ${data.dataRange.days}일 교집합`}
+        title="통합 판매 예측 · 분석"
+        description={`${data.dataRange.from} ~ ${data.dataRange.to} · ${data.dataRange.days}일 데이터`}
       />
 
       <main className="w-full px-5 pb-10 max-w-6xl mx-auto">
-        {/* ── 상단 요약 3카드 ── */}
+        {/* ── 상단 요약 ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* 오늘의 예상 판매량 */}
-          {data.todayForecast && (
-            <div className="bg-gradient-to-br from-navy to-[#0a1526] text-white rounded-2xl p-5 shadow-sm">
+          {/* 통합 예측 카드 (또는 날씨-only fallback) */}
+          {(ig || data.todayForecast) && (
+            <div className="bg-gradient-to-br from-navy to-[#0a1526] text-white rounded-2xl p-5 shadow-sm md:col-span-2">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[13px] font-semibold text-gray-300">오늘 예상 판매량</div>
-                <span className="text-[24px]">{INTENSITY_ICON[data.todayForecast.intensity]}</span>
+                <div className="flex items-center gap-2">
+                  <div className="text-[13px] font-semibold text-gray-300">
+                    {ig ? "통합 모델 예측" : "날씨 기반 예측"}
+                  </div>
+                  {ig && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200">
+                      {ig.modelVersion} · {ig.totalDataDays}일
+                    </span>
+                  )}
+                </div>
+                <span className="text-[24px]">
+                  {data.todayForecast ? INTENSITY_ICON[data.todayForecast.intensity] : "📊"}
+                </span>
               </div>
-              <div className="text-[32px] font-extrabold leading-tight">
-                {data.todayForecast.expectedVolume.toLocaleString()}
-                <span className="text-[16px] font-normal text-gray-300 ml-1">L</span>
+              <div className="flex items-baseline gap-3 mb-1">
+                <span className="text-[36px] font-extrabold leading-tight">
+                  {(ig?.expectedVolume ?? data.todayForecast?.expectedVolume)?.toLocaleString()}
+                </span>
+                <span className="text-[16px] font-normal text-gray-300">L 예상</span>
+                {ig && (
+                  <>
+                    <span className="text-[28px] font-extrabold leading-tight ml-2">
+                      {ig.expectedCount.toLocaleString()}
+                    </span>
+                    <span className="text-[14px] font-normal text-gray-300">대</span>
+                  </>
+                )}
               </div>
-              <div className="text-[12px] text-gray-300 mt-1">{data.todayForecast.explanation}</div>
+              <div className="text-[12px] text-gray-300 mt-1">
+                {ig?.explanation ?? data.todayForecast?.explanation}
+              </div>
+
+              {/* 변수 분해 */}
+              {ig && ig.contributions.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-white/15 space-y-2">
+                  <div className="text-[11px] font-bold text-gray-400 uppercase">변수별 기여</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[12px] text-gray-400">기저(요일 평균)</span>
+                    <span className="text-[14px] font-bold text-white">{ig.baseline.toLocaleString()}L</span>
+                  </div>
+                  {ig.contributions.map((c) => (
+                    <div key={c.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] text-gray-300">{c.label}</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                          c.reliable ? "bg-emerald-500/25 text-emerald-300" : "bg-amber-500/25 text-amber-300"
+                        }`}>
+                          {c.badge}
+                        </span>
+                      </div>
+                      <span className={`text-[13px] font-bold tabular-nums ${
+                        c.value > 0 ? "text-emerald-400" : c.value < 0 ? "text-red-400" : "text-gray-400"
+                      }`}>
+                        {c.value > 0 ? "+" : ""}{c.value.toLocaleString()}L
+                        <span className="text-[10px] font-normal text-gray-400 ml-1">({c.pct > 0 ? "+" : ""}{c.pct}%)</span>
+                      </span>
+                    </div>
+                  ))}
+                  {ig.weatherOnly !== ig.expectedVolume && (
+                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
+                      <span className="text-gray-400">날씨-only 모델과 차이</span>
+                      <span className="text-gray-300 font-bold">
+                        {ig.expectedVolume - ig.weatherOnly > 0 ? "+" : ""}{(ig.expectedVolume - ig.weatherOnly).toLocaleString()}L
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-3 flex items-center gap-2">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                  data.todayForecast.confidence === "high" ? "bg-emerald/30 text-emerald" :
-                  data.todayForecast.confidence === "medium" ? "bg-amber-400/30 text-amber-700" :
+                  (ig?.confidence ?? data.todayForecast?.confidence) === "high" ? "bg-emerald/30 text-emerald" :
+                  (ig?.confidence ?? data.todayForecast?.confidence) === "medium" ? "bg-amber-400/30 text-amber-300" :
                   "bg-gray-500/30 text-gray-300"
                 }`}>
-                  신뢰도 {data.todayForecast.confidence === "high" ? "높음" : data.todayForecast.confidence === "medium" ? "중간" : "낮음"}
+                  신뢰도 {(ig?.confidence ?? data.todayForecast?.confidence) === "high" ? "높음" : (ig?.confidence ?? data.todayForecast?.confidence) === "medium" ? "중간" : "낮음"}
                 </span>
               </div>
             </div>
           )}
 
-          {/* 본격 비 영향 */}
+          {/* 모델 계수 요약 */}
+          {coeffs && (
+            <div className="bg-surface-raised rounded-xl p-5 border border-border">
+              <div className="text-[13px] font-semibold text-slate-800 mb-3">모델 계수</div>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-[11px] text-slate-600 mb-0.5">내 가격 탄력성</div>
+                  {coeffs.myPriceElasticity ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[16px] font-extrabold">{coeffs.myPriceElasticity.perWon.toFixed(1)}L/원</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                        coeffs.myPriceElasticity.reliable ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        n={coeffs.myPriceElasticity.n}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[12px] text-slate-500">데이터 부족</span>
+                  )}
+                </div>
+                <div>
+                  <div className="text-[11px] text-slate-600 mb-0.5">경쟁사 가격차 탄력성</div>
+                  {coeffs.compGapElasticity ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[16px] font-extrabold">{coeffs.compGapElasticity.perWon.toFixed(1)}L/원</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                        coeffs.compGapElasticity.reliable ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}>
+                        n={coeffs.compGapElasticity.n}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[12px] text-slate-500">데이터 부족</span>
+                  )}
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <div className="text-[11px] text-slate-600 mb-1">교차항</div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="text-slate-700">비 × 주말</span>
+                      {coeffs.interactions.rainWeekend ? (
+                        <span className="font-bold">
+                          {coeffs.interactions.rainWeekend.coeff > 0 ? "+" : ""}{Math.round(coeffs.interactions.rainWeekend.coeff)}L
+                          <span className="text-[9px] text-slate-500 ml-1">n={coeffs.interactions.rainWeekend.n}</span>
+                        </span>
+                      ) : <span className="text-slate-400">-</span>}
+                    </div>
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="text-slate-700">비 × 경쟁사 인하</span>
+                      {coeffs.interactions.rainCompDrop ? (
+                        <span className="font-bold">
+                          {coeffs.interactions.rainCompDrop.coeff > 0 ? "+" : ""}{Math.round(coeffs.interactions.rainCompDrop.coeff)}L
+                          <span className="text-[9px] text-slate-500 ml-1">n={coeffs.interactions.rainCompDrop.n}</span>
+                        </span>
+                      ) : <span className="text-slate-400">-</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 비 영향 + 건당 분해 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {rainy && dry && (
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="flex items-center justify-between mb-2">
@@ -180,7 +344,6 @@ export default function WeatherImpactPage() {
             </div>
           )}
 
-          {/* 건당 주유량 분해 */}
           {data.perTxnDecomposition.countDiffPct != null && (
             <div className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="text-[13px] font-semibold text-slate-800 mb-2">비 오는 날 행동 분해</div>
@@ -266,7 +429,7 @@ export default function WeatherImpactPage() {
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
               <button
                 onClick={() => setMode("additive")}
-                className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                   mode === "additive" ? "bg-surface-raised text-slate-900 shadow-sm" : "text-slate-700"
                 }`}
               >
@@ -274,7 +437,7 @@ export default function WeatherImpactPage() {
               </button>
               <button
                 onClick={() => setMode("observed")}
-                className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
                   mode === "observed" ? "bg-surface-raised text-slate-900 shadow-sm" : "text-slate-700"
                 }`}
               >
@@ -307,7 +470,7 @@ export default function WeatherImpactPage() {
                     {INTENSITY_ORDER.map((intensity) => {
                       if (mode === "additive") {
                         const cell = data.additiveHeatmap.find((c) => c.dow === dow && c.intensity === intensity)!;
-                        const color = cellColor(cell.diffPct, 10); // 가법 모델은 n 제한 없음
+                        const color = cellColor(cell.diffPct, 10);
                         return (
                           <td key={intensity} className="p-1">
                             <div
@@ -373,19 +536,26 @@ export default function WeatherImpactPage() {
                 {data.correlation.tempVsVolume >= 0 ? "+" : ""}{data.correlation.tempVsVolume.toFixed(3)}
               </div>
               <div className="text-[11px] text-amber-600 mt-1">
-                ⚠️ 참고용: 현재 데이터는 10월~4월만 포함. 여름 표본 부족으로 기온 효과 해석 제한.
+                참고용: 현재 데이터는 10월~4월만 포함. 여름 표본 부족으로 기온 효과 해석 제한.
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── 하단 주의사항 ── */}
+        {/* ── 모델 설명 ── */}
         <section className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
-          <h3 className="text-[14px] font-bold text-amber-900 mb-2">📌 분석 한계</h3>
+          <h3 className="text-[14px] font-bold text-amber-900 mb-2">모델 구조 및 한계</h3>
           <ul className="text-[12px] text-amber-900 space-y-1 list-disc pl-5">
+            <li>
+              <strong>통합 모델:</strong> 예상판매량 = 요일기저 + 날씨보정 + 내가격효과 + 경쟁사가격차효과 + 교차항(비×주말, 비×경쟁사인하)
+            </li>
+            <li>모든 계수는 과거 데이터에서 자동 계산. 데이터가 쌓일수록 정교해짐.</li>
+            <li>
+              <strong>fallback 규칙:</strong> 교차항 사례 3건 미만 → 0으로 처리.
+              경쟁사 가격차 60일 미만 → 축적 중 표시, 추정 계수 사용.
+            </li>
             <li>데이터 범위: {data.dataRange.from} ~ {data.dataRange.to} ({data.dataRange.days}일). 여름(6~9월) 데이터 부재로 기온 분석은 1년 후 재평가 필요.</li>
-            <li>강수 강도 분류는 Open-Meteo 관측값(precipitation_mm) 기준. 예보 기반 오늘 예측은 예보 정확도에 영향받음.</li>
-            <li>가법 모델은 요일 효과와 날씨 효과가 독립이라고 가정. 실제로는 "비 오는 주말 → 더 큰 감소" 같은 교호작용이 있을 수 있음 (표본 더 쌓인 뒤 검토).</li>
+            <li>가법 모델은 요일 효과와 날씨 효과가 독립이라고 가정. 교차항으로 일부 보정 중.</li>
           </ul>
         </section>
       </main>
