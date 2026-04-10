@@ -69,30 +69,23 @@ export async function getForecastReview(
     countMap.set(s.date, cnt);
   }
 
-  // ── 3. forecast_history에 actual_volume + actual_count 업데이트 (lazy) ──
-  // actual_volume이 0이거나 null인 경우 모두 재업데이트 (동기화 전에 0으로 기록된 케이스 보정)
+  // ── 3. in-memory overlay: DB 쓰기는 backfillForecastActuals 가 담당 ──
+  // 이 함수는 anon 키를 쓰기 때문에 RLS 상 UPDATE 가 무음 실패한다.
+  // 실제 쓰기는 스냅샷 rebuild 직전/sync-sales 직후에 service role 로
+  // 수행된다 (src/lib/dashboard/backfill-forecast-actuals.ts). 여기서는
+  // 현재 요청이 볼 값만 overlay 한다 — 혹시 backfill 과 타이밍이 어긋나
+  // forecast_history 가 아직 null 이어도, 이 요청 한정으로는 sales_data
+  // 를 우선해서 계산하기 위해서다.
   for (const fc of forecasts) {
     if (!salesMap.has(fc.forecast_date)) continue;
     const salesVol = salesMap.get(fc.forecast_date)!;
     const salesCnt = countMap.get(fc.forecast_date) ?? 0;
 
-    const volMismatch = fc.actual_volume == null || (fc.actual_volume === 0 && salesVol > 0);
-    const cntMismatch = fc.actual_count == null || (fc.actual_count === 0 && salesCnt > 0);
-
-    if (volMismatch || cntMismatch) {
-      const updates: Record<string, number> = {};
-      if (volMismatch) {
-        fc.actual_volume = salesVol;
-        updates.actual_volume = salesVol;
-      }
-      if (cntMismatch) {
-        fc.actual_count = salesCnt;
-        updates.actual_count = salesCnt;
-      }
-      await supabase
-        .from("forecast_history")
-        .update(updates)
-        .eq("id", fc.id);
+    if (fc.actual_volume == null || (fc.actual_volume === 0 && salesVol > 0)) {
+      fc.actual_volume = salesVol;
+    }
+    if (fc.actual_count == null || (fc.actual_count === 0 && salesCnt > 0)) {
+      fc.actual_count = salesCnt;
     }
   }
 

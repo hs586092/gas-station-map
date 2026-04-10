@@ -199,19 +199,16 @@ export async function getCarwashSummary(
     }
   }
 
-  // ── 7. forecast_history lazy-sync + 어제 복기 ──
+  // ── 7. forecast_history in-memory overlay + 어제 복기 ──
+  // DB 쓰기는 backfillForecastActuals 가 담당 (RLS 회피 위해 service role).
+  // 여기서는 이 요청이 볼 값만 overlay 한다.
   const forecasts = fcRes.data || [];
   const cwMap = new Map(days.map(d => [d.date, d.total_count]));
 
-  // lazy-sync: actual_carwash가 null이면 carwash_daily에서 채우기
   for (const fc of forecasts) {
     const actual = cwMap.get(fc.forecast_date);
     if (actual != null && fc.actual_carwash == null) {
       fc.actual_carwash = actual;
-      await supabase
-        .from("forecast_history")
-        .update({ actual_carwash: actual })
-        .eq("id", fc.id);
     }
   }
 
