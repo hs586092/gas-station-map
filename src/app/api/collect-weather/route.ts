@@ -26,7 +26,6 @@ type WeatherRow = {
   temp_max: number | null;
   temp_min: number | null;
   precipitation_mm: number | null;
-  precipitation_prob_max: number | null;
 };
 
 function parseDaily(daily: Record<string, unknown>): WeatherRow[] {
@@ -36,6 +35,8 @@ function parseDaily(daily: Record<string, unknown>): WeatherRow[] {
   const tmin = daily.temperature_2m_min as (number | null)[] | undefined;
   const precip = daily.precipitation_sum as (number | null)[] | undefined;
 
+  // precipitation_prob_max 는 예보시점 컬럼이므로 실측 업서트에서 건드리지 않는다
+  // (onConflict=date upsert 시 null로 덮어쓰면 기존 예보확률이 지워짐)
   return dates
     .map((date, i) => ({
       date,
@@ -43,7 +44,6 @@ function parseDaily(daily: Record<string, unknown>): WeatherRow[] {
       temp_max: tmax?.[i] ?? null,
       temp_min: tmin?.[i] ?? null,
       precipitation_mm: precip?.[i] ?? null,
-      precipitation_prob_max: null, // 실측이므로 강수확률 없음
     }))
     .filter(
       (r) =>
@@ -146,6 +146,24 @@ export async function GET(request: Request) {
     if (error) {
       console.error("weather_daily upsert error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // ── 스냅샷 자동 리빌드 (fire-and-forget) ──
+    // 실측이 방금 들어왔으니 dashboard_snapshot 에 얼어 있는 forecast-review의
+    // "실측 미수집" 메시지를 최신 실측 기반으로 덮어써야 한다. 다음 크론(00:30 KST)
+    // 까지 기다리지 않고, 수집 직후 바로 스냅샷을 다시 빌드한다.
+    // 응답은 기다리지 않고 바로 리턴.
+    try {
+      const origin = new URL(request.url).origin;
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (cronSecret) headers.authorization = `Bearer ${cronSecret}`;
+      fetch(`${origin}/api/snapshot/rebuild`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ stationId: "A0003453" }),
+      }).catch((e) => console.error("snapshot rebuild trigger failed:", e));
+    } catch (e) {
+      console.error("snapshot rebuild trigger setup error:", e);
     }
 
     return NextResponse.json({
