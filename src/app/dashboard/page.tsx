@@ -20,6 +20,17 @@ import {
 
 const STATION_ID = "A0003453";
 
+type BaselineEntry = { avgErrorPct: number; accuracy: number; count: number } | null;
+type BaselineComparisonWindow = {
+  window: "7d" | "30d";
+  model: BaselineEntry;
+  dowMean: BaselineEntry;
+  sevenDayMA: BaselineEntry;
+  improvementOverBestBaselinePct: number | null;
+  commonSampleCount: number;
+  droppedCount: number;
+};
+
 const BRAND_LABELS: Record<string, string> = {
   SKE: "SK에너지", GSC: "GS칼텍스", HDO: "HD현대오일뱅크",
   SOL: "S-OIL", RTO: "자영알뜰", NHO: "농협알뜰", ETC: "기타",
@@ -412,6 +423,10 @@ export default function DashboardPage() {
       days7: { avgErrorPct: number; accuracy: number; count: number } | null;
       days30: { avgErrorPct: number; accuracy: number; count: number } | null;
       trend: "improving" | "declining" | "stable" | null;
+    } | null;
+    baselineComparison?: {
+      days7: BaselineComparisonWindow | null;
+      days30: BaselineComparisonWindow | null;
     } | null;
   } | null>(null);
 
@@ -1072,6 +1087,60 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     )}
+                    {(() => {
+                      const bc = forecastReview.baselineComparison?.days30;
+                      if (!bc || !bc.model) return null;
+                      const imp = bc.improvementOverBestBaselinePct;
+                      const impColor =
+                        imp == null
+                          ? "text-text-tertiary"
+                          : imp > 0
+                            ? "text-emerald-500"
+                            : imp < 0
+                              ? "text-red-500"
+                              : "text-text-tertiary";
+                      const fmt = (e: BaselineEntry) =>
+                        e ? `±${e.avgErrorPct}%` : "측정 불가";
+                      return (
+                        <div className="pt-2 border-t border-border">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-bold text-text-tertiary">
+                              지난 {bc.commonSampleCount}일 오차율 비교 (30일 윈도우)
+                            </span>
+                            {imp != null && (
+                              <span className={`text-[11px] font-bold font-mono ${impColor}`}>
+                                {imp >= 0 ? "+" : ""}
+                                {imp}%p
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-0.5 font-mono text-[11px]">
+                            <div className="flex items-center justify-between">
+                              <span className="text-text-secondary">우리 모델</span>
+                              <span className="font-bold text-text-primary">{fmt(bc.model)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-text-tertiary">요일 평균</span>
+                              <span className="text-text-secondary">{fmt(bc.dowMean)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-text-tertiary">7일 이동평균</span>
+                              <span className="text-text-secondary">{fmt(bc.sevenDayMA)}</span>
+                            </div>
+                          </div>
+                          {bc.droppedCount > 0 && (
+                            <div className="text-[10px] text-text-tertiary mt-1">
+                              * 베이스라인 데이터 부족으로 {bc.droppedCount}일 비교 제외
+                            </div>
+                          )}
+                          {imp != null && imp < 0 && (
+                            <div className="text-[10px] text-red-400 mt-1">
+                              * 현재 베이스라인이 더 정확 — 모델 개선 필요
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <p className="text-[11px] text-text-primary mt-2 mb-0 text-center">⚠️ 추정치 기반 분석 — 데이터 축적 시 정확도 향상</p>
                   </div>
                 ) : (

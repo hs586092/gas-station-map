@@ -1,4 +1,10 @@
 import { supabase } from "@/lib/supabase";
+import {
+  calcDowMeanBaseline,
+  calc7dayMABaseline,
+  compareWithBaselines,
+  type BaselineComparison,
+} from "./baseline-forecasts";
 
 /**
  * 어제의 판매량 예측 vs 실제를 비교하고, 오차 원인을 분석한다.
@@ -498,6 +504,49 @@ export async function getForecastReview(
     }
   }
 
+  // ── 6b. 베이스라인 비교 (DoW 평균 / 7일 이동평균) ──
+  // 목적: MAPE 기반 정확도가 절대적으로 좋은지 판단할 수 있도록 trivial 베이스라인과
+  // 공정 비교한다. 새 테이블 없이 sales_data 를 직접 읽어 동적으로 계산한다.
+  //
+  // 데이터 범위: 각 target 날짜마다 "같은 요일 과거" 와 "직전 7일" 이 필요하므로
+  // 최근 30일 윈도우의 가장 이른 날짜 기준 최소 50일 이전까지 확보한다. 120일 확보.
+  let baselineDays30: BaselineComparison | null = null;
+  let baselineDays7: BaselineComparison | null = null;
+  if (completed.length > 0) {
+    const earliest = new Date(Date.now() - 120 * 86400000).toISOString().split("T")[0];
+    const { data: baselineSales } = await supabase
+      .from("sales_data")
+      .select("date, gasoline_volume, diesel_volume")
+      .eq("station_id", id)
+      .gte("date", earliest)
+      .order("date", { ascending: true });
+
+    const dayMap = new Map<string, number>();
+    for (const s of baselineSales ?? []) {
+      const vol = (Number(s.gasoline_volume) || 0) + (Number(s.diesel_volume) || 0);
+      if (vol > 0) dayMap.set(s.date as string, vol);
+    }
+
+    type Pair = {
+      date: string;
+      actual: number;
+      modelPredicted: number;
+      dowBaseline: number | null;
+      sevenDayMABaseline: number | null;
+    };
+    const buildPairs = (items: typeof completed): Pair[] =>
+      items.map((f) => ({
+        date: f.forecast_date as string,
+        actual: Number(f.actual_volume),
+        modelPredicted: Number(f.predicted_volume),
+        dowBaseline: calcDowMeanBaseline(f.forecast_date as string, dayMap),
+        sevenDayMABaseline: calc7dayMABaseline(f.forecast_date as string, dayMap),
+      }));
+
+    baselineDays30 = compareWithBaselines(buildPairs(recent30), "30d");
+    baselineDays7 = compareWithBaselines(buildPairs(recent7), "7d");
+  }
+
   // ── 7. 히스토리 (차트용) ──
   const history = completed.map((f) => ({
     date: f.forecast_date,
@@ -515,6 +564,10 @@ export async function getForecastReview(
       days7: acc7,
       days30: acc30,
       trend,
+    },
+    baselineComparison: {
+      days7: baselineDays7,
+      days30: baselineDays30,
     },
     history,
   };
