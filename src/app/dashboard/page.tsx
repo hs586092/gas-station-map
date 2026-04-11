@@ -1331,9 +1331,35 @@ export default function DashboardPage() {
           {loading.selfDiagnosis ? <CardSkeleton /> : selfDiagnosis && (() => {
             const sd = selfDiagnosis;
             const n = sd.sampleCount;
-            const isInsufficient = sd.status === "insufficient" || sd.status === "no_data";
+            const isNoData = sd.status === "no_data";
+            const isInsufficient = sd.status === "insufficient";
             const isPartial = sd.status === "partial";
             const isReady = sd.status === "ready";
+
+            // ── 진행 막대 계산 ──
+            // no_data         : 분모 3, 회색 트랙만 (채움 없음)
+            // insufficient    : 분모 3, amber
+            // partial         : 분모 7, amber
+            // ready           : 막대 자체 숨김
+            //
+            // 채움 너비 최소 보장: n ≥ 1 일 때 8% 하한선 (너무 얇아
+            // 안 보이는 것 방지). n = 0 은 아예 채움을 렌더 안 함.
+            let progressDenom = 0;
+            let progressFilled = false;
+            let progressWidthPct = 0;
+            if (isNoData) {
+              progressDenom = 3;
+              progressFilled = false;
+              progressWidthPct = 0;
+            } else if (isInsufficient) {
+              progressDenom = 3;
+              progressFilled = n >= 1;
+              progressWidthPct = Math.max(8, (n / 3) * 100);
+            } else if (isPartial) {
+              progressDenom = 7;
+              progressFilled = true;
+              progressWidthPct = Math.max(8, (n / 7) * 100);
+            }
 
             return (
               <div className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -1346,31 +1372,57 @@ export default function DashboardPage() {
                   </span>
                 </div>
 
-                {/* N < 3 — 전체 플레이스홀더 */}
-                {isInsufficient && (
+                {/* N < 3 — 전체 플레이스홀더 (no_data / insufficient) */}
+                {(isNoData || isInsufficient) && (
                   <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-4 text-center">
-                    <div className="text-[13px] text-text-secondary font-semibold mb-1">
+                    <div className="text-[13px] text-text-secondary font-semibold mb-2">
                       {sd.message ?? `데이터 누적 중 (현재 N=${n}/3)`}
                     </div>
-                    <div className="text-[11px] text-text-tertiary">
+                    {/* 진행 막대 (no_data/insufficient) */}
+                    <div className="flex items-center gap-2 max-w-[80%] mx-auto my-2">
+                      <div className="flex-1 h-2 rounded-full overflow-hidden bg-slate-200">
+                        {progressFilled && (
+                          <div
+                            className="h-full rounded-full bg-slate-400 transition-all duration-500"
+                            style={{ width: `${progressWidthPct}%` }}
+                          />
+                        )}
+                      </div>
+                      <span className="text-[12px] font-mono text-text-tertiary tabular-nums shrink-0">
+                        {n}/{progressDenom}
+                      </span>
+                    </div>
+                    <div className="text-[12px] text-text-tertiary">
                       예측·실측 데이터가 3일 이상 쌓이면 자기진단이 시작됩니다
                     </div>
                   </div>
                 )}
 
-                {/* N ≥ 3 — 섹션 B 먼저 보여주기 (Bias) */}
+                {/* N ≥ 3 — 섹션 B 작동 (Bias), 섹션 A 는 partial 에서 진행 막대 */}
                 {(isPartial || isReady) && sd.bias && (
                   <div className="space-y-3">
                     {/* ── 섹션 A: 패턴 발견 (노랑/amber) ── */}
                     {isPartial && (
                       <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-3">
-                        <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-1">
+                        <div className="text-[12px] font-bold text-amber-700 uppercase tracking-wide mb-2">
                           🔍 패턴 발견
                         </div>
-                        <div className="text-[12px] text-amber-900 font-semibold">
-                          {sd.message ?? `패턴 분석 중 (현재 N=${n}/7)`}
+                        <div className="text-[12px] text-amber-900 font-semibold mb-2">
+                          패턴 분석 중
                         </div>
-                        <div className="text-[10px] text-amber-700 mt-0.5">
+                        {/* 진행 막대 (partial) */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex-1 h-2 rounded-full overflow-hidden bg-amber-200">
+                            <div
+                              className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                              style={{ width: `${progressWidthPct}%` }}
+                            />
+                          </div>
+                          <span className="text-[12px] font-mono text-amber-700 tabular-nums shrink-0">
+                            {n}/{progressDenom}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-amber-700">
                           N≥7이 되면 요일·날씨·방향 패턴이 자동으로 활성화됩니다
                         </div>
                       </div>
@@ -1378,13 +1430,13 @@ export default function DashboardPage() {
 
                     {isReady && (
                       <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-3">
-                        <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-2">
+                        <div className="text-[12px] font-bold text-amber-700 uppercase tracking-wide mb-2">
                           🔍 패턴 발견
                         </div>
                         {sd.patterns.length === 0 ? (
                           <div className="text-[12px] text-amber-900">
                             유의미한 반복 패턴 발견 안 됨
-                            <div className="text-[10px] text-amber-700 mt-0.5">
+                            <div className="text-[11px] text-amber-700 mt-0.5">
                               (그룹당 ≥3회 AND 전체 평균의 ≥1.5배 AND +3%p 이상 조건 미충족)
                             </div>
                           </div>
@@ -1394,19 +1446,19 @@ export default function DashboardPage() {
                               <div key={i} className="text-[12px]">
                                 <div className="flex items-center justify-between">
                                   <span className="font-bold text-amber-900">{p.label}</span>
-                                  <span className="font-mono text-[11px] text-amber-700">
+                                  <span className="font-mono text-[12px] text-amber-700">
                                     {p.frequencyText}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between mt-0.5">
-                                  <span className="text-[11px] text-amber-800">
+                                  <span className="text-[12px] text-amber-800">
                                     평균 오차 <span className="font-bold">{p.avgAbsErrorPct}%</span>
                                     <span className="text-amber-600 ml-1">
                                       (전체 {p.overallAvgAbsErrorPct}%)
                                     </span>
                                   </span>
                                 </div>
-                                <div className="text-[11px] text-amber-700 italic mt-0.5">
+                                <div className="text-[12px] text-amber-700 italic mt-0.5">
                                   {p.interpretation}
                                 </div>
                               </div>
@@ -1418,7 +1470,7 @@ export default function DashboardPage() {
 
                     {/* ── 섹션 B: Bias 분석 (청록/teal) ── */}
                     <div className="rounded-lg bg-teal-50 border border-teal-200 px-3 py-3">
-                      <div className="text-[11px] font-bold text-teal-700 uppercase tracking-wide mb-2">
+                      <div className="text-[12px] font-bold text-teal-700 uppercase tracking-wide mb-2">
                         ⚖️ Bias 분석
                       </div>
                       <div className="text-[12px] text-teal-900 font-semibold">
@@ -1429,32 +1481,32 @@ export default function DashboardPage() {
                         <div className="mt-2 pt-2 border-t border-teal-200 space-y-1">
                           {sd.bias.correction.tooSmall ? (
                             <>
-                              <div className="text-[11px] text-teal-800 font-semibold">
+                              <div className="text-[12px] text-teal-800 font-semibold">
                                 {sd.bias.correction.rangeText}
                               </div>
-                              <div className="text-[10px] text-teal-700 italic">
+                              <div className="text-[11px] text-teal-700 italic">
                                 {sd.bias.correction.interpretation}
                               </div>
                             </>
                           ) : (
                             <>
-                              <div className="flex items-center justify-between text-[11px] text-teal-800">
+                              <div className="flex items-center justify-between text-[12px] text-teal-800">
                                 <span>현재 평균 오차율</span>
                                 <span className="font-mono font-bold">
                                   {sd.bias.correction.beforeAvgAbsErrorPct}%
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between text-[11px] text-teal-800">
+                              <div className="flex items-center justify-between text-[12px] text-teal-800">
                                 <span>보정 후 (in-sample 추정)</span>
                                 <span className="font-mono font-bold text-emerald-700">
                                   ~{sd.bias.correction.afterAvgAbsErrorPct}%
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between text-[11px] text-teal-900 font-semibold">
+                              <div className="flex items-center justify-between text-[12px] text-teal-900 font-semibold">
                                 <span>개선 여지</span>
                                 <span className="font-mono">{sd.bias.correction.rangeText}</span>
                               </div>
-                              <div className="text-[10px] text-teal-700 italic mt-1">
+                              <div className="text-[11px] text-teal-700 italic mt-1">
                                 {sd.bias.correction.interpretation}
                               </div>
                             </>
@@ -1462,7 +1514,7 @@ export default function DashboardPage() {
                         </div>
                       )}
 
-                      <div className="mt-2 pt-2 border-t border-teal-200 text-[10px] text-teal-600 font-mono">
+                      <div className="mt-2 pt-2 border-t border-teal-200 text-[11px] text-teal-600 font-mono">
                         * 샘플 {sd.bias.sampleCount}개 · 잔차 평균 {sd.bias.meanResidualL >= 0 ? "+" : ""}
                         {sd.bias.meanResidualL.toLocaleString()}L · 표준편차 ±
                         {sd.bias.stdResidualL.toLocaleString()}L
