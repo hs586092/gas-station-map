@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/app/components/SiteHeader";
+import type { SelfDiagnosisResult } from "@/lib/dashboard/forecast-self-diagnosis";
 import {
   LineChart,
   Line,
@@ -440,6 +441,8 @@ export default function DashboardPage() {
     } | null;
   } | null>(null);
 
+  const [selfDiagnosis, setSelfDiagnosis] = useState<SelfDiagnosisResult | null>(null);
+
   const [correlationMatrix, setCorrelationMatrix] = useState<{
     dataRange: { totalDays: number };
     variables: Array<{
@@ -494,7 +497,7 @@ export default function DashboardPage() {
     detail: true, oilPrices: true, priceHistory: true, insights: true,
     salesAnalysis: true, timingAnalysis: true, forecastReview: true,
     correlationMatrix: true, weather: true, weatherImpact: true, carwash: true, crossInsights: true,
-    integratedForecast: true,
+    integratedForecast: true, selfDiagnosis: true,
   });
 
   const [syncing, setSyncing] = useState(false);
@@ -511,7 +514,7 @@ export default function DashboardPage() {
       detail: true, oilPrices: true, priceHistory: true, insights: true,
       salesAnalysis: true, timingAnalysis: true, forecastReview: true,
       correlationMatrix: true, weather: true, weatherImpact: true, carwash: true, crossInsights: true,
-      integratedForecast: true,
+      integratedForecast: true, selfDiagnosis: true,
     });
 
     // ── 빠른 개별 API (가격, 경쟁사 등 — 카드별 독립 로딩) ──
@@ -543,6 +546,12 @@ export default function DashboardPage() {
     fetch(`/api/price-history/${STATION_ID}`)
       .then((r) => r.json())
       .then((d) => { setPriceHistory(d); setLoading((p) => ({ ...p, priceHistory: false })); });
+
+    // ── 복기의 복기 (자기진단) ── snapshot 과 분리된 독립 fetch
+    fetch(`${base}/self-diagnosis`)
+      .then((r) => r.json())
+      .then((d: SelfDiagnosisResult) => { setSelfDiagnosis(d); setLoading((p) => ({ ...p, selfDiagnosis: false })); })
+      .catch(() => setLoading((p) => ({ ...p, selfDiagnosis: false })));
 
     // ── 스냅샷 기반 로딩 (1 쿼리로 전체 분석 데이터 로드) ──
     fetch(`/api/snapshot/${STATION_ID}`)
@@ -1314,6 +1323,157 @@ export default function DashboardPage() {
                     {salesAnalysis?.splitElasticity && isWeekendNow !== undefined && ` · ${dowLabel} 보정`}
                   </div>
                 )}
+              </div>
+            );
+          })()}
+
+          {/* 📊 복기의 복기 — 모델 자기진단 */}
+          {loading.selfDiagnosis ? <CardSkeleton /> : selfDiagnosis && (() => {
+            const sd = selfDiagnosis;
+            const n = sd.sampleCount;
+            const isInsufficient = sd.status === "insufficient" || sd.status === "no_data";
+            const isPartial = sd.status === "partial";
+            const isReady = sd.status === "ready";
+
+            return (
+              <div className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">
+                    📊 복기의 복기 · 자기진단
+                  </div>
+                  <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                    {n > 0 ? `최근 ${n}일 분석` : "데이터 대기"}
+                  </span>
+                </div>
+
+                {/* N < 3 — 전체 플레이스홀더 */}
+                {isInsufficient && (
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-4 text-center">
+                    <div className="text-[13px] text-text-secondary font-semibold mb-1">
+                      {sd.message ?? `데이터 누적 중 (현재 N=${n}/3)`}
+                    </div>
+                    <div className="text-[11px] text-text-tertiary">
+                      예측·실측 데이터가 3일 이상 쌓이면 자기진단이 시작됩니다
+                    </div>
+                  </div>
+                )}
+
+                {/* N ≥ 3 — 섹션 B 먼저 보여주기 (Bias) */}
+                {(isPartial || isReady) && sd.bias && (
+                  <div className="space-y-3">
+                    {/* ── 섹션 A: 패턴 발견 (노랑/amber) ── */}
+                    {isPartial && (
+                      <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-3">
+                        <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-1">
+                          🔍 패턴 발견
+                        </div>
+                        <div className="text-[12px] text-amber-900 font-semibold">
+                          {sd.message ?? `패턴 분석 중 (현재 N=${n}/7)`}
+                        </div>
+                        <div className="text-[10px] text-amber-700 mt-0.5">
+                          N≥7이 되면 요일·날씨·방향 패턴이 자동으로 활성화됩니다
+                        </div>
+                      </div>
+                    )}
+
+                    {isReady && (
+                      <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-3">
+                        <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-2">
+                          🔍 패턴 발견
+                        </div>
+                        {sd.patterns.length === 0 ? (
+                          <div className="text-[12px] text-amber-900">
+                            유의미한 반복 패턴 발견 안 됨
+                            <div className="text-[10px] text-amber-700 mt-0.5">
+                              (그룹당 ≥3회 AND 전체 평균의 ≥1.5배 AND +3%p 이상 조건 미충족)
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {sd.patterns.map((p, i) => (
+                              <div key={i} className="text-[12px]">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-amber-900">{p.label}</span>
+                                  <span className="font-mono text-[11px] text-amber-700">
+                                    {p.frequencyText}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <span className="text-[11px] text-amber-800">
+                                    평균 오차 <span className="font-bold">{p.avgAbsErrorPct}%</span>
+                                    <span className="text-amber-600 ml-1">
+                                      (전체 {p.overallAvgAbsErrorPct}%)
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-amber-700 italic mt-0.5">
+                                  {p.interpretation}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ── 섹션 B: Bias 분석 (청록/teal) ── */}
+                    <div className="rounded-lg bg-teal-50 border border-teal-200 px-3 py-3">
+                      <div className="text-[11px] font-bold text-teal-700 uppercase tracking-wide mb-2">
+                        ⚖️ Bias 분석
+                      </div>
+                      <div className="text-[12px] text-teal-900 font-semibold">
+                        {sd.bias.diagnosis}
+                      </div>
+
+                      {sd.bias.correction && (
+                        <div className="mt-2 pt-2 border-t border-teal-200 space-y-1">
+                          {sd.bias.correction.tooSmall ? (
+                            <>
+                              <div className="text-[11px] text-teal-800 font-semibold">
+                                {sd.bias.correction.rangeText}
+                              </div>
+                              <div className="text-[10px] text-teal-700 italic">
+                                {sd.bias.correction.interpretation}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center justify-between text-[11px] text-teal-800">
+                                <span>현재 평균 오차율</span>
+                                <span className="font-mono font-bold">
+                                  {sd.bias.correction.beforeAvgAbsErrorPct}%
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] text-teal-800">
+                                <span>보정 후 (in-sample 추정)</span>
+                                <span className="font-mono font-bold text-emerald-700">
+                                  ~{sd.bias.correction.afterAvgAbsErrorPct}%
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] text-teal-900 font-semibold">
+                                <span>개선 여지</span>
+                                <span className="font-mono">{sd.bias.correction.rangeText}</span>
+                              </div>
+                              <div className="text-[10px] text-teal-700 italic mt-1">
+                                {sd.bias.correction.interpretation}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-2 pt-2 border-t border-teal-200 text-[10px] text-teal-600 font-mono">
+                        * 샘플 {sd.bias.sampleCount}개 · 잔차 평균 {sd.bias.meanResidualL >= 0 ? "+" : ""}
+                        {sd.bias.meanResidualL.toLocaleString()}L · 표준편차 ±
+                        {sd.bias.stdResidualL.toLocaleString()}L
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-text-tertiary mt-3 mb-0 text-center">
+                  ⚠️ 시스템이 자기 자신의 약점을 관찰 — 데이터 누적에 따라 자동 갱신
+                </p>
               </div>
             );
           })()}
