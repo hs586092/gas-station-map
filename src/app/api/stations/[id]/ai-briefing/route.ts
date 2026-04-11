@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildBriefingContext } from "@/lib/dashboard/ai-briefing-context";
 
 const client = new Anthropic();
 
@@ -69,148 +70,24 @@ export async function GET(
     );
   }
 
-  // ── 2. 프롬프트용 데이터 정리 (토큰 최소화) ──
-  const ins = insights as Record<string, any>;
-  const sales = salesAnalysis as Record<string, any> | null;
-  const timing = timingData as Record<string, any> | null;
+  // ── 2. 프롬프트 + ground truth context 빌드 ──
+  // dataPrompt 생성 로직은 buildBriefingContext 로 분리되었다. 동작은 동일
+  // (한 글자도 바뀌지 않음). context 는 검증 레이어가 사용할 ground truth.
+  const { prompt: dataPrompt, context: _briefingContext } = buildBriefingContext({
+    insights,
+    salesAnalysis,
+    timingData,
+    weatherData,
+    weatherImpactData,
+    forecastData,
+    crossData,
+    integratedData,
+  });
+  void _briefingContext; // commit 2 에서 guard 로직이 소비
 
-  const compPattern = ins.competitorPattern || {};
-  const oilTrend = ins.oilWeekTrend || {};
-  const weeklyTrend = ins.weeklyTrend || {};
-  const rec = ins.recommendation || {};
-  const rank = ins.rankChange?.gasoline || {};
-  const bf = ins.briefingFactors || {};
-
-  // 경쟁사 가격 차이 (주요 4곳)
-  const compProfiles = (ins.competitorProfiles || []).slice(0, 5);
-
-  let dataPrompt = `[오늘의 데이터]\n`;
-  dataPrompt += `내가격: 휘발유 ${bf.position?.myPrice?.toLocaleString() ?? "?"}원`;
-  if (rank.today) dataPrompt += ` (${rank.today.rank}위/${rank.today.total}곳)`;
-  if (rank.diff != null && rank.diff !== 0) dataPrompt += ` 어제대비 ${rank.diff > 0 ? "▼" : "▲"}${Math.abs(rank.diff)}단계`;
-  dataPrompt += `\n`;
-
-  dataPrompt += `경쟁사평균: ${bf.position?.avgPrice?.toLocaleString() ?? "?"}원 (차이: ${bf.position?.priceDiff > 0 ? "+" : ""}${bf.position?.priceDiff ?? "?"}원)\n`;
-  dataPrompt += `포지션: ${ins.myPosition === "expensive" ? "평균보다 비쌈" : ins.myPosition === "cheap" ? "평균보다 저렴" : "평균 수준"}\n`;
-
-  dataPrompt += `경쟁사오늘: ${compPattern.message}\n`;
-
-  if (compProfiles.length > 0) {
-    dataPrompt += `주요경쟁사: `;
-    dataPrompt += compProfiles.map((c: any) => `${c.name}(${c.currentPrice?.toLocaleString() ?? "?"}원, ${c.typeLabel})`).join(", ");
-    dataPrompt += `\n`;
-  }
-
-  if (bf.oil) {
-    dataPrompt += `유가: Brent $${bf.oil.latestBrent?.toFixed(1) ?? "?"}`;
-    dataPrompt += ` (2주전대비 ${bf.oil.brent2wChange >= 0 ? "+" : ""}$${bf.oil.brent2wChange?.toFixed(1)})`;
-    dataPrompt += ` 반영상태: ${bf.oil.reflectionStatus === "reflected" ? `반영완료(${bf.oil.myPriceChange > 0 ? "+" : ""}${bf.oil.myPriceChange}원)` : bf.oil.reflectionStatus === "not_reflected" ? "미반영" : "해당없음"}`;
-    dataPrompt += `\n`;
-  }
-
-  dataPrompt += `1주유가추세: ${oilTrend.message || "정보없음"}\n`;
-  dataPrompt += `7일경쟁추세: ${weeklyTrend.message || "정보없음"}\n`;
-
-  if (sales?.summary) {
-    dataPrompt += `판매량: 30일평균 ${sales.summary.avg30d?.gasoline?.toLocaleString() ?? "?"}L/일`;
-    if (sales.summary.elasticity != null) dataPrompt += ` 탄력성: ${sales.summary.elasticity}(${sales.summary.elasticityLabel})`;
-    dataPrompt += `\n`;
-    if (sales.events?.[0]) {
-      const e = sales.events[0];
-      dataPrompt += `최근가격변경: ${e.date?.slice(5)} ${e.priceChange > 0 ? "+" : ""}${e.priceChange}원 → 판매량 ${e.volumeChangeRate > 0 ? "+" : ""}${e.volumeChangeRate}%\n`;
-    }
-  }
-
-  if (timing?.currentSituation?.urgency && timing.currentSituation.urgency !== "none") {
-    dataPrompt += `타이밍경고: ${timing.currentSituation.message}\n`;
-  }
-
-  // 날씨 정보 (하남시)
-  const wx = weatherData as Record<string, any> | null;
-  if (wx?.today) {
-    const codeMap: Record<number, string> = {
-      0: "맑음", 1: "대체로 맑음", 2: "부분 흐림", 3: "흐림",
-      45: "안개", 48: "안개", 51: "이슬비", 53: "이슬비", 55: "이슬비",
-      61: "비", 63: "비", 65: "강한 비", 71: "눈", 73: "눈", 75: "폭설",
-      80: "소나기", 81: "소나기", 82: "강한 소나기", 95: "뇌우",
-    };
-    const todayLabel = codeMap[wx.today.weatherCode] || "-";
-    dataPrompt += `날씨: 하남시 오늘 ${todayLabel}`;
-    if (wx.today.tempMin != null && wx.today.tempMax != null) {
-      dataPrompt += ` ${Math.round(wx.today.tempMin)}°~${Math.round(wx.today.tempMax)}°`;
-    }
-    if (wx.today.precipProbMax != null) {
-      dataPrompt += ` 강수확률 ${wx.today.precipProbMax}%`;
-    }
-    if (wx.tomorrow) {
-      const tmrLabel = codeMap[wx.tomorrow.weatherCode] || "-";
-      dataPrompt += ` / 내일 ${tmrLabel}`;
-      if (wx.tomorrow.precipProbMax != null) dataPrompt += ` ${wx.tomorrow.precipProbMax}%`;
-    }
-    dataPrompt += `\n`;
-  }
-
-  // 통합 판매량 예측 (날씨 + 가격 + 경쟁사)
-  const ig = (integratedData as Record<string, any>)?.forecast;
-  if (ig) {
-    dataPrompt += `통합예상판매량: ${ig.expectedVolume?.toLocaleString()}L (${ig.explanation}) [신뢰도:${ig.confidence}]\n`;
-    const contribs = (ig.contributions as Array<any> | undefined)?.filter((c: any) => Math.abs(c.value) >= 10);
-    if (contribs && contribs.length > 0) {
-      dataPrompt += `변수분해: ${contribs.map((c: any) => `${c.label} ${c.value > 0 ? "+" : ""}${c.value}L(${c.badge})`).join(", ")}\n`;
-    }
-    if (ig.weatherOnly && ig.weatherOnly !== ig.expectedVolume) {
-      dataPrompt += `날씨만예측: ${ig.weatherOnly?.toLocaleString()}L → 통합모델 차이: ${ig.expectedVolume - ig.weatherOnly > 0 ? "+" : ""}${ig.expectedVolume - ig.weatherOnly}L\n`;
-    }
-  } else {
-    // fallback: 날씨 기반 판매량 예측 (weather-sales-analysis)
-    const wsa = weatherImpactData as Record<string, any> | null;
-    if (wsa?.todayForecast) {
-      const f = wsa.todayForecast;
-      dataPrompt += `날씨기반예상판매량: ${f.expectedVolume?.toLocaleString()}L (${f.explanation})`;
-      if (f.confidence) dataPrompt += ` [신뢰도:${f.confidence}]`;
-      dataPrompt += `\n`;
-    }
-  }
-  // 본격 비 영향 (과거 관측)
-  const wsa = weatherImpactData as Record<string, any> | null;
-  if (wsa) {
-    const heavy = (wsa.byIntensity as Array<any> | undefined)?.find((b) => b.key === "heavy");
-    if (heavy && heavy.n >= 10) {
-      dataPrompt += `과거 본격비(≥5mm) 영향: 판매량 ${heavy.adjustedDiffPct >= 0 ? "+" : ""}${heavy.adjustedDiffPct}% (n=${heavy.n}, 요일보정)`;
-      if (wsa.tTest?.significant) dataPrompt += ` [통계 유의]`;
-      dataPrompt += `\n`;
-    }
-  }
-
-  // 세차장 데이터
-  const fc = forecastData as Record<string, any> | null;
-  const cwYesterday = fc?.yesterday;
-  if (cwYesterday?.carwashCount != null) {
-    dataPrompt += `세차: 어제 ${cwYesterday.carwashCount}대`;
-    dataPrompt += `\n`;
-  }
-
-  // 비 다음날 세차 증가율
-  const cwWeather = (weatherImpactData as Record<string, any>)?.carwashWeather;
-  if (cwWeather?.lag1Correlation != null) {
-    const heavy = cwWeather.byIntensity?.find((b: any) => b.key === "heavy");
-    if (heavy?.diffPct != null && heavy.n >= 3) {
-      dataPrompt += `비다음날세차: 강한비 후 세차 ${heavy.diffPct >= 0 ? "+" : ""}${heavy.diffPct}% (n=${heavy.n})\n`;
-    }
-  }
-
-  // 크로스 인사이트 (유사 사례)
-  const cx = crossData as Record<string, any> | null;
-  if (cx?.similarDays?.count >= 3) {
-    const sd = cx!.similarDays;
-    dataPrompt += `유사과거사례: ${sd.count}일 평균 주유 ${sd.avgFuelCount}대, 세차 ${sd.avgCarwashCount}대, 전환율 ${sd.avgConversionPct}% [${sd.confidence}]\n`;
-  }
-  if (cx?.weatherTriple?.carwashDrivenFuel) {
-    dataPrompt += `교차분석: 세차 드리븐 주유 확인 — ${cx.weatherTriple.insight}\n`;
-  }
-
-  dataPrompt += `\n기존규칙기반추천: ${rec.message || "없음"} (타입: ${rec.type || "?"})`;
-  if (rec.suggestedRange) dataPrompt += ` 권장범위: ${rec.suggestedRange.min}~${rec.suggestedRange.max}원`;
+  // 응답 조립부에서 사용하는 rec 만 별도 추출 (recommendationType 응답용)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rec = ((insights as Record<string, any>) ?? {}).recommendation || {};
 
   // ── 3. Claude API 호출 ──
   try {
