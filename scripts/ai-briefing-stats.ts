@@ -12,7 +12,8 @@
  * 발표 슬라이드 수치 생성용. 프로덕션 코드는 아니다.
  */
 
-import "dotenv/config";
+// .env.local 의 SUPABASE_SERVICE_ROLE_KEY 를 사용하려면:
+//   npx tsx --env-file=.env.local scripts/ai-briefing-stats.ts
 import { createServiceClient } from "../src/lib/supabase";
 
 type Warning = { rule: string; severity: "error" | "warning"; line: number; detail: string };

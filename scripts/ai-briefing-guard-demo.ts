@@ -18,7 +18,8 @@
  * Anthropic API 는 .env.local 의 ANTHROPIC_API_KEY 가 필요하다.
  */
 
-import "dotenv/config";
+// .env.local 의 ANTHROPIC_API_KEY 를 사용하려면:
+//   npx tsx --env-file=.env.local scripts/ai-briefing-guard-demo.ts
 import Anthropic from "@anthropic-ai/sdk";
 import {
   buildBriefingContext,
