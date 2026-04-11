@@ -262,12 +262,89 @@ export function checkTiming(parsed: ParsedBriefing, ctx: BriefingContext): Guard
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Claude 가 언급한 고유 명사가 competitorNames 안에 있는가.
- * 한국어 조사(이/가/은/는/을/를/에/의/로/도/만/와/과) 가 붙어 있을 수 있으므로
- * indexOf 로 부분 일치만 본다. 매칭 후보가 없으면 hallucination 가능성.
+ * 한국어 1글자 조사. 후보 추출 시 candidate 의 맨 앞에 붙어 있으면 떼어낸다.
+ * 예: "와 KH에너지" → "KH에너지"
+ */
+const KOREAN_PARTICLES = new Set([
+  "은", "는", "이", "가",
+  "을", "를",
+  "의", "에",
+  "와", "과",
+  "도", "만",
+  "로",
+]);
+
+/**
+ * 후보 이름의 맨 앞 1글자가 한국어 조사면 제거하고 공백도 정규화.
+ * 정규식이 "와 KH에너지" 같은 토큰을 잘라냈을 때 "KH에너지" 로 정정한다.
+ */
+function stripLeadingParticle(cand: string): string {
+  let s = cand.trim();
+  // 첫 글자가 조사이고 그 뒤에 공백 또는 문자가 오면 떼어냄
+  if (s.length >= 2 && KOREAN_PARTICLES.has(s[0])) {
+    s = s.slice(1).trim();
+  }
+  return s;
+}
+
+/**
+ * 화이트리스트의 이름들에서 의미 있는 prefix 토큰을 사전 추출.
  *
- * 주의: 응답에 고유명사가 전혀 안 나오면 PASS (현재 시스템 프롬프트는
- * 고유명사를 강제하지 않음).
+ * 예: "KH에너지㈜직영 덕소주유소"
+ *   → ["KH에너지㈜직영", "덕소주유소"]   (공백 분할 + 최소 2글자)
+ *   → 추가로 "에너지" 같은 너무 일반적인 토큰은 제외하지 않음 (false negative
+ *     보다 false positive 줄이는 게 우선)
+ *
+ * Claude 가 사용할 가능성이 높은 짧은 별칭(예: "KH에너지", "덕풍")까지
+ * 커버하기 위해 ㈜·직영 같은 회사 표기 prefix 도 분리 추출한다.
+ */
+function extractWhitelistPrefixes(names: string[]): Set<string> {
+  const prefixes = new Set<string>();
+  for (const name of names) {
+    if (!name) continue;
+    // 1) 전체 이름 (공백 제거)
+    const compact = name.replace(/\s+/g, "");
+    if (compact.length >= 2) prefixes.add(compact);
+
+    // 2) 공백으로 분할한 각 토큰
+    for (const tok of name.split(/\s+/)) {
+      if (tok.length >= 2) prefixes.add(tok);
+    }
+
+    // 3) 회사 표기를 떼어낸 짧은 별칭 토큰
+    //    "KH에너지㈜직영덕소주유소" → ["KH에너지", "덕소주유소"]
+    //    "HD현대오일뱅크㈜직영경기주유소" → ["HD현대오일뱅크", "경기주유소"]
+    //    분할 마커: ㈜, 직영, (, )
+    const splits = compact.split(/㈜|직영|\(|\)/).filter((t) => t.length >= 2);
+    for (const t of splits) prefixes.add(t);
+  }
+  return prefixes;
+}
+
+/**
+ * 후보가 화이트리스트의 어떤 이름/prefix 와도 매칭되지 않으면 의심.
+ *
+ * 매칭 규칙 (관대한 순서):
+ *   1. 전체 일치 (compact 비교)
+ *   2. prefix set 에 후보가 부분 문자열로 포함됨
+ *   3. 후보가 어떤 prefix 의 부분 문자열로 포함됨 (Claude 가 풀네임을 짧게
+ *      줄여 부른 경우)
+ */
+function isKnownCompetitor(cand: string, prefixes: Set<string>): boolean {
+  const c = cand.replace(/\s+/g, "");
+  if (c.length < 2) return true; // 너무 짧으면 의심하지 않음
+  for (const p of prefixes) {
+    if (p.includes(c) || c.includes(p)) return true;
+  }
+  return false;
+}
+
+/**
+ * Claude 가 언급한 고유 명사가 competitorNames 안에 있는가.
+ *
+ * 응답에 고유명사가 전혀 안 나오면 PASS (현재 시스템 프롬프트는 고유명사를
+ * 강제하지 않음). 매칭 시 한국어 조사 strip + 화이트리스트 prefix 매칭으로
+ * false positive 를 방지한다.
  */
 export function checkCompetitorNames(
   parsed: ParsedBriefing,
@@ -282,31 +359,24 @@ export function checkCompetitorNames(
     { line: 5, text: parsed.lines[4] },
   ];
 
-  // 한국어 주유소명 패턴: "주유소" 또는 "셀프" 또는 "오일" 또는 "에너지" 등으로
-  // 끝나는 고유명사. 너무 일반적이면 false positive.
-  // 여기서는 **알려진 이름들만 토큰화**해서, 응답에 들어 있는 토큰이
-  // 화이트리스트에 없으면 경고하는 방식이 아니라,
-  // **응답에 화이트리스트 외 후보 고유명사가 나오는지** 검사한다.
-  //
-  // 단순화: 응답에서 "주유소"/"셀프"/"오일뱅크"로 끝나는 단어를 추출하고,
-  // 그 단어가 어떤 화이트리스트 이름의 부분 문자열이 아니면 경고.
+  // 화이트리스트 prefix 사전 1회 빌드 (양쪽 라인 검사에서 재사용)
+  const prefixes = extractWhitelistPrefixes(ctx.competitorNames);
+
   const warnings: GuardWarning[] = [];
+  // 후보 추출 정규식: "...주유소|셀프|오일뱅크|에너지" 로 끝나는 토큰
   const candidatePattern = /([\w가-힣㈜()\-\s]{2,30}?(?:주유소|셀프|오일뱅크|에너지))/g;
 
   for (const { line, text } of targetLines) {
     const seen = new Set<string>();
     let m: RegExpExecArray | null;
     while ((m = candidatePattern.exec(text)) !== null) {
-      const cand = m[1].trim();
+      // 1차: 정규식이 잡은 raw 후보
+      const raw = m[1].trim();
+      // 2차: 앞에 붙은 한국어 조사 strip ("와 KH에너지" → "KH에너지")
+      const cand = stripLeadingParticle(raw);
       if (cand.length < 2 || seen.has(cand)) continue;
       seen.add(cand);
-      // 화이트리스트의 어떤 이름과도 부분일치하지 않으면 의심
-      const matched = ctx.competitorNames.some((name) => {
-        const n = name.replace(/\s+/g, "");
-        const c = cand.replace(/\s+/g, "");
-        return n.includes(c) || c.includes(n);
-      });
-      if (!matched) {
+      if (!isKnownCompetitor(cand, prefixes)) {
         warnings.push({
           rule: "competitor",
           severity: "warning",

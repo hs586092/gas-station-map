@@ -948,10 +948,14 @@ export default function DashboardPage() {
           <SectionDivider title="오늘의 판단" description="예측 · 시뮬레이션 · 복기" />
 
           {/* 🌧️ 통합 판매량 예측 (날씨 + 가격 + 경쟁사) */}
-          {(loading.weatherImpact && loading.integratedForecast) ? <CardSkeleton /> : (() => {
+          {/* 두 데이터 소스(weatherImpact, integratedForecast)에 의존하므로
+              둘 중 하나라도 로딩 중이면 스켈레톤. && → || (week3 P0 fix). */}
+          {(loading.weatherImpact || loading.integratedForecast) ? <CardSkeleton /> : (() => {
             const ig = integratedForecast?.forecast;
             const f = weatherImpact?.todayForecast;
-            if (!ig && !f) return null;
+            // 방어: 스켈레톤 분기를 빠져나왔는데도 데이터가 없으면 null 대신 스켈레톤 반환
+            // (카드 슬롯이 화면에서 사라지지 않게)
+            if (!ig && !f) return <CardSkeleton />;
 
             // 통합 모델 우선, fallback → 날씨 모델
             const vol = ig?.expectedVolume ?? f?.expectedVolume ?? 0;
