@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildBriefingContext } from "@/lib/dashboard/ai-briefing-context";
+import { runGuards, applyOverride } from "@/lib/dashboard/ai-briefing-guard";
 
 const client = new Anthropic();
 
@@ -72,8 +73,8 @@ export async function GET(
 
   // ── 2. 프롬프트 + ground truth context 빌드 ──
   // dataPrompt 생성 로직은 buildBriefingContext 로 분리되었다. 동작은 동일
-  // (한 글자도 바뀌지 않음). context 는 검증 레이어가 사용할 ground truth.
-  const { prompt: dataPrompt, context: _briefingContext } = buildBriefingContext({
+  // (한 글자도 바뀌지 않음). context 는 검증 레이어(runGuards) 가 사용한다.
+  const { prompt: dataPrompt, context: briefingContext } = buildBriefingContext({
     insights,
     salesAnalysis,
     timingData,
@@ -83,7 +84,6 @@ export async function GET(
     crossData,
     integratedData,
   });
-  void _briefingContext; // commit 2 에서 guard 로직이 소비
 
   // 응답 조립부에서 사용하는 rec 만 별도 추출 (recommendationType 응답용)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,9 +102,31 @@ export async function GET(
     const textBlock = message.content.find((b) => b.type === "text");
     const aiBriefing = textBlock && textBlock.type === "text" ? textBlock.text : null;
 
+    // ── 4. 검증 레이어 (3-Guard) ──
+    // 정책: 기본 C(원본 + 경고 배지). 단 3a(방향 불일치 error) 시 [추천]
+    // 줄만 폴백 텍스트로 교체. 나머지 4줄은 그대로.
+    let validation: {
+      passed: boolean;
+      warnings: ReturnType<typeof runGuards>["result"]["warnings"];
+    } = { passed: true, warnings: [] };
+    let aiBriefingOverridden: string | null = null;
+    if (aiBriefing) {
+      const { parsed, result } = runGuards(aiBriefing, briefingContext);
+      validation = { passed: result.passed, warnings: result.warnings };
+      if (result.recommendationLineOverride) {
+        aiBriefingOverridden = applyOverride(
+          aiBriefing,
+          parsed,
+          result.recommendationLineOverride
+        );
+      }
+    }
+
     return NextResponse.json(
       {
         aiBriefing,
+        aiBriefingOverridden,
+        validation,
         fallback: false,
         recommendationType: rec.type || "hold",
         usage: {
