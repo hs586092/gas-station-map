@@ -392,8 +392,18 @@ export default function DashboardPage() {
 
   const [aiBriefing, setAiBriefing] = useState<{
     aiBriefing: string | null;
+    aiBriefingOverridden?: string | null;
     fallback: boolean;
     recommendationType: string;
+    validation?: {
+      passed: boolean;
+      warnings: Array<{
+        rule: "structure" | "direction" | "range" | "timing" | "competitor" | "number";
+        severity: "error" | "warning";
+        line: number;
+        detail: string;
+      }>;
+    };
   } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -835,17 +845,57 @@ export default function DashboardPage() {
             })()}
 
             {/* AI 브리핑 결과 (있으면 통합 판단 아래에) */}
-            {aiBriefing?.aiBriefing && !aiBriefing.fallback ? (
-              <div className="mt-3 rounded-lg bg-violet-50 border border-violet-100 px-4 py-3">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <span className="text-[10px] font-bold bg-violet-600 text-white px-1.5 py-0.5 rounded">AI</span>
-                  <span className="text-[11px] font-bold text-violet-700">심층 분석</span>
+            {aiBriefing?.aiBriefing && !aiBriefing.fallback ? (() => {
+              const warnings = aiBriefing.validation?.warnings ?? [];
+              const hasError = warnings.some((w) => w.severity === "error");
+              const displayText = aiBriefing.aiBriefingOverridden ?? aiBriefing.aiBriefing;
+              return (
+                <div className="mt-3 rounded-lg bg-violet-50 border border-violet-100 px-4 py-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold bg-violet-600 text-white px-1.5 py-0.5 rounded">AI</span>
+                      <span className="text-[11px] font-bold text-violet-700">심층 분석</span>
+                    </div>
+                    {warnings.length > 0 && (
+                      <div
+                        className={`group relative text-[10px] font-bold px-1.5 py-0.5 rounded cursor-help ${
+                          hasError
+                            ? "bg-red-500 text-white"
+                            : "bg-amber-400 text-amber-950"
+                        }`}
+                        title={warnings.map((w) => `[${w.rule}] ${w.detail}`).join("\n")}
+                      >
+                        {hasError
+                          ? `🚫 검증자: ${warnings.filter((w) => w.severity === "error").length}건 차단`
+                          : `⚠️ 검증자: ${warnings.length}건 경고`}
+                        <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-10 w-72 rounded-lg border border-border bg-surface-raised p-2 text-left text-[11px] text-text-primary shadow-lg">
+                          {warnings.map((w, i) => (
+                            <div key={i} className="mb-1 last:mb-0">
+                              <span className={`inline-block px-1 mr-1 rounded text-[9px] font-bold ${w.severity === "error" ? "bg-red-500 text-white" : "bg-amber-400 text-amber-950"}`}>
+                                {w.rule}
+                              </span>
+                              <span className="text-text-secondary">L{w.line}</span>
+                              <div className="text-text-primary mt-0.5">{w.detail}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {warnings.length === 0 && (
+                      <span
+                        className="text-[10px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded"
+                        title="3-Guard 통과: 구조/방향/범위/타이밍/경쟁사명/숫자 모두 OK"
+                      >
+                        ✓ 검증 통과
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[13px] text-violet-900 leading-relaxed whitespace-pre-line">
+                    {displayText}
+                  </div>
                 </div>
-                <div className="text-[13px] text-violet-900 leading-relaxed whitespace-pre-line">
-                  {aiBriefing.aiBriefing}
-                </div>
-              </div>
-            ) : aiLoading ? (
+              );
+            })() : aiLoading ? (
               <div className="flex items-center gap-2 mt-3">
                 <div className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
                 <p className="text-[14px] text-violet-600 m-0 italic">AI가 분석 중입니다...</p>

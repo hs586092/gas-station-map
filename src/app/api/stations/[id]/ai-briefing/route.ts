@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildBriefingContext } from "@/lib/dashboard/ai-briefing-context";
 import { runGuards, applyOverride } from "@/lib/dashboard/ai-briefing-guard";
+import { createServiceClient } from "@/lib/supabase";
 
 const client = new Anthropic();
 
@@ -120,6 +121,30 @@ export async function GET(
           result.recommendationLineOverride
         );
       }
+    }
+
+    // ── 5. 감사 로그 (fire-and-forget) ──
+    // 발표용 집계 수치를 위한 인프라. INSERT 실패해도 사용자 응답은 정상 처리.
+    // service role 키 사용 (RLS silent failure 방지).
+    try {
+      const svc = createServiceClient();
+      svc
+        .from("ai_briefing_log")
+        .insert({
+          station_id: id,
+          input_tokens: message.usage.input_tokens,
+          output_tokens: message.usage.output_tokens,
+          briefing_text: aiBriefing,
+          validation_passed: validation.passed,
+          warnings: validation.warnings,
+          recommendation_type: rec.type || null,
+          rule_rec_type: briefingContext.recType,
+        })
+        .then(({ error }) => {
+          if (error) console.error("ai_briefing_log insert failed:", error.message);
+        });
+    } catch (e) {
+      console.error("ai_briefing_log setup error:", e);
     }
 
     return NextResponse.json(
