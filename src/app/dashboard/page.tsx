@@ -500,6 +500,10 @@ export default function DashboardPage() {
     integratedForecast: true, selfDiagnosis: true,
   });
 
+  const [dataIntegrityWarnings, setDataIntegrityWarnings] = useState<Array<{
+    type: string; date: string; message: string; recoverable: boolean;
+  }>>([]);
+
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [snapshotUpdatedAt, setSnapshotUpdatedAt] = useState<string | null>(null);
@@ -589,6 +593,8 @@ export default function DashboardPage() {
         if (data.integratedForecast && !data.integratedForecast.error) setIntegratedForecast(data.integratedForecast);
         setLoading((p) => ({ ...p, integratedForecast: false }));
 
+        if (Array.isArray(data.dataIntegrityWarnings)) setDataIntegrityWarnings(data.dataIntegrityWarnings);
+
         // ── 스냅샷 스키마 갱신 감지: 필수 필드 누락 시 자동 리빌드 ──
         const REQUIRED_KEYS = ["integratedForecast"] as const;
         const missing = REQUIRED_KEYS.filter((k) => !(k in data) || data[k] == null);
@@ -635,6 +641,7 @@ export default function DashboardPage() {
             setLoading((p) => ({ ...p, crossInsights: false }));
             if (data.integratedForecast && !data.integratedForecast.error) setIntegratedForecast(data.integratedForecast);
             setLoading((p) => ({ ...p, integratedForecast: false }));
+            if (Array.isArray(data.dataIntegrityWarnings)) setDataIntegrityWarnings(data.dataIntegrityWarnings);
           })
           .catch(() => {
             setLoading((p) => ({
@@ -747,6 +754,35 @@ export default function DashboardPage() {
             </p>
           )}
         </div>
+
+        {/* 데이터 정합성 배지 — 이상 시에만 표시 */}
+        {dataIntegrityWarnings.length > 0 && (() => {
+          const isMulti = dataIntegrityWarnings.length >= 2;
+          const hasCritical = dataIntegrityWarnings.some((w) => !w.recoverable);
+          const icon = isMulti || hasCritical ? "⚠️" : "ℹ️";
+          const borderColor = isMulti || hasCritical ? "border-amber-500/40" : "border-blue-500/30";
+          const bgColor = isMulti || hasCritical ? "bg-amber-500/5" : "bg-blue-500/5";
+          const textColor = isMulti || hasCritical ? "text-amber-400" : "text-blue-400";
+
+          return (
+            <div className={`mb-4 rounded-lg px-4 py-3 border ${borderColor} ${bgColor} flex items-start gap-2.5`}>
+              <span className="text-[16px] shrink-0 mt-0.5">{icon}</span>
+              <div className="flex-1 min-w-0">
+                <span className={`text-[12px] font-bold ${textColor} tracking-wider uppercase`}>데이터 점검</span>
+                <div className="mt-1 space-y-0.5">
+                  {dataIntegrityWarnings.map((w, i) => (
+                    <p key={i} className="text-[13px] text-text-secondary m-0">
+                      {w.message}
+                      {w.recoverable && (
+                        <span className="text-text-tertiary"> · 새로고침 버튼을 누르면 해소됩니다</span>
+                      )}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ⓪ 종합 추천 카드 — 최상단 */}
         {loading.insights ? (

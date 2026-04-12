@@ -8,6 +8,7 @@ import { getCorrelationMatrix } from "@/lib/dashboard/correlation-matrix";
 import { getCarwashSummary } from "@/lib/dashboard/carwash-summary";
 import { getCrossInsights } from "@/lib/dashboard/cross-insights";
 import { getIntegratedForecast } from "@/lib/dashboard/integrated-forecast";
+import { checkDataIntegrity } from "@/lib/dashboard/check-data-integrity";
 
 /**
  * GET /api/stations/[id]/dashboard-all
@@ -77,9 +78,10 @@ export async function GET(
       ]);
     const coeffs = (integratedForecast as any)?.coefficients ?? null;
     const forecast = await safe("forecast", () => getForecastReview(id, coeffs));
+    const dataIntegrityWarnings = await safe("integrity", () => checkDataIntegrity(id)) ?? [];
     console.timeEnd(`[dashboard-all] total (tier=${tier})`);
     return NextResponse.json(
-      { insights, salesAnalysis, weatherSales, timing, forecast, correlation, carwash, crossInsights, integratedForecast },
+      { insights, salesAnalysis, weatherSales, timing, forecast, correlation, carwash, crossInsights, integratedForecast, dataIntegrityWarnings },
       { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } }
     );
   }
@@ -94,9 +96,10 @@ export async function GET(
   ]);
   const coeffs = (integratedForecast as any)?.coefficients ?? null;
   const forecast = await safe("forecast", () => getForecastReview(id, coeffs));
+  const dataIntegrityWarnings = await safe("integrity", () => checkDataIntegrity(id)) ?? [];
   console.timeEnd(`[dashboard-all] total (tier=${tier})`);
   return NextResponse.json(
-    { insights, salesAnalysis, weatherSales, forecast, carwash, integratedForecast },
+    { insights, salesAnalysis, weatherSales, forecast, carwash, integratedForecast, dataIntegrityWarnings },
     { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } }
   );
 }
