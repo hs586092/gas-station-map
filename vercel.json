@@ -46,6 +46,10 @@
       "schedule": "30 23 * * *"
     },
     {
+      "path": "/api/sync-sales",
+      "schedule": "20 0 * * *"
+    },
+    {
       "path": "/api/snapshot/rebuild",
       "schedule": "30 0 * * *"
     },

@@ -301,7 +301,7 @@ function analyzeBias(rows: RecordRow[]): SelfDiagnosisBias | null {
       improvementPp: improvement,
       rangeText,
       interpretation:
-        "→ 다음 PR 에서 평균 보정 추가 시 개선 여지 있음 (in-sample 추정 · 배포 후 검증 필요)",
+        "→ 다음 시스템 업데이트에서 평균 보정 추가 시 개선 여지 있음",
       tooSmall: false,
     };
   }
