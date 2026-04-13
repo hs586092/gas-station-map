@@ -10,6 +10,13 @@ import { supabase } from "@/lib/supabase";
  * 표본 부족 시 해당 변수는 0으로 fallback, 배지로 표시.
  */
 
+// 유종 비율 계산 윈도우 — 14일 고정.
+// 근거: 주중/주말 양쪽 샘플 확보 + 단기 변화 감지 사이 균형. 현수 결정.
+const FUEL_RATIO_WINDOW_DAYS = 14;
+
+// 비율 계산 최소 샘플 수. 미만이면 breakdown 반환 안 함 (graceful fallback).
+const FUEL_RATIO_MIN_SAMPLES = 5;
+
 // ── 유틸리티 ──
 
 function dowFromDateStr(dateStr: string): number {
@@ -52,6 +59,18 @@ export interface IntegratedForecast {
   expectedCount: number;
   confidence: "high" | "medium" | "low";
   explanation: string;
+
+  // 유종별 분리 (샘플 부족 시 undefined — UI graceful fallback)
+  fuelTypeBreakdown?: {
+    gasolineVolume: number;
+    gasolineCount: number;
+    dieselVolume: number;
+    dieselCount: number;
+    gasolineRatio: number;
+    dieselRatio: number;
+    sampleDays: number;
+    windowDays: number;
+  };
 
   // 변수 분해
   baseline: number;           // 요일 기저
@@ -525,6 +544,53 @@ export async function getIntegratedForecast(
       : "보정 미미";
     const explanation = `${intensityLabels[intensity]} ${DOW_NAMES[dow]}요일 · ${contribDesc}`;
 
+    // ── 유종 비율 분리 (최근 FUEL_RATIO_WINDOW_DAYS 일) ──
+    // 통합 예측에 비율 곱해서 휘발유/경유 분배. 반올림은 차감 계산으로
+    // 합계 = 통합값 일관성 보장.
+    let fuelTypeBreakdown: IntegratedForecast["fuelTypeBreakdown"];
+    const recentSales = salesRes.data.slice(-FUEL_RATIO_WINDOW_DAYS);
+    let sumG = 0, sumD = 0, sumGC = 0, sumDC = 0;
+    let sampleDays = 0;
+    for (const s of recentSales) {
+      const gv = Number(s.gasoline_volume) || 0;
+      const dv = Number(s.diesel_volume) || 0;
+      if (gv === 0 && dv === 0) continue;
+      sumG += gv;
+      sumD += dv;
+      sumGC += Number(s.gasoline_count) || 0;
+      sumDC += Number(s.diesel_count) || 0;
+      sampleDays += 1;
+    }
+
+    const totalVolSum = sumG + sumD;
+    const totalCntSum = sumGC + sumDC;
+    if (sampleDays >= FUEL_RATIO_MIN_SAMPLES && totalVolSum > 0) {
+      const gasolineRatio = sumG / totalVolSum;
+      const dieselRatio = 1 - gasolineRatio;
+      // 차감 계산: 휘발유 = round(total × ratio), 경유 = total - 휘발유
+      const gasolineVolume = Math.round(expectedVolume * gasolineRatio);
+      const dieselVolume = expectedVolume - gasolineVolume;
+      // count는 별도 비율 (카운트 기준)이 더 정확하지만 명세상 동일 비율 유지.
+      // 단, count 전용 비율이 totalCntSum>0 이면 더 정확하므로 count는 count 비율로.
+      const gasolineCountRatio = totalCntSum > 0 ? sumGC / totalCntSum : gasolineRatio;
+      const gasolineCount = Math.round(expectedCount * gasolineCountRatio);
+      const dieselCount = expectedCount - gasolineCount;
+
+      // graceful fallback 조건: 음수면 breakdown 숨김
+      if (gasolineVolume >= 0 && dieselVolume >= 0 && gasolineCount >= 0 && dieselCount >= 0) {
+        fuelTypeBreakdown = {
+          gasolineVolume,
+          gasolineCount,
+          dieselVolume,
+          dieselCount,
+          gasolineRatio: +gasolineRatio.toFixed(4),
+          dieselRatio: +dieselRatio.toFixed(4),
+          sampleDays,
+          windowDays: FUEL_RATIO_WINDOW_DAYS,
+        };
+      }
+    }
+
     const forecast: IntegratedForecast = {
       date: todayDate,
       dow,
@@ -533,6 +599,7 @@ export async function getIntegratedForecast(
       expectedCount,
       confidence,
       explanation,
+      fuelTypeBreakdown,
       baseline: Math.round(baseline),
       baselineCount: Math.round(baselineCount),
       contributions,

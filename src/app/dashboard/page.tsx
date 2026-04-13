@@ -489,6 +489,16 @@ export default function DashboardPage() {
         n: number; reliable: boolean; badge: string;
         method: "measured" | "estimated" | "fallback";
       }>;
+      fuelTypeBreakdown?: {
+        gasolineVolume: number;
+        gasolineCount: number;
+        dieselVolume: number;
+        dieselCount: number;
+        gasolineRatio: number;
+        dieselRatio: number;
+        sampleDays: number;
+        windowDays: number;
+      };
     } | null;
   } | null>(null);
 
@@ -1028,18 +1038,56 @@ export default function DashboardPage() {
                   </div>
                   <span className="text-[12px] text-text-tertiary">오늘 예측</span>
                 </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none">
-                    {vol.toLocaleString()}
-                  </span>
-                  <span className="text-[14px] text-text-secondary">L 예상</span>
-                  {cnt != null && (
-                    <>
-                      <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none ml-3">{cnt.toLocaleString()}</span>
-                      <span className="text-[14px] text-text-secondary">대</span>
-                    </>
-                  )}
-                </div>
+                {ig?.fuelTypeBreakdown &&
+                 ig.fuelTypeBreakdown.gasolineVolume >= 0 &&
+                 ig.fuelTypeBreakdown.dieselVolume >= 0 ? (
+                  // 유종 분리 표시
+                  <div className="mb-2 space-y-1">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[12px] text-text-secondary">휘발유</span>
+                      <div className="flex items-baseline gap-2 tnum">
+                        <span className="text-[16px] font-semibold text-text-primary">
+                          {ig.fuelTypeBreakdown.gasolineVolume.toLocaleString()}L
+                        </span>
+                        <span className="text-[12px] text-text-tertiary">{ig.fuelTypeBreakdown.gasolineCount.toLocaleString()}대</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[12px] text-text-secondary">경유</span>
+                      <div className="flex items-baseline gap-2 tnum">
+                        <span className="text-[16px] font-semibold text-text-primary">
+                          {ig.fuelTypeBreakdown.dieselVolume.toLocaleString()}L
+                        </span>
+                        <span className="text-[12px] text-text-tertiary">{ig.fuelTypeBreakdown.dieselCount.toLocaleString()}대</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-baseline border-t border-border pt-1.5 mt-1">
+                      <span className="text-[12px] text-text-tertiary">합계</span>
+                      <div className="flex items-baseline gap-2 tnum">
+                        <span className="text-[22px] font-extrabold text-text-primary tracking-tight">
+                          {vol.toLocaleString()}L
+                        </span>
+                        {cnt != null && (
+                          <span className="text-[14px] text-text-secondary">{cnt.toLocaleString()}대</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // 기존 통합 표시 (breakdown 없음 — 구형 snapshot / 샘플 부족)
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none">
+                      {vol.toLocaleString()}
+                    </span>
+                    <span className="text-[14px] text-text-secondary">L 예상</span>
+                    {cnt != null && (
+                      <>
+                        <span className="text-[28px] font-extrabold text-text-primary tnum tracking-tight leading-none ml-3">{cnt.toLocaleString()}</span>
+                        <span className="text-[14px] text-text-secondary">대</span>
+                      </>
+                    )}
+                  </div>
+                )}
                 <div className="text-[12px] text-text-tertiary mb-3">{expl}</div>
 
                 {/* 통합 모델: 변수 분해 */}
