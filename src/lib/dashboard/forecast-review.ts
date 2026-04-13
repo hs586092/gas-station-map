@@ -277,7 +277,8 @@ export async function getForecastReview(
 
     const myPriceMap = new Map<string, number>();
     for (const p of myPrices ?? []) {
-      myPriceMap.set(p.collected_at.slice(0, 10), p.gasoline_price);
+      const kstDate = new Date(p.collected_at).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+      myPriceMap.set(kstDate, p.gasoline_price);
     }
     const myYesterday = myPriceMap.get(yesterdayStr);
     const myDayBefore = myPriceMap.get(dayBefore);
@@ -358,7 +359,8 @@ export async function getForecastReview(
       const compByStation = new Map<string, Map<string, number>>();
       for (const p of compPrices ?? []) {
         if (!compByStation.has(p.station_id)) compByStation.set(p.station_id, new Map());
-        compByStation.get(p.station_id)!.set(p.collected_at.slice(0, 10), p.gasoline_price);
+        const kstDate = new Date(p.collected_at).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+        compByStation.get(p.station_id)!.set(kstDate, p.gasoline_price);
       }
 
       const changes: Array<{ name: string; diff: number }> = [];
