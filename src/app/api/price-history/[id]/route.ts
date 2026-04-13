@@ -24,7 +24,7 @@ export async function GET(
   // 날짜별로 그룹핑 (하루에 여러 번 수집된 경우 마지막 값 사용)
   const byDate = new Map<string, { gasoline: number | null; diesel: number | null; premium: number | null }>();
   for (const row of data || []) {
-    const date = new Date(row.collected_at).toISOString().split("T")[0];
+    const date = new Date(row.collected_at).toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
     byDate.set(date, {
       gasoline: row.gasoline_price,
       diesel: row.diesel_price,
