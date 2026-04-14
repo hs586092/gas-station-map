@@ -429,6 +429,19 @@ export default function DashboardPage() {
       errorBreakdown: string | null;
       carwashCount: number | null;
       carwashRevenue: number | null;
+      fuelTypeBreakdown?: {
+        gasoline: {
+          predictedVolume: number; actualVolume: number;
+          predictedCount: number; actualCount: number;
+          volumeErrorPct: number | null; countErrorPct: number | null;
+        };
+        diesel: {
+          predictedVolume: number; actualVolume: number;
+          predictedCount: number; actualCount: number;
+          volumeErrorPct: number | null; countErrorPct: number | null;
+        };
+        source: "ratio_inference" | "unavailable";
+      };
     } | null;
     accuracy: {
       days7: { avgErrorPct: number; accuracy: number; count: number } | null;
@@ -1163,32 +1176,104 @@ export default function DashboardPage() {
                 </div>
                 {y ? (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-[12px] text-text-secondary">
-                        예측 <span className="font-bold text-text-primary">{y.predicted.toLocaleString()}L</span>
-                        <span className="mx-1.5">→</span>
-                        실제 <span className="font-bold text-text-primary">{y.actual != null ? `${y.actual.toLocaleString()}L` : "대기 중"}</span>
-                      </div>
-                      {y.errorPct != null && (
-                        <span className={`text-[14px] font-bold ${Math.abs(y.errorPct) <= 5 ? "text-emerald-600" : Math.abs(y.errorPct) <= 15 ? "text-amber-500" : "text-red-500"}`}>
-                          {y.errorPct > 0 ? "+" : ""}{y.errorPct}%
-                        </span>
-                      )}
-                    </div>
-                    {y.predictedCount != null && (
-                      <div className="flex items-center justify-between">
-                        <div className="text-[12px] text-text-secondary">
-                          예측 <span className="font-bold text-text-primary">{y.predictedCount.toLocaleString()}대</span>
-                          <span className="mx-1.5">→</span>
-                          실제 <span className="font-bold text-text-primary">{y.actualCount != null ? `${y.actualCount.toLocaleString()}대` : "대기 중"}</span>
+                    {(() => {
+                      // graceful fallback: fuelTypeBreakdown 존재 + 8개 대칭 음수 가드
+                      // (forecast-review.ts 에서 이미 검사하지만 구형 snapshot + 신형 FE 방어선)
+                      const ftb = y.fuelTypeBreakdown;
+                      const showBreakdown = !!ftb &&
+                        ftb.gasoline.predictedVolume >= 0 && ftb.diesel.predictedVolume >= 0 &&
+                        ftb.gasoline.predictedCount >= 0 && ftb.diesel.predictedCount >= 0 &&
+                        ftb.gasoline.actualVolume >= 0 && ftb.diesel.actualVolume >= 0 &&
+                        ftb.gasoline.actualCount >= 0 && ftb.diesel.actualCount >= 0;
+
+                      const pctColor = (p: number | null) =>
+                        p == null ? "text-text-tertiary"
+                        : Math.abs(p) <= 5 ? "text-emerald-600"
+                        : Math.abs(p) <= 15 ? "text-amber-500" : "text-red-500";
+                      const pctLabel = (p: number | null) =>
+                        p == null ? "—" : `${p > 0 ? "+" : ""}${p}%`;
+
+                      if (!showBreakdown) {
+                        // 기존 통합 2줄 렌더 (구형 snapshot / 샘플 부족 / unavailable)
+                        return (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <div className="text-[12px] text-text-secondary">
+                                예측 <span className="font-bold text-text-primary">{y.predicted.toLocaleString()}L</span>
+                                <span className="mx-1.5">→</span>
+                                실제 <span className="font-bold text-text-primary">{y.actual != null ? `${y.actual.toLocaleString()}L` : "대기 중"}</span>
+                              </div>
+                              {y.errorPct != null && (
+                                <span className={`text-[14px] font-bold ${pctColor(y.errorPct)}`}>
+                                  {pctLabel(y.errorPct)}
+                                </span>
+                              )}
+                            </div>
+                            {y.predictedCount != null && (
+                              <div className="flex items-center justify-between">
+                                <div className="text-[12px] text-text-secondary">
+                                  예측 <span className="font-bold text-text-primary">{y.predictedCount.toLocaleString()}대</span>
+                                  <span className="mx-1.5">→</span>
+                                  실제 <span className="font-bold text-text-primary">{y.actualCount != null ? `${y.actualCount.toLocaleString()}대` : "대기 중"}</span>
+                                </div>
+                                {y.countErrorPct != null && (
+                                  <span className={`text-[14px] font-bold ${pctColor(y.countErrorPct)}`}>
+                                    {pctLabel(y.countErrorPct)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        );
+                      }
+
+                      // 유종 분리 렌더: 휘발유 2줄 + 경유 2줄 + 합계 2줄
+                      const g = ftb!.gasoline;
+                      const d = ftb!.diesel;
+                      const row = (
+                        label: string,
+                        pred: number,
+                        act: number,
+                        err: number | null,
+                        unit: "L" | "대",
+                        isTotal = false,
+                      ) => (
+                        <div className={`flex items-center justify-between ${isTotal ? "" : ""}`}>
+                          <div className={`${isTotal ? "text-[13px]" : "text-[13px]"} text-text-secondary`}>
+                            <span className={`inline-block w-[44px] ${isTotal ? "text-text-primary font-bold" : "text-text-tertiary"}`}>{label}</span>
+                            예측 <span className={`${isTotal ? "font-bold text-[15px]" : "font-semibold text-[13px]"} text-text-primary tnum`}>{pred.toLocaleString()}{unit}</span>
+                            <span className="mx-1.5">→</span>
+                            실제 <span className={`${isTotal ? "font-bold text-[15px]" : "font-semibold text-[13px]"} text-text-primary tnum`}>{act.toLocaleString()}{unit}</span>
+                          </div>
+                          {err != null && (
+                            <span className={`${isTotal ? "text-[14px]" : "text-[12px]"} font-bold ${pctColor(err)}`}>
+                              {pctLabel(err)}
+                            </span>
+                          )}
                         </div>
-                        {y.countErrorPct != null && (
-                          <span className={`text-[14px] font-bold ${Math.abs(y.countErrorPct) <= 5 ? "text-emerald-600" : Math.abs(y.countErrorPct) <= 15 ? "text-amber-500" : "text-red-500"}`}>
-                            {y.countErrorPct > 0 ? "+" : ""}{y.countErrorPct}%
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      );
+
+                      // 합계 표시는 기존 통합값 사용 (실측 소수점 차이 방지):
+                      //  - 합계 vol: y.actual (DB 원본 합), y.predicted (forecast_history 통합 예측값)
+                      //  - 합계 cnt: y.actualCount, y.predictedCount
+                      const totalActVol = y.actual ?? (g.actualVolume + d.actualVolume);
+                      const totalPredVol = y.predicted;
+                      const totalActCnt = y.actualCount ?? (g.actualCount + d.actualCount);
+                      const totalPredCnt = y.predictedCount ?? (g.predictedCount + d.predictedCount);
+
+                      return (
+                        <div className="space-y-1.5">
+                          {row("휘발유", g.predictedVolume, g.actualVolume, g.volumeErrorPct, "L")}
+                          {row("휘발유", g.predictedCount, g.actualCount, g.countErrorPct, "대")}
+                          {row("경유", d.predictedVolume, d.actualVolume, d.volumeErrorPct, "L")}
+                          {row("경유", d.predictedCount, d.actualCount, d.countErrorPct, "대")}
+                          <div className="border-t border-border pt-1.5 space-y-1">
+                            {row("합계", Math.round(totalPredVol), Math.round(totalActVol), y.errorPct, "L", true)}
+                            {row("합계", Math.round(totalPredCnt), Math.round(totalActCnt), y.countErrorPct, "대", true)}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {y.carwashCount != null && (
                       <div className="flex items-center justify-between">
                         <div className="text-[12px] text-text-secondary">

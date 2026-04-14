@@ -32,6 +32,11 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 
 const mean = (arr: number[]) => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
 
+// 유종 비율 윈도우 — 통합 예측(integrated-forecast.ts)과 동일 상수 유지.
+// 과거 snapshot 이력은 단일행 upsert 구조라 접근 불가 → 비율 분배가 유일 경로.
+const FUEL_RATIO_WINDOW_DAYS = 14;
+const FUEL_RATIO_MIN_SAMPLES = 5;
+
 export async function getForecastReview(
   id: string,
   integratedCoeffs?: {
@@ -116,6 +121,21 @@ export async function getForecastReview(
     primary?: boolean;
   };
 
+  type FuelSide = {
+    predictedVolume: number;
+    actualVolume: number;
+    predictedCount: number;
+    actualCount: number;
+    volumeErrorPct: number | null;
+    countErrorPct: number | null;
+  };
+
+  type FuelTypeBreakdown = {
+    gasoline: FuelSide;
+    diesel: FuelSide;
+    source: "ratio_inference" | "unavailable";
+  };
+
   let yesterday: {
     date: string;
     predicted: number;
@@ -129,6 +149,7 @@ export async function getForecastReview(
     carwashRevenue: number | null;
     causes: Cause[];
     errorBreakdown: string | null;
+    fuelTypeBreakdown?: FuelTypeBreakdown;
   } | null = null;
 
   if (yesterdayFc) {
@@ -457,6 +478,87 @@ export async function getForecastReview(
 
     const cwData = carwashYesterday?.[0] ?? null;
 
+    // ── 5f. 유종 분리 (휘발유/경유) — 14일 윈도우 비율 분배 ──
+    // 과거 snapshot 이력 접근 불가 (dashboard_snapshot 단일행 upsert), forecast_history 도
+    // 유종별 컬럼 없음 → 예측값을 최근 14일 실측 비율로 분배하는 것이 유일 경로.
+    // 실측값은 sales_data 에 이미 분리 저장되어 있어 DB 원본 그대로 사용 (차감 계산 X).
+    // 합계 라인은 기존 `yesterday.actual` 을 그대로 사용 (분리값 합과 소수점 차이 감수).
+    let fuelTypeBreakdown: FuelTypeBreakdown | undefined;
+    if (actual != null && actualCount != null && predictedCount != null && predicted > 0) {
+      // 어제 유종별 실측
+      const ySalesRow = (salesRows ?? []).find((s) => s.date === yesterdayStr);
+      const actualGasVol = ySalesRow ? Number(ySalesRow.gasoline_volume) || 0 : 0;
+      const actualDieVol = ySalesRow ? Number(ySalesRow.diesel_volume) || 0 : 0;
+      const actualGasCnt = ySalesRow ? Number(ySalesRow.gasoline_count) || 0 : 0;
+      const actualDieCnt = ySalesRow ? Number(ySalesRow.diesel_count) || 0 : 0;
+
+      // 14일 비율 윈도우: yesterday 포함 직전 14일치 sales_data
+      // (salesRows 는 이미 최근 30일 내림차순으로 받아둠)
+      const windowEnd = yesterdayStr;
+      const [yy, ym, yd] = yesterdayStr.split("-").map(Number);
+      const windowStartMs = Date.UTC(yy, ym - 1, yd) - (FUEL_RATIO_WINDOW_DAYS - 1) * 86400000;
+      const windowStart = new Date(windowStartMs).toISOString().slice(0, 10);
+      let sumG = 0, sumD = 0, sumGC = 0, sumDC = 0, sampleDays = 0;
+      for (const s of salesRows ?? []) {
+        if (s.date > windowEnd || s.date < windowStart) continue;
+        const gv = Number(s.gasoline_volume) || 0;
+        const dv = Number(s.diesel_volume) || 0;
+        if (gv === 0 && dv === 0) continue;
+        sumG += gv;
+        sumD += dv;
+        sumGC += Number(s.gasoline_count) || 0;
+        sumDC += Number(s.diesel_count) || 0;
+        sampleDays += 1;
+      }
+
+      const totalVolSum = sumG + sumD;
+      const totalCntSum = sumGC + sumDC;
+      if (sampleDays >= FUEL_RATIO_MIN_SAMPLES && totalVolSum > 0) {
+        const gasolineVolRatio = sumG / totalVolSum;
+        // count 전용 비율 (어제 integrated-forecast 패턴 재적용)
+        const gasolineCntRatio = totalCntSum > 0 ? sumGC / totalCntSum : gasolineVolRatio;
+
+        // 예측값 차감 계산: gasoline = round(total × ratio), diesel = total - gasoline
+        const predGasVol = Math.round(predicted * gasolineVolRatio);
+        const predDieVol = predicted - predGasVol;
+        const predGasCnt = Math.round(predictedCount * gasolineCntRatio);
+        const predDieCnt = predictedCount - predGasCnt;
+
+        // 오차율: (actual - predicted) / predicted
+        const gasVolErr = predGasVol > 0 ? +(((actualGasVol - predGasVol) / predGasVol) * 100).toFixed(1) : null;
+        const dieVolErr = predDieVol > 0 ? +(((actualDieVol - predDieVol) / predDieVol) * 100).toFixed(1) : null;
+        const gasCntErr = predGasCnt > 0 ? +(((actualGasCnt - predGasCnt) / predGasCnt) * 100).toFixed(1) : null;
+        const dieCntErr = predDieCnt > 0 ? +(((actualDieCnt - predDieCnt) / predDieCnt) * 100).toFixed(1) : null;
+
+        // graceful fallback: 8개 대칭 검사 (예측G/D vol+cnt + 실측G/D vol+cnt 모두 >=0)
+        const allNonNeg =
+          predGasVol >= 0 && predDieVol >= 0 && predGasCnt >= 0 && predDieCnt >= 0 &&
+          actualGasVol >= 0 && actualDieVol >= 0 && actualGasCnt >= 0 && actualDieCnt >= 0;
+
+        if (allNonNeg) {
+          fuelTypeBreakdown = {
+            gasoline: {
+              predictedVolume: predGasVol,
+              actualVolume: actualGasVol,
+              predictedCount: predGasCnt,
+              actualCount: actualGasCnt,
+              volumeErrorPct: gasVolErr,
+              countErrorPct: gasCntErr,
+            },
+            diesel: {
+              predictedVolume: predDieVol,
+              actualVolume: actualDieVol,
+              predictedCount: predDieCnt,
+              actualCount: actualDieCnt,
+              volumeErrorPct: dieVolErr,
+              countErrorPct: dieCntErr,
+            },
+            source: "ratio_inference",
+          };
+        }
+      }
+    }
+
     yesterday = {
       date: yesterdayStr,
       predicted,
@@ -470,6 +572,7 @@ export async function getForecastReview(
       carwashRevenue: cwData?.total_revenue ?? null,
       causes,
       errorBreakdown,
+      fuelTypeBreakdown,
     };
   }
 
