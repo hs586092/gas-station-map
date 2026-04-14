@@ -1585,17 +1585,14 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* ⑩ 가격 시뮬레이터 */}
+          {/* ⑩ 가격 시뮬레이터 — 휘발유 / 경유 카드 분리 (B4 경로)
+              두 카드 모두 휘발유 탄성도 차용. 경유 카드는 "추정" 배지 명시.
+              경유 단독 변동 관측 1회라 독립 탄성도 계산 불가 → 현실적 차선. */}
           {!loading.competitors && competitors && competitors.competitors.length > 0 && (() => {
-            const myGas = competitors.baseStation.gasoline_price;
-            if (!myGas) return null;
-            const allPrices = [myGas, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
-            const currentRank = allPrices.indexOf(myGas) + 1;
-
-            // 가중평균 탄력성 계산 (가격 변동폭으로 가중)
+            // 공통 탄성도 계산 — 휘발유 이벤트 기반 (sales-analysis.ts 가 gasoline-only 설계)
             let weightedElasticity: number | null = null;
             if (salesAnalysis && salesAnalysis.events.length >= 2) {
-              const validEvents = salesAnalysis.events.filter(e => e.priceChange !== 0);
+              const validEvents = salesAnalysis.events.filter((e) => e.priceChange !== 0);
               if (validEvents.length >= 2) {
                 let sumWeightedVol = 0, sumWeight = 0;
                 for (const e of validEvents) {
@@ -1603,13 +1600,9 @@ export default function DashboardPage() {
                   sumWeightedVol += e.volumeChangeRate * weight;
                   sumWeight += weight;
                 }
-                if (sumWeight > 0) {
-                  weightedElasticity = (sumWeightedVol / sumWeight);
-                }
+                if (sumWeight > 0) weightedElasticity = sumWeightedVol / sumWeight;
               }
             }
-
-            // 주중/주말 보정
             const todayDow = new Date().toLocaleDateString("en-US", { timeZone: "Asia/Seoul", weekday: "short" });
             const isWeekendNow = todayDow === "Sat" || todayDow === "Sun";
             let dowElasticity = weightedElasticity;
@@ -1619,83 +1612,114 @@ export default function DashboardPage() {
                 dowElasticity = split.avgVolumeChangeRate;
               }
             }
-
-            const simulations = [10, 20, 30, -10, -20].map((delta) => {
-              const simPrice = myGas + delta;
-              const simPrices = [simPrice, ...competitors.competitors.map((c) => c.gasoline_price).filter((p): p is number => p != null && p > 0)].sort((a, b) => a - b);
-              const simRank = simPrices.indexOf(simPrice) + 1;
-              let salesImpact: number | null = null;
-              if (dowElasticity != null && salesAnalysis) {
-                const validEvents = salesAnalysis.events.filter(e => e.priceChange !== 0);
-                const avgAbsChange = validEvents.length > 0
-                  ? validEvents.reduce((s, e) => s + Math.abs(e.priceChange), 0) / validEvents.length
-                  : 10;
-                // 탄력성 부호 보정: 가격↑ → 판매↓ (음의 관계 강제)
-                const absElast = Math.abs(dowElasticity / avgAbsChange);
-                salesImpact = +(-absElast * delta).toFixed(1);
-              }
-              return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank, salesImpact };
-            });
-
             const dowLabel = isWeekendNow ? "주말" : "주중";
             const weatherLabel = weatherImpact?.todayForecast
               ? (weatherImpact.todayForecast.intensity === "heavy" ? "비" : weatherImpact.todayForecast.intensity === "light" ? "약한 비" : "맑음")
               : null;
             const contextLabel = weatherLabel ? `${dowLabel} · ${weatherLabel}` : dowLabel;
 
-            return (
-              <div className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">가격 시뮬레이터</div>
-                  {dowElasticity != null && (
-                    <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
-                      오늘 기준: {contextLabel}
-                    </span>
+            const avgAbsChange = salesAnalysis
+              ? (() => {
+                  const v = salesAnalysis.events.filter((e) => e.priceChange !== 0);
+                  return v.length > 0 ? v.reduce((s, e) => s + Math.abs(e.priceChange), 0) / v.length : 10;
+                })()
+              : 10;
+
+            const renderCard = (fuelType: "gasoline" | "diesel") => {
+              const isDiesel = fuelType === "diesel";
+              const myPrice = isDiesel ? competitors.baseStation.diesel_price : competitors.baseStation.gasoline_price;
+              if (!myPrice) return null;
+
+              const compPrices = competitors.competitors
+                .map((c) => (isDiesel ? c.diesel_price : c.gasoline_price))
+                .filter((p): p is number => p != null && p > 0);
+              const allPrices = [myPrice, ...compPrices].sort((a, b) => a - b);
+              const currentRank = allPrices.indexOf(myPrice) + 1;
+
+              const simulations = [10, 20, 30, -10, -20].map((delta) => {
+                const simPrice = myPrice + delta;
+                const simPrices = [simPrice, ...compPrices].sort((a, b) => a - b);
+                const simRank = simPrices.indexOf(simPrice) + 1;
+                let salesImpact: number | null = null;
+                if (dowElasticity != null && salesAnalysis) {
+                  const absElast = Math.abs(dowElasticity / avgAbsChange);
+                  salesImpact = +(-absElast * delta).toFixed(1);
+                }
+                return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank, salesImpact };
+              });
+
+              const fuelLabel = isDiesel ? "경유" : "휘발유";
+
+              return (
+                <div key={fuelType} className="bg-surface-raised rounded-xl p-5 border border-border">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">
+                      가격 시뮬레이터 · {fuelLabel}
+                    </div>
+                    {dowElasticity != null && (
+                      <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                        오늘 기준: {contextLabel}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[12px] text-text-tertiary mb-3">
+                    현재 {fuelLabel} {myPrice.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
+                      const isUp = delta > 0;
+                      return (
+                        <div key={delta} className={`rounded-lg px-4 py-2.5 border flex items-center justify-between ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`text-[13px] font-bold w-12 ${isUp ? "text-red-600" : "text-blue-600"}`}>
+                              {delta > 0 ? "+" : ""}{delta}원
+                            </div>
+                            <div className="text-[15px] font-extrabold text-text-primary tnum tracking-tight">{simPrice.toLocaleString()}</div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-[12px] text-text-secondary">
+                              {total}개 중 <span className="font-bold">{simRank}위</span>
+                            </div>
+                            {rankChange !== 0 ? (
+                              <div className={`text-[11px] font-medium ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
+                                {rankChange > 0 ? `▼${rankChange}` : `▲${Math.abs(rankChange)}`}
+                              </div>
+                            ) : (
+                              <div className="text-[11px] text-text-tertiary">-</div>
+                            )}
+                            {salesImpact != null && (
+                              <div className={`text-[11px] font-bold pl-2 border-l ${isUp ? "border-red-200" : "border-blue-200"} ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"} flex items-center gap-1`}>
+                                판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
+                                {isDiesel && <span className="text-text-tertiary" title="휘발유 탄성도 기반 추정치">ⓘ</span>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {isDiesel ? (
+                    <div className="mt-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+                      <span className="font-bold">ⓘ 경유 판매 영향은 휘발유 탄성도 기반 추정치입니다.</span><br />
+                      경유 단독 가격 변동 데이터가 쌓이면 자동으로 정확도 향상됩니다.
+                    </div>
+                  ) : (
+                    dowElasticity != null && (
+                      <div className="mt-2 text-[10px] text-text-tertiary">
+                        * 과거 가격변경 {salesAnalysis?.events.length ?? 0}건의 가중평균 탄력성 기반
+                        {salesAnalysis?.splitElasticity && ` · ${dowLabel} 보정`}
+                      </div>
+                    )
                   )}
                 </div>
-                <div className="text-[12px] text-text-tertiary mb-3">현재 휘발유 {myGas.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위</div>
-                <div className="grid grid-cols-1 gap-2">
-                  {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
-                    const isUp = delta > 0;
-                    return (
-                      <div key={delta} className={`rounded-lg px-4 py-2.5 border flex items-center justify-between ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`text-[13px] font-bold w-12 ${isUp ? "text-red-600" : "text-blue-600"}`}>
-                            {delta > 0 ? "+" : ""}{delta}원
-                          </div>
-                          <div className="text-[15px] font-extrabold text-text-primary tnum tracking-tight">{simPrice.toLocaleString()}</div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-[12px] text-text-secondary">
-                            {total}개 중 <span className="font-bold">{simRank}위</span>
-                          </div>
-                          {rankChange !== 0 && (
-                            <div className={`text-[11px] font-medium ${rankChange > 0 ? "text-coral" : "text-blue-600"}`}>
-                              {rankChange > 0 ? `▼${rankChange}` : `▲${Math.abs(rankChange)}`}
-                            </div>
-                          )}
-                          {rankChange === 0 && (
-                            <div className="text-[11px] text-text-tertiary">-</div>
-                          )}
-                          {salesImpact != null && (
-                            <div className={`text-[11px] font-bold pl-2 border-l ${
-                              isUp ? "border-red-200" : "border-blue-200"
-                            } ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
-                              판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {dowElasticity != null && (
-                  <div className="mt-2 text-[10px] text-text-tertiary">
-                    * 과거 가격변경 {salesAnalysis?.events.length ?? 0}건의 가중평균 탄력성 기반
-                    {salesAnalysis?.splitElasticity && isWeekendNow !== undefined && ` · ${dowLabel} 보정`}
-                  </div>
-                )}
-              </div>
+              );
+            };
+
+            return (
+              <>
+                {renderCard("gasoline")}
+                {renderCard("diesel")}
+              </>
             );
           })()}
 
