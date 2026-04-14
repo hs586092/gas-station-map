@@ -114,15 +114,20 @@ export async function getSalesAnalysis(id: string): Promise<any> {
     });
   }
 
-  // ── 4. 가격 변경 이벤트 감지 ──
+  // ── 4. 가격 변경 이벤트 감지 (휘발유 + 경유) ──
   // 가격 소스: price_history 우선, 없으면 실효 단가
-  function getPrice(d: DayData): number | null {
-    return d.gasoline_price ?? d.gasoline_unit_price;
+  type Fuel = "gasoline" | "diesel";
+  function getPrice(d: DayData, fuel: Fuel): number | null {
+    if (fuel === "gasoline") return d.gasoline_price ?? d.gasoline_unit_price;
+    return d.diesel_price ?? d.diesel_unit_price;
+  }
+  function getVolume(d: DayData, fuel: Fuel): number {
+    return fuel === "gasoline" ? d.gasoline_volume : d.diesel_volume;
   }
 
   interface PriceEvent {
     date: string;
-    fuel: "gasoline";
+    fuel: Fuel;
     priceBefore: number;
     priceAfter: number;
     priceChange: number;
@@ -139,55 +144,63 @@ export async function getSalesAnalysis(id: string): Promise<any> {
   const events: PriceEvent[] = [];
   const MIN_PRICE_CHANGE = 5; // 5원 이상만 이벤트로 인정
 
-  for (let i = 1; i < days.length; i++) {
-    const prev = getPrice(days[i - 1]);
-    const curr = getPrice(days[i]);
-    if (prev == null || curr == null) continue;
+  for (const fuel of ["gasoline", "diesel"] as Fuel[]) {
+    for (let i = 1; i < days.length; i++) {
+      const prev = getPrice(days[i - 1], fuel);
+      const curr = getPrice(days[i], fuel);
+      if (prev == null || curr == null) continue;
 
-    const change = curr - prev;
-    if (Math.abs(change) < MIN_PRICE_CHANGE) continue;
+      const change = curr - prev;
+      if (Math.abs(change) < MIN_PRICE_CHANGE) continue;
 
-    // 변경 전 3일 평균 판매량
-    const before3 = days.slice(Math.max(0, i - 3), i);
-    const after3 = days.slice(i, Math.min(days.length, i + 3));
-    const after7 = days.slice(i, Math.min(days.length, i + 7));
+      // 변경 전 3일 평균 판매량
+      const before3 = days.slice(Math.max(0, i - 3), i);
+      const after3 = days.slice(i, Math.min(days.length, i + 3));
+      const after7 = days.slice(i, Math.min(days.length, i + 7));
 
-    if (before3.length === 0 || after3.length === 0) continue;
+      if (before3.length === 0 || after3.length === 0) continue;
 
-    const avgBefore = before3.reduce((s, d) => s + d.gasoline_volume, 0) / before3.length;
-    const avgAfter = after3.reduce((s, d) => s + d.gasoline_volume, 0) / after3.length;
-    const avgAfter7 = after7.length >= 5
-      ? after7.reduce((s, d) => s + d.gasoline_volume, 0) / after7.length
-      : null;
+      const avgBefore = before3.reduce((s, d) => s + getVolume(d, fuel), 0) / before3.length;
+      const avgAfter = after3.reduce((s, d) => s + getVolume(d, fuel), 0) / after3.length;
+      const avgAfter7 = after7.length >= 5
+        ? after7.reduce((s, d) => s + getVolume(d, fuel), 0) / after7.length
+        : null;
 
-    if (avgBefore === 0) continue;
+      if (avgBefore === 0) continue;
 
-    const volChangeRate = ((avgAfter - avgBefore) / avgBefore) * 100;
-    const recoveryRate = avgAfter7 != null && avgBefore > 0
-      ? ((avgAfter7 - avgBefore) / avgBefore) * 100
-      : null;
+      const volChangeRate = ((avgAfter - avgBefore) / avgBefore) * 100;
+      const recoveryRate = avgAfter7 != null && avgBefore > 0
+        ? ((avgAfter7 - avgBefore) / avgBefore) * 100
+        : null;
 
-    // 탄력성: 판매량 변화율 / 가격 변화율
-    const priceChangeRate = (change / prev) * 100;
-    const elasticity = priceChangeRate !== 0
-      ? Math.round((volChangeRate / priceChangeRate) * 100) / 100
-      : null;
+      // 탄력성: 판매량 변화율 / 가격 변화율
+      const priceChangeRate = (change / prev) * 100;
+      const elasticity = priceChangeRate !== 0
+        ? Math.round((volChangeRate / priceChangeRate) * 100) / 100
+        : null;
 
-    events.push({
-      date: days[i].date,
-      fuel: "gasoline",
-      priceBefore: prev,
-      priceAfter: curr,
-      priceChange: change,
-      volumeBefore3d: Math.round(avgBefore),
-      volumeAfter3d: Math.round(avgAfter),
-      volumeChangeRate: Math.round(volChangeRate * 10) / 10,
-      volumeAfter7d: avgAfter7 != null ? Math.round(avgAfter7) : null,
-      recoveryRate: recoveryRate != null ? Math.round(recoveryRate * 10) / 10 : null,
-      priceSource: days[i].price_source === "price_history" ? "price_history" : "sales_unit_price",
-      elasticity,
-      isWeekend: isWeekendKST(days[i].date),
-    });
+      // price_source: 해당 유종이 price_history 에 있었는지로 판정
+      // (기존 `days[i].price_source` 는 휘발유 기준이므로 유종별로 재판정)
+      const hadPriceHistory = fuel === "gasoline"
+        ? days[i].gasoline_price != null
+        : days[i].diesel_price != null;
+
+      events.push({
+        date: days[i].date,
+        fuel,
+        priceBefore: prev,
+        priceAfter: curr,
+        priceChange: change,
+        volumeBefore3d: Math.round(avgBefore),
+        volumeAfter3d: Math.round(avgAfter),
+        volumeChangeRate: Math.round(volChangeRate * 10) / 10,
+        volumeAfter7d: avgAfter7 != null ? Math.round(avgAfter7) : null,
+        recoveryRate: recoveryRate != null ? Math.round(recoveryRate * 10) / 10 : null,
+        priceSource: hadPriceHistory ? "price_history" : "sales_unit_price",
+        elasticity,
+        isWeekend: isWeekendKST(days[i].date),
+      });
+    }
   }
 
   // ── 5. 요약 통계 ──
@@ -199,21 +212,31 @@ export async function getSalesAnalysis(id: string): Promise<any> {
     ? Math.round(last30.reduce((s, d) => s + d.diesel_volume, 0) / last30.length)
     : 0;
 
-  // 평균 탄력성 (이벤트 5개 이상)
-  const validElasticities = events
-    .filter((e) => e.elasticity != null)
-    .map((e) => e.elasticity!);
-  const avgElasticity = validElasticities.length >= 3
-    ? Math.round((validElasticities.reduce((s, v) => s + v, 0) / validElasticities.length) * 100) / 100
-    : null;
-
-  let elasticityLabel: "민감" | "보통" | "둔감" | "데이터 부족" = "데이터 부족";
-  if (avgElasticity != null) {
-    const abs = Math.abs(avgElasticity);
-    if (abs > 3) elasticityLabel = "민감";
-    else if (abs > 1) elasticityLabel = "보통";
-    else elasticityLabel = "둔감";
+  // 평균 탄력성 — summary.elasticity / elasticityLabel 은 "휘발유 전용" 의미 유지
+  // (기존 UI 카드가 휘발유 기준이며 backward-compat 위해 top-level 필드는 휘발유만)
+  type ElasticityLabel = "민감" | "보통" | "둔감" | "데이터 부족";
+  function computeAvgElasticity(fuelEvents: typeof events): { avg: number | null; label: ElasticityLabel } {
+    const valid = fuelEvents.filter((e) => e.elasticity != null).map((e) => e.elasticity!);
+    const avg = valid.length >= 3
+      ? Math.round((valid.reduce((s, v) => s + v, 0) / valid.length) * 100) / 100
+      : null;
+    let label: ElasticityLabel = "데이터 부족";
+    if (avg != null) {
+      const abs = Math.abs(avg);
+      if (abs > 3) label = "민감";
+      else if (abs > 1) label = "보통";
+      else label = "둔감";
+    }
+    return { avg, label };
   }
+
+  const gasolineEvents = events.filter((e) => e.fuel === "gasoline");
+  const dieselEvents = events.filter((e) => e.fuel === "diesel");
+  const gasolineElasticity = computeAvgElasticity(gasolineEvents);
+  const dieselElasticity = computeAvgElasticity(dieselEvents);
+  // summary.elasticity / label 은 휘발유 전용 (backward-compat)
+  const avgElasticity = gasolineElasticity.avg;
+  const elasticityLabel: ElasticityLabel = gasolineElasticity.label;
 
   // ── 6. 요일별 패턴 ──
   const dayLabels = ["일", "월", "화", "수", "목", "금", "토"];
@@ -312,44 +335,34 @@ export async function getSalesAnalysis(id: string): Promise<any> {
     },
   };
 
-  // ── 6-3. 탄력성 주중/주말 분할 (가격 변경 일자 기준, 최소 2건) ──
-  const weekdayElasticities = events
-    .filter((e) => !e.isWeekend && e.elasticity != null)
-    .map((e) => e.elasticity!);
-  const weekendElasticities = events
-    .filter((e) => e.isWeekend && e.elasticity != null)
-    .map((e) => e.elasticity!);
+  // ── 6-3. 탄력성 주중/주말 분할 — 유종별 분리 계산 ──
+  // 기존 `splitElasticity` 는 휘발유 전용 의미 유지 (page.tsx 가격 시뮬레이터가 소비).
+  // `splitElasticityByFuel` 이 유종별 독립 탄성도 제공 — 신규 경유 시뮬레이터가 소비.
+  type SplitEntry = { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+  function calcSplit(subset: typeof events, isWeekend: boolean): SplitEntry {
+    const picked = subset.filter((e) => e.isWeekend === isWeekend && e.elasticity != null);
+    if (picked.length < 2) return { avg: null, count: picked.length, avgVolumeChangeRate: null };
+    const elasts = picked.map((e) => e.elasticity!);
+    const volRates = picked.map((e) => e.volumeChangeRate);
+    return {
+      avg: Math.round((elasts.reduce((s, v) => s + v, 0) / elasts.length) * 100) / 100,
+      count: picked.length,
+      avgVolumeChangeRate: Math.round((volRates.reduce((s, v) => s + v, 0) / volRates.length) * 10) / 10,
+    };
+  }
 
   const splitElasticity = {
-    weekday: {
-      avg:
-        weekdayElasticities.length >= 2
-          ? Math.round((weekdayElasticities.reduce((s, v) => s + v, 0) / weekdayElasticities.length) * 100) / 100
-          : null,
-      count: weekdayElasticities.length,
-      avgVolumeChangeRate:
-        weekdayElasticities.length >= 2
-          ? Math.round(
-              (events.filter((e) => !e.isWeekend && e.elasticity != null).reduce((s, e) => s + e.volumeChangeRate, 0) /
-                weekdayElasticities.length) *
-                10
-            ) / 10
-          : null,
+    weekday: calcSplit(gasolineEvents, false),
+    weekend: calcSplit(gasolineEvents, true),
+  };
+  const splitElasticityByFuel = {
+    gasoline: {
+      weekday: calcSplit(gasolineEvents, false),
+      weekend: calcSplit(gasolineEvents, true),
     },
-    weekend: {
-      avg:
-        weekendElasticities.length >= 2
-          ? Math.round((weekendElasticities.reduce((s, v) => s + v, 0) / weekendElasticities.length) * 100) / 100
-          : null,
-      count: weekendElasticities.length,
-      avgVolumeChangeRate:
-        weekendElasticities.length >= 2
-          ? Math.round(
-              (events.filter((e) => e.isWeekend && e.elasticity != null).reduce((s, e) => s + e.volumeChangeRate, 0) /
-                weekendElasticities.length) *
-                10
-            ) / 10
-          : null,
+    diesel: {
+      weekday: calcSplit(dieselEvents, false),
+      weekend: calcSplit(dieselEvents, true),
     },
   };
 
@@ -690,8 +703,14 @@ export async function getSalesAnalysis(id: string): Promise<any> {
     summary: {
       avg30d: { gasoline: avg30Gas, diesel: avg30Diesel },
       totalEvents: events.length,
+      // elasticity / elasticityLabel 은 휘발유 전용 (기존 UI 계약 유지)
       elasticity: avgElasticity,
       elasticityLabel,
+      // 유종별 독립 탄성도 (신규, 경유 시뮬레이터 등 소비)
+      elasticityByFuel: {
+        gasoline: gasolineElasticity,
+        diesel: dieselElasticity,
+      },
       dataRange: {
         from: days[0]?.date ?? null,
         to: days[days.length - 1]?.date ?? null,
@@ -703,7 +722,8 @@ export async function getSalesAnalysis(id: string): Promise<any> {
     eventDates,
     weekdayPattern,
     weekdayWeekendComparison,
-    splitElasticity,
+    splitElasticity,          // 휘발유 전용 (backward-compat)
+    splitElasticityByFuel,    // 유종별 독립 (신규)
     competitorGap,
     keyCompetitorAnalysis,
   };

@@ -383,11 +383,30 @@ export default function DashboardPage() {
   const [insights, setInsights] = useState<Insights | null>(null);
 
   const [salesAnalysis, setSalesAnalysis] = useState<{
-    summary: { avg30d: { gasoline: number; diesel: number }; totalEvents: number; elasticity: number | null; elasticityLabel: string };
-    events: Array<{ date: string; priceChange: number; volumeChangeRate: number; recoveryRate: number | null; elasticity: number | null; isWeekend: boolean }>;
-    splitElasticity: {
+    summary: {
+      avg30d: { gasoline: number; diesel: number };
+      totalEvents: number;
+      elasticity: number | null;           // 휘발유 전용 (backward-compat)
+      elasticityLabel: string;              // 휘발유 전용
+      elasticityByFuel?: {                  // 신규 — 유종별 독립
+        gasoline: { avg: number | null; label: string };
+        diesel: { avg: number | null; label: string };
+      };
+    };
+    events: Array<{ date: string; fuel?: "gasoline" | "diesel"; priceChange: number; volumeChangeRate: number; recoveryRate: number | null; elasticity: number | null; isWeekend: boolean }>;
+    splitElasticity: {                      // 휘발유 전용 (backward-compat)
       weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
       weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+    };
+    splitElasticityByFuel?: {               // 신규 — 유종별 독립
+      gasoline: {
+        weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+        weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+      };
+      diesel: {
+        weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+        weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+      };
     };
   } | null>(null);
 
@@ -1585,45 +1604,17 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* ⑩ 가격 시뮬레이터 — 휘발유 / 경유 카드 분리 (B4 경로)
-              두 카드 모두 휘발유 탄성도 차용. 경유 카드는 "추정" 배지 명시.
-              경유 단독 변동 관측 1회라 독립 탄성도 계산 불가 → 현실적 차선. */}
+          {/* ⑩ 가격 시뮬레이터 — 휘발유 / 경유 카드 분리 (B4-진짜독립)
+              sales-analysis.ts 확장으로 유종별 독립 탄성도 계산. 각 카드는 해당
+              유종의 이벤트 기반 탄성도만 사용. "추정" 차용 배지 제거. */}
           {!loading.competitors && competitors && competitors.competitors.length > 0 && (() => {
-            // 공통 탄성도 계산 — 휘발유 이벤트 기반 (sales-analysis.ts 가 gasoline-only 설계)
-            let weightedElasticity: number | null = null;
-            if (salesAnalysis && salesAnalysis.events.length >= 2) {
-              const validEvents = salesAnalysis.events.filter((e) => e.priceChange !== 0);
-              if (validEvents.length >= 2) {
-                let sumWeightedVol = 0, sumWeight = 0;
-                for (const e of validEvents) {
-                  const weight = Math.abs(e.priceChange);
-                  sumWeightedVol += e.volumeChangeRate * weight;
-                  sumWeight += weight;
-                }
-                if (sumWeight > 0) weightedElasticity = sumWeightedVol / sumWeight;
-              }
-            }
             const todayDow = new Date().toLocaleDateString("en-US", { timeZone: "Asia/Seoul", weekday: "short" });
             const isWeekendNow = todayDow === "Sat" || todayDow === "Sun";
-            let dowElasticity = weightedElasticity;
-            if (salesAnalysis?.splitElasticity) {
-              const split = isWeekendNow ? salesAnalysis.splitElasticity.weekend : salesAnalysis.splitElasticity.weekday;
-              if (split.avgVolumeChangeRate != null && split.count >= 2) {
-                dowElasticity = split.avgVolumeChangeRate;
-              }
-            }
             const dowLabel = isWeekendNow ? "주말" : "주중";
             const weatherLabel = weatherImpact?.todayForecast
               ? (weatherImpact.todayForecast.intensity === "heavy" ? "비" : weatherImpact.todayForecast.intensity === "light" ? "약한 비" : "맑음")
               : null;
             const contextLabel = weatherLabel ? `${dowLabel} · ${weatherLabel}` : dowLabel;
-
-            const avgAbsChange = salesAnalysis
-              ? (() => {
-                  const v = salesAnalysis.events.filter((e) => e.priceChange !== 0);
-                  return v.length > 0 ? v.reduce((s, e) => s + Math.abs(e.priceChange), 0) / v.length : 10;
-                })()
-              : 10;
 
             const renderCard = (fuelType: "gasoline" | "diesel") => {
               const isDiesel = fuelType === "diesel";
@@ -1636,12 +1627,53 @@ export default function DashboardPage() {
               const allPrices = [myPrice, ...compPrices].sort((a, b) => a - b);
               const currentRank = allPrices.indexOf(myPrice) + 1;
 
+              // 유종별 독립 탄성도: salesAnalysis.events 를 fuel 로 필터
+              // 없으면 (구형 snapshot) 전체 events 사용 → 기존 동작 보존 (graceful fallback)
+              const fuelEvents = salesAnalysis
+                ? salesAnalysis.events.filter((e) => (e.fuel ?? "gasoline") === fuelType)
+                : [];
+
+              let weightedElasticity: number | null = null;
+              if (fuelEvents.length >= 2) {
+                const validEvents = fuelEvents.filter((e) => e.priceChange !== 0);
+                if (validEvents.length >= 2) {
+                  let sumWeightedVol = 0, sumWeight = 0;
+                  for (const e of validEvents) {
+                    const weight = Math.abs(e.priceChange);
+                    sumWeightedVol += e.volumeChangeRate * weight;
+                    sumWeight += weight;
+                  }
+                  if (sumWeight > 0) weightedElasticity = sumWeightedVol / sumWeight;
+                }
+              }
+
+              // 주중/주말 보정: 유종별 splitElasticityByFuel 우선, 없으면 기존 splitElasticity(휘발유)
+              let dowElasticity = weightedElasticity;
+              const byFuel = salesAnalysis?.splitElasticityByFuel?.[fuelType];
+              if (byFuel) {
+                const split = isWeekendNow ? byFuel.weekend : byFuel.weekday;
+                if (split.avgVolumeChangeRate != null && split.count >= 2) {
+                  dowElasticity = split.avgVolumeChangeRate;
+                }
+              } else if (!isDiesel && salesAnalysis?.splitElasticity) {
+                // 구형 snapshot + 휘발유 경로만 기존 splitElasticity 사용
+                const split = isWeekendNow ? salesAnalysis.splitElasticity.weekend : salesAnalysis.splitElasticity.weekday;
+                if (split.avgVolumeChangeRate != null && split.count >= 2) {
+                  dowElasticity = split.avgVolumeChangeRate;
+                }
+              }
+
+              const avgAbsChange = (() => {
+                const v = fuelEvents.filter((e) => e.priceChange !== 0);
+                return v.length > 0 ? v.reduce((s, e) => s + Math.abs(e.priceChange), 0) / v.length : 10;
+              })();
+
               const simulations = [10, 20, 30, -10, -20].map((delta) => {
                 const simPrice = myPrice + delta;
                 const simPrices = [simPrice, ...compPrices].sort((a, b) => a - b);
                 const simRank = simPrices.indexOf(simPrice) + 1;
                 let salesImpact: number | null = null;
-                if (dowElasticity != null && salesAnalysis) {
+                if (dowElasticity != null) {
                   const absElast = Math.abs(dowElasticity / avgAbsChange);
                   salesImpact = +(-absElast * delta).toFixed(1);
                 }
@@ -1649,6 +1681,8 @@ export default function DashboardPage() {
               });
 
               const fuelLabel = isDiesel ? "경유" : "휘발유";
+              const sampleCount = fuelEvents.length;
+              // 샘플 부족 경고 (유종별 이벤트 < 3) — 탄성도 계산 자체를 안 했을 것이므로 dowElasticity null 이면 주석도 숨김
 
               return (
                 <div key={fuelType} className="bg-surface-raised rounded-xl p-5 border border-border">
@@ -1688,9 +1722,8 @@ export default function DashboardPage() {
                               <div className="text-[11px] text-text-tertiary">-</div>
                             )}
                             {salesImpact != null && (
-                              <div className={`text-[11px] font-bold pl-2 border-l ${isUp ? "border-red-200" : "border-blue-200"} ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"} flex items-center gap-1`}>
+                              <div className={`text-[11px] font-bold pl-2 border-l ${isUp ? "border-red-200" : "border-blue-200"} ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
                                 판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
-                                {isDiesel && <span className="text-text-tertiary" title="휘발유 탄성도 기반 추정치">ⓘ</span>}
                               </div>
                             )}
                           </div>
@@ -1698,18 +1731,11 @@ export default function DashboardPage() {
                       );
                     })}
                   </div>
-                  {isDiesel ? (
-                    <div className="mt-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-                      <span className="font-bold">ⓘ 경유 판매 영향은 휘발유 탄성도 기반 추정치입니다.</span><br />
-                      경유 단독 가격 변동 데이터가 쌓이면 자동으로 정확도 향상됩니다.
+                  {dowElasticity != null && (
+                    <div className="mt-2 text-[10px] text-text-tertiary">
+                      * {fuelLabel} 가격변경 {sampleCount}건의 가중평균 탄력성 기반
+                      {((isDiesel ? salesAnalysis?.splitElasticityByFuel?.diesel : salesAnalysis?.splitElasticity) && ` · ${dowLabel} 보정`)}
                     </div>
-                  ) : (
-                    dowElasticity != null && (
-                      <div className="mt-2 text-[10px] text-text-tertiary">
-                        * 과거 가격변경 {salesAnalysis?.events.length ?? 0}건의 가중평균 탄력성 기반
-                        {salesAnalysis?.splitElasticity && ` · ${dowLabel} 보정`}
-                      </div>
-                    )
                   )}
                 </div>
               );
@@ -1725,8 +1751,11 @@ export default function DashboardPage() {
 
           <SectionDivider title="내 매출 현황" description="판매량 · 세차 · 영향 요인" />
 
-          {/* ⑧ 판매량·가격 분석 */}
-          {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (
+          {/* ⑧ 판매량·가격 분석 — 휘발유 기준 유지 (기존 UI 계약).
+              sales-analysis.ts 확장으로 events 에 경유 이벤트도 섞이므로 여기서 필터. */}
+          {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (() => {
+            const gasEvents = salesAnalysis.events.filter((e) => (e.fuel ?? "gasoline") === "gasoline");
+            return (
             <ClickableCard href="/dashboard/sales-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
               <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">판매량 · 가격 분석</div>
               <div className="space-y-2">
@@ -1734,23 +1763,23 @@ export default function DashboardPage() {
                   <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[18px] font-extrabold text-text-primary tnum tracking-tight">{salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L</span>
-                    {salesAnalysis.events.length > 0 && (
-                      <span className={`text-[16px] font-extrabold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-500"}`}>
-                        {salesAnalysis.events[0].volumeChangeRate >= 0 ? "↗" : "↘"}
+                    {gasEvents.length > 0 && (
+                      <span className={`text-[16px] font-extrabold ${gasEvents[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-500"}`}>
+                        {gasEvents[0].volumeChangeRate >= 0 ? "↗" : "↘"}
                       </span>
                     )}
                   </div>
                 </div>
-                {salesAnalysis.events.length > 0 ? (
+                {gasEvents.length > 0 ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] text-text-secondary">최근 가격 변경</span>
-                      <span className="text-[12px] font-semibold text-text-primary">{salesAnalysis.events[0].date.slice(5)} {salesAnalysis.events[0].priceChange > 0 ? "+" : ""}{salesAnalysis.events[0].priceChange}원</span>
+                      <span className="text-[12px] font-semibold text-text-primary">{gasEvents[0].date.slice(5)} {gasEvents[0].priceChange > 0 ? "+" : ""}{gasEvents[0].priceChange}원</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] text-text-secondary">판매량 영향</span>
-                      <span className={`text-[14px] font-bold ${salesAnalysis.events[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                        {salesAnalysis.events[0].volumeChangeRate > 0 ? "+" : ""}{salesAnalysis.events[0].volumeChangeRate}%
+                      <span className={`text-[14px] font-bold ${gasEvents[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                        {gasEvents[0].volumeChangeRate > 0 ? "+" : ""}{gasEvents[0].volumeChangeRate}%
                       </span>
                     </div>
                   </>
@@ -1767,8 +1796,8 @@ export default function DashboardPage() {
                     <span className="text-[14px] text-text-tertiary">데이터 축적 중</span>
                   )}
                 </div>
-                {salesAnalysis.summary.elasticity != null && salesAnalysis.events.length > 0 && (() => {
-                  const lastEvent = salesAnalysis.events[0];
+                {salesAnalysis.summary.elasticity != null && gasEvents.length > 0 && (() => {
+                  const lastEvent = gasEvents[0];
                   const pctPer10 = lastEvent.priceChange !== 0 ? (lastEvent.volumeChangeRate / Math.abs(lastEvent.priceChange)) * 10 : null;
                   return pctPer10 != null ? (
                     <div className="mt-1.5 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-text-secondary">
@@ -1778,7 +1807,8 @@ export default function DashboardPage() {
                 })()}
               </div>
             </ClickableCard>
-          )}
+            );
+          })()}
 
           {/* ⑪ 영향력 순위 바 차트 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
@@ -2368,8 +2398,10 @@ export default function DashboardPage() {
                 <InsightBadge color={insights.myPosition === "cheap" ? "blue" : insights.myPosition === "expensive" ? "red" : "emerald"}>
                   {insights.benchmarkInsight}
                   {(() => {
-                    if (!salesAnalysis?.events.length || salesAnalysis.events.length < 2) return null;
-                    const validEvts = salesAnalysis.events.filter(e => e.priceChange !== 0);
+                    // 휘발유 기준 — 벤치마크 카드는 휘발유 맥락
+                    const gasEvts = (salesAnalysis?.events ?? []).filter((e) => (e.fuel ?? "gasoline") === "gasoline");
+                    if (gasEvts.length < 2) return null;
+                    const validEvts = gasEvts.filter(e => e.priceChange !== 0);
                     if (validEvts.length < 2) return null;
                     let sumW = 0, sumWV = 0;
                     for (const e of validEvts) { const w = Math.abs(e.priceChange); sumW += w; sumWV += e.volumeChangeRate * w; }
