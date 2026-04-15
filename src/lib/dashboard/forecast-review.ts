@@ -5,6 +5,7 @@ import {
   compareWithBaselines,
   type BaselineComparison,
 } from "./baseline-forecasts";
+import type { SelfDiagnosisResult } from "./forecast-self-diagnosis";
 
 /**
  * 어제의 판매량 예측 vs 실제를 비교하고, 오차 원인을 분석한다.
@@ -42,7 +43,8 @@ export async function getForecastReview(
   integratedCoeffs?: {
     myPriceElasticity: { perWon: number; n: number; reliable: boolean } | null;
     compGapElasticity: { perWon: number; n: number; reliable: boolean } | null;
-  } | null
+  } | null,
+  selfDiagnosis?: SelfDiagnosisResult | null
 ): Promise<any> {
   // ── 1. forecast_history에서 최근 30일 예측 가져오기 ──
   const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
@@ -119,6 +121,7 @@ export async function getForecastReview(
     impactL: number;
     impactPct: number;
     primary?: boolean;
+    tooltipHint?: string;
   };
 
   type FuelSide = {
@@ -436,28 +439,88 @@ export async function getForecastReview(
       }
     }
 
-    // ── 5e. 잔차 ──
-    // 오차 = 요일 내 변동분 + 날씨 + 가격 요인 + 잔차
-    // 잔차 = error - (날씨 효과 + 내 가격 + 경쟁사) 에서 요일 내 변동은 이미 error에 포함
+    // ── 5e. 잔차 → 자기진단 연동 이중 분해 ──
+    // residualL = error - (날씨 + 내 가격 + 경쟁사)
+    // 자기진단이 N일 평균 편향(meanResidualL)을 뽑고 있다면 residualL 을 두 조각으로 쪼갠다:
+    //   · 모델의 평소 오차 (biasL)      = selfDiagnosis.bias.meanResidualL
+    //   · 이번 날 추가 편차 (noiseL)   = residualL - biasL
+    // fallback 규칙 (명세서 §3.3):
+    //   selfDiagnosis 없음/실패/bias null      → 기존 "기타 요인" 그대로 (회귀 0)
+    //   classification === "unbiased"          → "편향 없음" 메시지 + 단순 변동 1줄
+    //   sampleCount < 14 & biased              → 분해하되 "편향 추정 n=N (2주 뒤 정확도 향상)" 경고
+    //   sampleCount ≥ 14 & biased              → 정상 분해
+    // tooltipHint 필드는 UI 에서 ⓘ 아이콘 + 호버 노출용 (영구).
     if (error != null) {
       const explainedByFactors = Math.round(weatherImpactL) + myPriceImpactL + compImpactL;
       const residualL = error - explainedByFactors;
       const residualPct = predicted > 0 ? +((residualL / predicted) * 100).toFixed(1) : 0;
-      if (Math.abs(residualL) > 50) {
-        causes.push({
-          type: "residual",
-          icon: "❓",
-          message: `기타 요인 ${residualL >= 0 ? "+" : ""}${Math.round(residualL).toLocaleString()}L — 교통·이벤트·자연변동 등`,
-          impactL: Math.round(residualL),
-          impactPct: residualPct,
-        });
+
+      const bias = selfDiagnosis?.bias ?? null;
+      const biasUsable = !!bias && selfDiagnosis?.status !== "no_data";
+
+      if (!biasUsable) {
+        // fallback: 기존 로직 유지
+        if (Math.abs(residualL) > 50) {
+          causes.push({
+            type: "residual",
+            icon: "❓",
+            message: `기타 요인 ${residualL >= 0 ? "+" : ""}${Math.round(residualL).toLocaleString()}L — 교통·이벤트·자연변동 등`,
+            impactL: Math.round(residualL),
+            impactPct: residualPct,
+          });
+        }
+      } else if (bias!.classification === "unbiased") {
+        // 편향 없음 — 단순 변동 1줄 (±200L 이내 편향은 노이즈로 흡수)
+        if (Math.abs(residualL) > 50) {
+          causes.push({
+            type: "residual_noise",
+            icon: "📊",
+            message: `모델 편향 없음 — 이번 날 단순 변동 ${residualL >= 0 ? "+" : ""}${Math.round(residualL).toLocaleString()}L`,
+            impactL: Math.round(residualL),
+            impactPct: residualPct,
+            tooltipHint: `최근 ${bias!.sampleCount}일 평균 잔차 ±200L 이내 — 체계적 과대/과소 없음`,
+          });
+        }
+      } else {
+        // biased — 두 조각으로 쪼갠다
+        const biasL = Math.round(bias!.meanResidualL);
+        const noiseL = Math.round(residualL - biasL);
+        const biasPct = predicted > 0 ? +((biasL / predicted) * 100).toFixed(1) : 0;
+        const noisePct = predicted > 0 ? +((noiseL / predicted) * 100).toFixed(1) : 0;
+
+        const nWarn = bias!.sampleCount < 14 ? ` · 편향 추정 n=${bias!.sampleCount} (2주 뒤 정확도 향상)` : "";
+        const biasIcon = biasL < 0 ? "📉" : "📈";
+
+        if (Math.abs(biasL) > 0) {
+          causes.push({
+            type: "residual_bias",
+            icon: biasIcon,
+            message: `모델의 평소 오차 ${biasL >= 0 ? "+" : ""}${biasL.toLocaleString()}L${nWarn}`,
+            impactL: biasL,
+            impactPct: biasPct,
+            tooltipHint: `최근 ${bias!.sampleCount}일 동안 모델이 평소 얼마나 과대/과소 예측했는지 빼낸 값`,
+          });
+        }
+        if (Math.abs(noiseL) > 50) {
+          causes.push({
+            type: "residual_noise",
+            icon: "🎲",
+            message: `이번 날 추가 편차 ${noiseL >= 0 ? "+" : ""}${noiseL.toLocaleString()}L`,
+            impactL: noiseL,
+            impactPct: noisePct,
+            tooltipHint: "평소 오차를 빼고 남은, 이번 날 고유의 변동",
+          });
+        }
       }
     }
 
     // 가장 큰 원인 표시 (impactL 절대값 기준)
+    // residual_bias/noise 는 "원인" 이 아닌 "남은 부분" 이라 primary 제외.
+    // 기존 "residual" (fallback 케이스) 은 과거 동작 유지 — primary 후보로 남겨둠.
     if (causes.length > 0 && error != null && Math.abs(error) > 100) {
-      const sorted = [...causes].sort((a, b) => Math.abs(b.impactL) - Math.abs(a.impactL));
-      const primary = causes.find((c) => c === sorted[0]);
+      const candidates = causes.filter((c) => c.type !== "residual_bias" && c.type !== "residual_noise");
+      const sorted = [...candidates].sort((a, b) => Math.abs(b.impactL) - Math.abs(a.impactL));
+      const primary = sorted.length > 0 ? causes.find((c) => c === sorted[0]) : undefined;
       if (primary) primary.primary = true;
     }
 
@@ -468,7 +531,7 @@ export async function getForecastReview(
         .filter((c) => Math.abs(c.impactL) >= 50)
         .sort((a, b) => Math.abs(b.impactL) - Math.abs(a.impactL))
         .map((c) => {
-          const label = { weekday: "요일", weather: "날씨", my_price: "내 가격", competitor_price: "경쟁사", residual: "기타" }[c.type] ?? c.type;
+          const label = { weekday: "요일", weather: "날씨", my_price: "내 가격", competitor_price: "경쟁사", residual: "기타", residual_bias: "평소 오차", residual_noise: "이번 날 편차" }[c.type] ?? c.type;
           return `${label} ${c.impactL >= 0 ? "+" : ""}${c.impactL.toLocaleString()}L`;
         });
       if (parts.length > 0) {

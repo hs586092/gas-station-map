@@ -444,7 +444,7 @@ export default function DashboardPage() {
       date: string; predicted: number; actual: number | null;
       error: number | null; errorPct: number | null;
       predictedCount: number | null; actualCount: number | null; countErrorPct: number | null;
-      causes: Array<{ type: string; icon: string; message: string; impactL: number; impactPct: number; primary?: boolean }>;
+      causes: Array<{ type: string; icon: string; message: string; impactL: number; impactPct: number; primary?: boolean; tooltipHint?: string }>;
       errorBreakdown: string | null;
       carwashCount: number | null;
       carwashRevenue: number | null;
@@ -1309,6 +1309,13 @@ export default function DashboardPage() {
                             <span className={`flex-1 ${c.primary ? "text-red-400 font-semibold" : "text-text-secondary"}`}>
                               {c.primary && <span className="text-[10px] font-bold uppercase mr-1">가장 큰 원인</span>}
                               {c.message}
+                              {c.tooltipHint && (
+                                <span
+                                  className="ml-1 text-[10px] text-text-tertiary cursor-help"
+                                  title={c.tooltipHint}
+                                  aria-label={c.tooltipHint}
+                                >ⓘ</span>
+                              )}
                             </span>
                             <span className={`shrink-0 font-mono font-bold text-[11px] ${c.impactL >= 0 ? "text-emerald-500" : "text-red-400"}`}>
                               {c.impactL >= 0 ? "+" : ""}{c.impactL.toLocaleString()}L

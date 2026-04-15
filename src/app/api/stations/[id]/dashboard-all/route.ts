@@ -9,6 +9,7 @@ import { getCarwashSummary } from "@/lib/dashboard/carwash-summary";
 import { getCrossInsights } from "@/lib/dashboard/cross-insights";
 import { getIntegratedForecast } from "@/lib/dashboard/integrated-forecast";
 import { checkDataIntegrity } from "@/lib/dashboard/check-data-integrity";
+import { getForecastSelfDiagnosis } from "@/lib/dashboard/forecast-self-diagnosis";
 
 /**
  * GET /api/stations/[id]/dashboard-all
@@ -77,7 +78,8 @@ export async function GET(
         safe("crossInsights", () => getCrossInsights(id, { compact: true })),
       ]);
     const coeffs = (integratedForecast as any)?.coefficients ?? null;
-    const forecast = await safe("forecast", () => getForecastReview(id, coeffs));
+    const selfDiagnosis = await safe("selfDiagnosis", () => getForecastSelfDiagnosis(id));
+    const forecast = await safe("forecast", () => getForecastReview(id, coeffs, selfDiagnosis));
     const dataIntegrityWarnings = await safe("integrity", () => checkDataIntegrity(id)) ?? [];
     console.timeEnd(`[dashboard-all] total (tier=${tier})`);
     return NextResponse.json(
@@ -95,7 +97,8 @@ export async function GET(
     safe("carwash", () => getCarwashSummary(id, { compact: true, weatherForecast })),
   ]);
   const coeffs = (integratedForecast as any)?.coefficients ?? null;
-  const forecast = await safe("forecast", () => getForecastReview(id, coeffs));
+  const selfDiagnosis = await safe("selfDiagnosis", () => getForecastSelfDiagnosis(id));
+  const forecast = await safe("forecast", () => getForecastReview(id, coeffs, selfDiagnosis));
   const dataIntegrityWarnings = await safe("integrity", () => checkDataIntegrity(id)) ?? [];
   console.timeEnd(`[dashboard-all] total (tier=${tier})`);
   return NextResponse.json(

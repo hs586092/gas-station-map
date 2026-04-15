@@ -9,6 +9,7 @@ import { getTimingAnalysis } from "./timing-analysis";
 import { getCrossInsights } from "./cross-insights";
 import { getIntegratedForecast } from "./integrated-forecast";
 import { checkDataIntegrity } from "./check-data-integrity";
+import { getForecastSelfDiagnosis } from "./forecast-self-diagnosis";
 
 /**
  * 대시보드 스냅샷을 재생성하여 dashboard_snapshot 테이블에 저장한다.
@@ -37,7 +38,8 @@ export async function buildDashboardSnapshot(
         getCrossInsights(stationId, { compact: true }).catch(() => null),
       ]);
     const coeffs = (integratedForecast as any)?.coefficients ?? null;
-    const forecast = await getForecastReview(stationId, coeffs).catch(() => null);
+    const selfDiagnosis = await getForecastSelfDiagnosis(stationId).catch(() => null);
+    const forecast = await getForecastReview(stationId, coeffs, selfDiagnosis).catch(() => null);
 
     // 데이터 정합성 감시 (체크 실패 시에도 빈 배열이 아닌 check_failed 경고 반환)
     const dataIntegrityWarnings = await checkDataIntegrity(stationId);
