@@ -1738,6 +1738,57 @@ export default function DashboardPage() {
                       );
                     })}
                   </div>
+                  {(() => {
+                    // 비대칭 경고 블록 — events 에서 인상/인하 분리 평균 계산 (오늘 요일 기준)
+                    // 백엔드 변경 없이 클라이언트 즉석 집계. n<3 면 숨김.
+                    // 이론: priceChange>0 (인상) → volumeChangeRate<0 기대, priceChange<0 (인하) → >0 기대.
+                    const dowEvents = (salesAnalysis?.events ?? []).filter(
+                      (e) => e.fuel === fuelType && e.isWeekend === isWeekendNow && e.priceChange !== 0
+                    );
+                    const upEvts = dowEvents.filter((e) => e.priceChange > 0);
+                    const downEvts = dowEvents.filter((e) => e.priceChange < 0);
+                    if (upEvts.length < 3 || downEvts.length < 3) return null;
+                    const mean = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+                    const upMean = +mean(upEvts.map((e) => e.volumeChangeRate)).toFixed(1);
+                    const downMean = +mean(downEvts.map((e) => e.volumeChangeRate)).toFixed(1);
+                    const upAgainstTheory = upMean > 0; // 이론상 인상→판매감소여야 정상. 양수면 반대
+                    const downAgainstTheory = downMean < 0; // 이론상 인하→판매증가여야 정상. 음수면 반대
+                    const bothNormal = !upAgainstTheory && !downAgainstTheory;
+                    // 비율 계산은 "인상 신호가 충분히 큰 경우"에만 의미. |upMean| < 1%p 이면 분모가 잡음 수준.
+                    const upMeaningful = Math.abs(upMean) >= 1.0;
+                    const ratio =
+                      bothNormal && upMeaningful
+                        ? +(Math.abs(downMean) / Math.abs(upMean)).toFixed(1)
+                        : null;
+                    const fmt = (v: number) => `${v > 0 ? "+" : ""}${v}%`;
+                    const col = (v: number, normal: boolean) =>
+                      !normal ? "text-amber-700" : v > 0 ? "text-emerald-600" : "text-red-600";
+                    const summaryLine = bothNormal
+                      ? ratio != null && ratio >= 1.5 && ratio <= 20
+                        ? `인하 반응이 인상의 ${ratio}배 — 시뮬 결과는 평균값이라 방향별 편차 있음.`
+                        : !upMeaningful
+                          ? "인상 시 판매 반응 거의 없음 — 인하 반응만 유효."
+                          : "시뮬 결과는 인상/인하 평균값 기반 — 방향별 차이 참고."
+                      : "인상 또는 인하가 이론과 반대 방향 — 가격 외 요인 영향 큼.";
+                    return (
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] space-y-1">
+                        <div className="font-bold text-amber-800">⚠️ 인상/인하 반응 비대칭</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-text-secondary">· 가격 인상 시:</span>
+                          <span className={`font-bold ${col(upMean, !upAgainstTheory)}`}>판매 {fmt(upMean)}</span>
+                          <span className="text-text-tertiary">(과거 n={upEvts.length})</span>
+                          {upAgainstTheory && <span className="text-amber-700">← 이론과 반대</span>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-text-secondary">· 가격 인하 시:</span>
+                          <span className={`font-bold ${col(downMean, !downAgainstTheory)}`}>판매 {fmt(downMean)}</span>
+                          <span className="text-text-tertiary">(과거 n={downEvts.length})</span>
+                          {downAgainstTheory && <span className="text-amber-700">← 이론과 반대</span>}
+                        </div>
+                        <div className="text-text-tertiary pt-0.5">{summaryLine}</div>
+                      </div>
+                    );
+                  })()}
                   {dowElasticity != null && (
                     <div className="mt-2 text-[10px] text-text-tertiary">
                       * {fuelLabel} 가격변경 {sampleCount}건의 가중평균 탄력성 기반
