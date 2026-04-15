@@ -488,7 +488,7 @@ export async function getForecastReview(
         const biasPct = predicted > 0 ? +((biasL / predicted) * 100).toFixed(1) : 0;
         const noisePct = predicted > 0 ? +((noiseL / predicted) * 100).toFixed(1) : 0;
 
-        const nWarn = bias!.sampleCount < 14 ? ` · 편향 추정 n=${bias!.sampleCount} (2주 뒤 정확도 향상)` : "";
+        const nWarn = bias!.sampleCount < 14 ? ` · 편향 추정 n=${bias!.sampleCount} · 2주 뒤 정확도 향상` : "";
         const biasIcon = biasL < 0 ? "📉" : "📈";
 
         if (Math.abs(biasL) > 0) {
