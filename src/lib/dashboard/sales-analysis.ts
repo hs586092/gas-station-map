@@ -338,16 +338,42 @@ export async function getSalesAnalysis(id: string): Promise<any> {
   // ── 6-3. 탄력성 주중/주말 분할 — 유종별 분리 계산 ──
   // 기존 `splitElasticity` 는 휘발유 전용 의미 유지 (page.tsx 가격 시뮬레이터가 소비).
   // `splitElasticityByFuel` 이 유종별 독립 탄성도 제공 — 신규 경유 시뮬레이터가 소비.
-  type SplitEntry = { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+  // up/down (옵션 3): 인상/인하 분리 계수. n<3 이면 null. 기존 필드는 무수정 유지.
+  type DirectionEntry = { count: number; avgPriceChange: number; avgVolumeChangeRate: number };
+  type SplitEntry = {
+    avg: number | null;
+    count: number;
+    avgVolumeChangeRate: number | null;
+    up: DirectionEntry | null;
+    down: DirectionEntry | null;
+  };
   function calcSplit(subset: typeof events, isWeekend: boolean): SplitEntry {
     const picked = subset.filter((e) => e.isWeekend === isWeekend && e.elasticity != null);
-    if (picked.length < 2) return { avg: null, count: picked.length, avgVolumeChangeRate: null };
+    const directionEntry = (evts: typeof events): DirectionEntry | null => {
+      if (evts.length < 3) return null;
+      const sumPc = evts.reduce((s, e) => s + e.priceChange, 0);
+      const sumVc = evts.reduce((s, e) => s + e.volumeChangeRate, 0);
+      // avgPriceChange/avgVolumeChangeRate: 반올림 없이 원본 실수. UI 에서 formatImpact 로
+      // 동적 정밀도 적용. 기존 SplitEntry.avgVolumeChangeRate 는 소비처 호환 위해 toFixed(1) 유지.
+      return {
+        count: evts.length,
+        avgPriceChange: sumPc / evts.length,
+        avgVolumeChangeRate: sumVc / evts.length,
+      };
+    };
+    const up = directionEntry(picked.filter((e) => e.priceChange > 0));
+    const down = directionEntry(picked.filter((e) => e.priceChange < 0));
+    if (picked.length < 2) {
+      return { avg: null, count: picked.length, avgVolumeChangeRate: null, up, down };
+    }
     const elasts = picked.map((e) => e.elasticity!);
     const volRates = picked.map((e) => e.volumeChangeRate);
     return {
       avg: Math.round((elasts.reduce((s, v) => s + v, 0) / elasts.length) * 100) / 100,
       count: picked.length,
       avgVolumeChangeRate: Math.round((volRates.reduce((s, v) => s + v, 0) / volRates.length) * 10) / 10,
+      up,
+      down,
     };
   }
 

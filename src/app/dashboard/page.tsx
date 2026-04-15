@@ -395,17 +395,17 @@ export default function DashboardPage() {
     };
     events: Array<{ date: string; fuel?: "gasoline" | "diesel"; priceChange: number; volumeChangeRate: number; recoveryRate: number | null; elasticity: number | null; isWeekend: boolean }>;
     splitElasticity: {                      // 휘발유 전용 (backward-compat)
-      weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
-      weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+      weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null; up?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null; down?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null };
+      weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null; up?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null; down?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null };
     };
     splitElasticityByFuel?: {               // 신규 — 유종별 독립
       gasoline: {
-        weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
-        weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+        weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null; up?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null; down?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null };
+        weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null; up?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null; down?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null };
       };
       diesel: {
-        weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
-        weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null };
+        weekday: { avg: number | null; count: number; avgVolumeChangeRate: number | null; up?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null; down?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null };
+        weekend: { avg: number | null; count: number; avgVolumeChangeRate: number | null; up?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null; down?: { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null };
       };
     };
   } | null>(null);
@@ -1657,18 +1657,20 @@ export default function DashboardPage() {
               // 주중/주말 보정: 유종별 splitElasticityByFuel 우선, 없으면 기존 splitElasticity(휘발유)
               let dowElasticity = weightedElasticity;
               const byFuel = salesAnalysis?.splitElasticityByFuel?.[fuelType];
-              if (byFuel) {
-                const split = isWeekendNow ? byFuel.weekend : byFuel.weekday;
-                if (split.avgVolumeChangeRate != null && split.count >= 2) {
-                  dowElasticity = split.avgVolumeChangeRate;
-                }
+              const split = byFuel ? (isWeekendNow ? byFuel.weekend : byFuel.weekday) : null;
+              if (split && split.avgVolumeChangeRate != null && split.count >= 2) {
+                dowElasticity = split.avgVolumeChangeRate;
               } else if (!isDiesel && salesAnalysis?.splitElasticity) {
                 // 구형 snapshot + 휘발유 경로만 기존 splitElasticity 사용
-                const split = isWeekendNow ? salesAnalysis.splitElasticity.weekend : salesAnalysis.splitElasticity.weekday;
-                if (split.avgVolumeChangeRate != null && split.count >= 2) {
-                  dowElasticity = split.avgVolumeChangeRate;
+                const legacySplit = isWeekendNow ? salesAnalysis.splitElasticity.weekend : salesAnalysis.splitElasticity.weekday;
+                if (legacySplit.avgVolumeChangeRate != null && legacySplit.count >= 2) {
+                  dowElasticity = legacySplit.avgVolumeChangeRate;
                 }
               }
+
+              // 옵션 3: 인상/인하 분리 계수 (splitElasticityByFuel 신규 경로에만 존재)
+              const upInfo = split?.up ?? null;
+              const downInfo = split?.down ?? null;
 
               const avgAbsChange = (() => {
                 const v = fuelEvents.filter((e) => e.priceChange !== 0);
@@ -1680,12 +1682,27 @@ export default function DashboardPage() {
                 const simPrices = [simPrice, ...compPrices].sort((a, b) => a - b);
                 const simRank = simPrices.indexOf(simPrice) + 1;
                 let salesImpact: number | null = null;
-                if (dowElasticity != null) {
+                // 옵션 3: 방향별 실측 계수. 대칭 공식 폐기. 반올림은 렌더 시점(formatImpact)에서만.
+                if (delta > 0 && upInfo && upInfo.count >= 3 && upInfo.avgPriceChange > 0) {
+                  const perWon = upInfo.avgVolumeChangeRate / upInfo.avgPriceChange;
+                  salesImpact = perWon * delta;
+                } else if (delta < 0 && downInfo && downInfo.count >= 3 && downInfo.avgPriceChange < 0) {
+                  const perWon = downInfo.avgVolumeChangeRate / Math.abs(downInfo.avgPriceChange);
+                  salesImpact = perWon * Math.abs(delta);
+                } else if (dowElasticity != null) {
+                  // 레거시 fallback: 신규 필드 없거나 n<3 인 경우. 기존 대칭 공식.
                   const absElast = Math.abs(dowElasticity / avgAbsChange);
-                  salesImpact = +(-absElast * delta).toFixed(1);
+                  salesImpact = -absElast * delta;
                 }
                 return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank, salesImpact };
               });
+
+              // 동적 정밀도: |v|>=1 → 소수 1자리 / <1 → 소수 2자리. 작은 값 정보 보존.
+              const formatImpact = (v: number): string => {
+                const abs = Math.abs(v);
+                const digits = abs >= 1 ? 1 : 2;
+                return v.toFixed(digits);
+              };
 
               const fuelLabel = isDiesel ? "경유" : "휘발유";
               const sampleCount = fuelEvents.length;
@@ -1729,8 +1746,8 @@ export default function DashboardPage() {
                               <div className="text-[11px] text-text-tertiary">-</div>
                             )}
                             {salesImpact != null && (
-                              <div className={`text-[11px] font-bold pl-2 border-l ${isUp ? "border-red-200" : "border-blue-200"} ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
-                                판매 {salesImpact > 0 ? "+" : ""}{salesImpact}%
+                              <div className={`text-[11px] font-bold pl-2 border-l tabular-nums text-right min-w-[72px] ${isUp ? "border-red-200" : "border-blue-200"} ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
+                                판매 {salesImpact > 0 ? "+" : ""}{formatImpact(salesImpact)}%
                               </div>
                             )}
                           </div>
@@ -1740,8 +1757,9 @@ export default function DashboardPage() {
                   </div>
                   {dowElasticity != null && (
                     <div className="mt-2 text-[10px] text-text-tertiary">
-                      * {fuelLabel} 가격변경 {sampleCount}건의 가중평균 탄력성 기반
-                      {((isDiesel ? salesAnalysis?.splitElasticityByFuel?.diesel : salesAnalysis?.splitElasticity) && ` · ${dowLabel} 보정`)}
+                      {upInfo && downInfo
+                        ? `* 인상 n=${upInfo.count}건 / 인하 n=${downInfo.count}건 실측 반응 기반 · ${dowLabel}`
+                        : <>* {fuelLabel} 가격변경 {sampleCount}건의 가중평균 탄력성 기반{((isDiesel ? salesAnalysis?.splitElasticityByFuel?.diesel : salesAnalysis?.splitElasticity) && ` · ${dowLabel} 보정`)}</>}
                     </div>
                   )}
                 </div>
