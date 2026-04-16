@@ -801,11 +801,23 @@ export async function getDashboardInsights(id: string): Promise<any> {
     benchmarkInsight,
     myPosition,
     avgPrice: avgGas,
-    // 경쟁사 프로파일링
-    competitorProfiles: competitorProfiles
-      .filter((p) => p.type !== "unknown")
-      .sort((a, b) => b.changeCount - a.changeCount)
-      .slice(0, 8),
+    // 경쟁사 프로파일링 — 타입별 상위 4곳씩 (최대 12).
+    // 카드(page.tsx)가 leader/follower/steady 각 2곳씩 다양성 슬라이스를 하므로
+    // 단일 .slice(0, 8) 로 자르면 changeCount 큰 leader 만 모두 잡혀서
+    // steady 슬롯이 빈다 (실측: leader 6 + follower 2 + steady 0).
+    // 페이로드 +50% (8→12곳) 이지만 ≈ +500B 로 무시 가능.
+    // 그룹 내 정렬은 changeCount desc 보존 (다른 카드들 호환).
+    competitorProfiles: (() => {
+      const PER_TYPE_CAP = 4;
+      const sorted = competitorProfiles
+        .filter((p) => p.type !== "unknown")
+        .sort((a, b) => b.changeCount - a.changeCount);
+      return [
+        ...sorted.filter((p) => p.type === "leader").slice(0, PER_TYPE_CAP),
+        ...sorted.filter((p) => p.type === "follower").slice(0, PER_TYPE_CAP),
+        ...sorted.filter((p) => p.type === "steady").slice(0, PER_TYPE_CAP),
+      ];
+    })(),
     // 상관관계 인사이트
     correlationInsights: correlationInsights.slice(0, 5),
     // 종합 추천

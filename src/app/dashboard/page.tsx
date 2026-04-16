@@ -3006,51 +3006,115 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ⑧ 경쟁사 프로파일링 */}
-          {!loading.insights && insights && insights.competitorProfiles.length > 0 && (
-            <div className="bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
-                <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                {insights.competitorProfiles.slice(0, 6).map((p) => {
-                  const typeColors = {
-                    leader: { bg: "bg-red-50 border border-red-100", text: "text-red-700", badge: "bg-red-900/50 text-red-700" },
-                    follower: { bg: "bg-amber-50 border border-amber-100", text: "text-amber-700", badge: "bg-amber-900/50 text-amber-700" },
-                    steady: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-600", badge: "bg-slate-100 text-slate-700" },
-                    unknown: { bg: "bg-slate-50 border border-slate-200", text: "text-slate-500", badge: "bg-slate-100 text-slate-600" },
-                  };
-                  const tc = typeColors[p.type];
-                  return (
-                    <div key={p.id} className={`rounded-lg px-3 py-2.5 ${tc.bg}`}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[p.brand] || "#9BA8B7" }} />
-                        <span className="text-[12px] font-medium text-text-primary truncate">{p.name}</span>
-                        <div className="flex items-center gap-1 ml-auto shrink-0">
-                          <span className={`text-[12px] font-bold px-1.5 py-0.5 rounded-full ${tc.badge}`}>
-                            {p.type === "leader" ? "선제형" : p.type === "follower" ? "추종형" : "안정형"}
+          {/* ⑧ 경쟁사 프로파일 — 다양성 슬라이스 (변동 잦음 2 + 보통 2 + 적음 2)
+              정렬: 타입별 |r| desc → 빈 슬롯은 다른 타입에서 |r| desc 로 채움
+              데이터 join: insights.competitorProfiles + correlationMatrix.variables (id="comp_<id>")
+              correlation 누락 시 absR=0 으로 graceful degrade */}
+          {!loading.insights && insights && insights.competitorProfiles.length > 0 && (() => {
+            const SLOTS_PER_TYPE = 2;
+            const TOTAL_SLOTS = 6;
+
+            // |r| join: correlation-matrix variables 에서 같은 station id 매칭
+            type ProfileWithR = (typeof insights.competitorProfiles)[number] & {
+              absR: number;
+              r: number | null;
+            };
+            const profilesWithR: ProfileWithR[] = insights.competitorProfiles
+              .filter((p) => p.type !== "unknown")
+              .map((p) => {
+                const corrVar = correlationMatrix?.variables.find((v) => v.id === `comp_${p.id}`);
+                const r = corrVar?.r ?? null;
+                return { ...p, r, absR: r != null ? Math.abs(r) : 0 };
+              });
+
+            // 타입별 |r| desc 상위 SLOTS_PER_TYPE 곳
+            const pickByType = (type: "leader" | "follower" | "steady") =>
+              profilesWithR
+                .filter((p) => p.type === type)
+                .sort((a, b) => b.absR - a.absR)
+                .slice(0, SLOTS_PER_TYPE);
+            const leaders = pickByType("leader");
+            const followers = pickByType("follower");
+            const steadies = pickByType("steady");
+
+            // 빈 슬롯 fillers: 미선택 + |r| desc
+            const used = new Set([...leaders, ...followers, ...steadies].map((p) => p.id));
+            const fillers = profilesWithR
+              .filter((p) => !used.has(p.id))
+              .sort((a, b) => b.absR - a.absR)
+              .slice(0, TOTAL_SLOTS - leaders.length - followers.length - steadies.length);
+
+            // 표시 순서: 타입 그룹 → 그룹 내 |r| desc, fillers 는 마지막에 같은 타입 옆이 아닌 끝에 두어도 OK.
+            // 사장 가독성을 위해 leader→follower→steady 순으로 묶고 fillers 는 끝.
+            const display = [...leaders, ...followers, ...steadies, ...fillers];
+
+            const typeColors = {
+              leader: { bg: "bg-red-50 border border-red-100", badge: "bg-red-900/50 text-red-700" },
+              follower: { bg: "bg-amber-50 border border-amber-100", badge: "bg-amber-900/50 text-amber-700" },
+              steady: { bg: "bg-slate-50 border border-slate-200", badge: "bg-slate-100 text-slate-700" },
+              unknown: { bg: "bg-slate-50 border border-slate-200", badge: "bg-slate-100 text-slate-600" },
+            } as const;
+
+            // "선제/추종/안정" → "변동 잦음/보통/적음" (이 카드만 새 라벨, 발표 후 일괄 변경 예정)
+            const variabilityLabel = (type: "leader" | "follower" | "steady" | "unknown"): string =>
+              type === "leader"
+                ? "변동 잦음"
+                : type === "follower"
+                ? "변동 보통"
+                : type === "steady"
+                ? "변동 적음"
+                : "분류 없음";
+
+            return (
+              <div className="bg-surface-raised rounded-xl p-5 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">경쟁사 프로파일</div>
+                  <DataFreshness date={priceHistory?.history?.[priceHistory.history.length - 1]?.date ?? null} label="분석 기준" />
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {display.map((p) => {
+                    const tc = typeColors[p.type];
+                    return (
+                      <div key={p.id} className={`rounded-lg px-3 py-2.5 ${tc.bg}`}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND_COLORS[p.brand] || "#9BA8B7" }} />
+                          <span className="text-[12px] font-medium text-text-primary truncate" title={p.name}>
+                            {p.name}{p.distance_km != null && <span className="text-text-tertiary"> ({p.distance_km}km)</span>}
                           </span>
-                          {(() => { const ch = changes?.changes.find(c => c.id === p.id); const diff = ch?.gasoline_diff ?? 0; return diff !== 0 ? (
-                            <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full ${diff > 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
-                              오늘 {diff > 0 ? "↑" : "↓"}{Math.abs(diff)}원
+                          <div className="flex items-center gap-1 ml-auto shrink-0">
+                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${tc.badge}`}>
+                              {variabilityLabel(p.type)} {p.changeCount}회/18일
                             </span>
-                          ) : null; })()}
+                            {(() => {
+                              const ch = changes?.changes.find((c) => c.id === p.id);
+                              const diff = ch?.gasoline_diff ?? 0;
+                              return diff !== 0 ? (
+                                <span className={`text-[9px] font-bold px-1 py-0.5 rounded-full ${diff > 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                                  오늘 {diff > 0 ? "↑" : "↓"}{Math.abs(diff)}원
+                                </span>
+                              ) : null;
+                            })()}
+                          </div>
+                        </div>
+                        <div className="text-[12px] text-text-secondary">
+                          평균 {p.avgChangeSize}원폭
+                          {p.currentPrice && <span className="ml-1">· 현재 {p.currentPrice.toLocaleString()}원</span>}
+                          {p.r != null && (
+                            <span className="ml-1 text-text-tertiary">· 영향력 r={p.r >= 0 ? "+" : ""}{p.r.toFixed(2)}</span>
+                          )}
                         </div>
                       </div>
-                      <div className="text-[12px] text-text-secondary">
-                        {p.changeCount}회 변경 · 평균 {p.avgChangeSize}원폭
-                        {p.currentPrice && <span className="ml-1">· 현재 {p.currentPrice.toLocaleString()}원</span>}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                <div className="mt-3 text-[12px] text-text-tertiary leading-relaxed">
+                  * 최근 18일 가격 변경 빈도 분류 — 변동 잦음(≥5회) · 보통(3~4회) · 적음(0~2회)<br />
+                  * 각 그룹에서 영향력(|r|) 큰 순으로 2곳씩 표시. 빈 슬롯은 다른 그룹에서 채움.<br />
+                  * 같은 페이지 다른 카드의 &lsquo;선제/추종/안정&rsquo; 배지도 동일 분류 (라벨 통합은 발표 후 진행)
+                </div>
               </div>
-              <div className="mt-3 text-[12px] text-text-tertiary">
-                * 최근 18일 가격 변경 빈도 기반 분류 (5회 이상: 선제형, 3~4회: 추종형, 2회 이하: 안정형)
-              </div>
-            </div>
-          )}
+            );
+          })()}
           </div>
 
           <SectionDivider title="시장 흐름" description="유가 · 가격 추이" />
