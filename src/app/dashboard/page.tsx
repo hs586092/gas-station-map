@@ -2138,6 +2138,72 @@ export default function DashboardPage() {
             );
           })()}
 
+          {/* ⑩-a 개발 로드맵 카드 — Phase 2 예고편 (가격 시뮬레이터 옆, 3번째 칸) */}
+          <div className="bg-surface-raised rounded-xl p-5 border border-border">
+            <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-100 border border-sky-200 text-sky-700">
+                  🔬 개발 중
+                </span>
+                <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                  다음 단계 미리보기
+                </span>
+              </div>
+            </div>
+            <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mt-2 mb-2">
+              가격 시뮬레이터 자가 학습
+            </div>
+            <div className="text-[12px] text-text-secondary leading-relaxed mb-3">
+              가격을 바꿨을 때 실제 판매량이 예측과 얼마나 달랐는지 매일 학습하여,
+              가격 탄력성 공식을 스스로 보정하는 엔진.
+            </div>
+
+            {/* 진척도 바 */}
+            <div className="mb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex-1 h-2 rounded-full overflow-hidden bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-sky-500 transition-all duration-500"
+                    style={{ width: "10%" }}
+                  />
+                </div>
+                <span className="text-[12px] font-mono font-bold text-sky-700 tabular-nums shrink-0">
+                  10%
+                </span>
+              </div>
+              <div className="text-[11px] text-text-tertiary">
+                선행 검증 대기 중
+              </div>
+            </div>
+
+            {/* 상세 정보 */}
+            <div className="pt-3 border-t border-border space-y-1.5 text-[12px] text-text-secondary leading-relaxed">
+              <div>
+                <span className="shrink-0">📅</span>
+                {" "}<span className="font-semibold text-text-primary">2026년 Q3 ~ Q4</span>
+                {" "}(약 3~4개월)
+              </div>
+              <div>
+                <span className="shrink-0">✅</span>
+                {" "}착수 조건: 위 자동 보정 실험에서
+                {" "}<span className="font-semibold text-text-primary">&lsquo;효과 확인됨&rsquo;</span>
+                {" "}결과
+              </div>
+              <div>
+                <span className="shrink-0">🎯</span>
+                {" "}기대 효과: 가격 변경 시 판매 예측 정확도 자동 개선
+              </div>
+              <div>
+                <span className="shrink-0">⚙️</span>
+                {" "}방식: Shadow → Active 단계적 배포 (자동 보정 실험과 동일)
+              </div>
+            </div>
+
+            <p className="mt-3 pt-3 border-t border-border text-[11px] text-text-tertiary text-center mb-0">
+              ⓘ 완성 전까지는 현재 시뮬레이터 결과에 영향 없음
+            </p>
+          </div>
+
           <SectionDivider title="내 매출 현황" description="판매량 · 세차 · 영향 요인" />
 
           {/* ⑧ 판매량·가격 분석 — 휘발유 기준 유지 (기존 UI 계약).
