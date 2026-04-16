@@ -22,6 +22,35 @@ import {
 
 const STATION_ID = "A0003453";
 
+// ─── 자동 보정 verdict 변화 알림 (localStorage) ───
+type ShadowVerdict = ShadowEvaluationResult["goNoGo"]["verdict"];
+type VerdictNotice = {
+  verdict: ShadowVerdict;
+  changedAt: string;
+  dismissed: boolean;
+};
+const VERDICT_NOTICE_KEY = (stationId: string) => `shadow-verdict-notice:${stationId}`;
+const NOTICE_WINDOW_DAYS = 7;
+
+function loadVerdictNotice(stationId: string): VerdictNotice | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(VERDICT_NOTICE_KEY(stationId));
+    return raw ? (JSON.parse(raw) as VerdictNotice) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveVerdictNotice(stationId: string, n: VerdictNotice): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(VERDICT_NOTICE_KEY(stationId), JSON.stringify(n));
+  } catch {
+    // localStorage 접근 실패 시 무시 (사파리 프라이빗 모드 등)
+  }
+}
+
 type BaselineEntry = { avgErrorPct: number; accuracy: number; count: number } | null;
 type BaselineComparisonWindow = {
   window: "7d" | "30d";
@@ -478,6 +507,47 @@ export default function DashboardPage() {
   const [correctionShadow, setCorrectionShadow] = useState<ShadowEvaluationResult | null>(null);
   // accordion 펼침 상태 (사장님 지시 — 기본 펼침)
   const [shadowOpen, setShadowOpen] = useState(true);
+  // verdict 변화 알림 배너 상태
+  const [verdictNotice, setVerdictNotice] = useState<VerdictNotice | null>(null);
+
+  // correctionShadow 가 갱신될 때마다 verdict 변화 감지 → localStorage 기록
+  useEffect(() => {
+    if (!correctionShadow) return;
+    const current = correctionShadow.goNoGo.verdict;
+    const stored = loadVerdictNotice(STATION_ID);
+
+    if (!stored) {
+      // 첫 관측 — insufficient 면 조용히 기록만(dismissed=true), 다른 verdict 면 바로 알림
+      const next: VerdictNotice = {
+        verdict: current,
+        changedAt: new Date().toISOString(),
+        dismissed: current === "insufficient",
+      };
+      saveVerdictNotice(STATION_ID, next);
+      setVerdictNotice(next);
+      return;
+    }
+
+    if (stored.verdict !== current) {
+      // verdict 변화 — 새로 기록, dismissed 초기화 (단 insufficient로 역행 시에는 숨김)
+      const next: VerdictNotice = {
+        verdict: current,
+        changedAt: new Date().toISOString(),
+        dismissed: current === "insufficient",
+      };
+      saveVerdictNotice(STATION_ID, next);
+      setVerdictNotice(next);
+    } else {
+      setVerdictNotice(stored);
+    }
+  }, [correctionShadow]);
+
+  function dismissVerdictNotice(): void {
+    if (!verdictNotice) return;
+    const next = { ...verdictNotice, dismissed: true };
+    saveVerdictNotice(STATION_ID, next);
+    setVerdictNotice(next);
+  }
 
   const [correlationMatrix, setCorrelationMatrix] = useState<{
     dataRange: { totalDays: number };
@@ -1675,6 +1745,49 @@ export default function DashboardPage() {
                           {shadowOpen ? "▼" : "▶"}
                         </span>
                       </button>
+
+                      {/* verdict 변화 알림 배너 (7일간 표시, 닫기 가능) */}
+                      {(() => {
+                        if (!verdictNotice || verdictNotice.dismissed) return null;
+                        if (verdictNotice.verdict === "insufficient") return null;
+                        const daysSince =
+                          (Date.now() - new Date(verdictNotice.changedAt).getTime()) / 86400000;
+                        if (daysSince > NOTICE_WINDOW_DAYS) return null;
+
+                        const bannerStyle = {
+                          go: {
+                            bg: "bg-emerald-500",
+                            msg: "🎉 자동 보정 효과 확인됨! Phase 2 진입을 검토하세요.",
+                          },
+                          no_go: {
+                            bg: "bg-rose-500",
+                            msg: "⚠️ 자동 보정 효과 없음. 재설계가 필요합니다.",
+                          },
+                          inconclusive: {
+                            bg: "bg-amber-500",
+                            msg: "🔍 판정이 애매합니다. 2주 더 관찰을 권장합니다.",
+                          },
+                        }[verdictNotice.verdict as "go" | "no_go" | "inconclusive"];
+
+                        return (
+                          <div
+                            className={`mt-3 rounded-lg px-3 py-2.5 flex items-center gap-2 shadow-sm text-white ${bannerStyle.bg}`}
+                            role="status"
+                          >
+                            <span className="text-[13px] font-bold leading-snug flex-1">
+                              {bannerStyle.msg}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={dismissVerdictNotice}
+                              className="text-white/80 hover:text-white text-[18px] leading-none shrink-0 px-1"
+                              aria-label="알림 닫기"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })()}
 
                       {shadowOpen && (
                         <div className="mt-3 space-y-3">
