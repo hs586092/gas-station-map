@@ -186,6 +186,15 @@ function haversineKm(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// 5km 내 경쟁사 후보 상한. 거리순으로 자른 뒤 모두 상관분석에 들어간다.
+// 거리는 영향력 proxy 가 아니므로 컷 자체는 안전 상한 (fetch/계산량 cap) 용도일 뿐,
+// 실제 카드 노출 순서는 |r| 내림차순.
+const NEIGHBOR_HARD_CAP = 15;
+
+// price_history 일괄 조회 시 PostgREST 기본 1000행 cap 회피용.
+// 16 station × ~365일 ≈ 5,840행을 1년 후에도 안전하게 수용.
+const PRICE_HISTORY_FETCH_LIMIT = 50000;
+
 /**
  * 판매량 중심의 변수 간 상관관계 매트릭스를 계산한다.
  *
@@ -194,14 +203,17 @@ function haversineKm(
  *  2. 강수량 (precipitation_mm)
  *  3. 기온 (temp_avg)
  *  4. Brent 유가
- *  5~8. 경쟁사 가격 차이 (최대 4곳)
- *  9. 요일 효과 (ANOVA eta-squared)
+ *  5. 세차 대수
+ *  6~. 경쟁사 가격 차이 (5km 내 거리순 상위 NEIGHBOR_HARD_CAP=15곳)
+ *  마지막. 요일 효과 (ANOVA eta-squared)
  *
  * 반환:
- *  - variables: 변수 목록 (id, label, group, color, r/etaSq, p, n)
+ *  - variables: 변수 목록 (id, label, group, color, r/etaSq, p, n, distance_km?)
+ *    - 경쟁사 변수에는 distance_km 가 채워진다 (UI 라벨 표기용)
  *  - matrix: 전체 상관관계 매트릭스 (변수 쌍)
  *  - scatterData: 산점도용 raw data
  *  - ranking: 판매량 영향력 순위
+ *  - dataRange.commonDays: 경쟁사 페어 평균 일수 (카드 "최근 N일 기준" 표기용)
  */
 export async function getCorrelationMatrix(
   id: string,
@@ -321,7 +333,7 @@ export async function getCorrelationMatrix(
       }))
       .filter((s) => s.distance_km <= RADIUS_KM)
       .sort((a, b) => a.distance_km - b.distance_km)
-      .slice(0, 4); // 최대 4곳
+      .slice(0, NEIGHBOR_HARD_CAP);
 
     if (neighbors.length > 0) {
       const allIds = [id, ...neighbors.map((n) => n.id)];
@@ -330,7 +342,8 @@ export async function getCorrelationMatrix(
         .select("station_id, collected_at, gasoline_price")
         .in("station_id", allIds)
         .not("gasoline_price", "is", null)
-        .order("collected_at", { ascending: true });
+        .order("collected_at", { ascending: true })
+        .limit(PRICE_HISTORY_FETCH_LIMIT);
 
       // 주유소별 → 날짜별 가격
       const stationPrices = new Map<string, Map<string, number>>();
@@ -379,6 +392,7 @@ export async function getCorrelationMatrix(
     n: number;
     significant: boolean;
     lowSample: boolean;
+    distance_km?: number; // 경쟁사 변수에만 채움 (UI 라벨 "(N km)" 표기용)
   }
 
   const variables: VariableResult[] = [];
@@ -535,6 +549,7 @@ export async function getCorrelationMatrix(
       n: pairs.length,
       significant: result ? result.p < 0.05 : false,
       lowSample: pairs.length < 30,
+      distance_km: comp.distance_km,
     });
   }
 
@@ -620,12 +635,21 @@ export async function getCorrelationMatrix(
       significant: v.significant,
     }));
 
+  // 카드 "최근 N일 기준" 라벨용. 경쟁사 페어 수의 평균 (반올림).
+  // 본건처럼 모든 경쟁사가 비슷한 n 을 가지면 평균 ≈ 단일값.
+  // 경쟁사 0개면 0 (UI 는 totalDays 로 fallback).
+  const competitorPairCounts = competitors.map((c) => c.n);
+  const commonDays = competitorPairCounts.length > 0
+    ? Math.round(competitorPairCounts.reduce((s, x) => s + x, 0) / competitorPairCounts.length)
+    : 0;
+
   const responseBody: Record<string, unknown> = {
     stationName: stationRes.data?.name ?? null,
     dataRange: {
       from: salesDates[0] || null,
       to: salesDates[salesDates.length - 1] || null,
       totalDays: salesMap.size,
+      commonDays, // 경쟁사 페어 평균 일수 — UI 라벨 정정용 (sales × price_history 교집합)
     },
     variables,
     ranking,

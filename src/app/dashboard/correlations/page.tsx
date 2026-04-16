@@ -28,6 +28,7 @@ interface Variable {
   n: number;
   significant: boolean;
   lowSample: boolean;
+  distance_km?: number; // 경쟁사 변수에만 채워짐 (라벨 "(N km)" 표기용)
 }
 
 interface RankItem {
@@ -63,7 +64,8 @@ interface MatrixItem {
 
 interface CorrelationData {
   stationName: string | null;
-  dataRange: { from: string | null; to: string | null; totalDays: number };
+  // commonDays: 경쟁사 페어 평균 일수 (구형 스냅샷에는 없을 수 있음)
+  dataRange: { from: string | null; to: string | null; totalDays: number; commonDays?: number };
   variables: Variable[];
   matrix: MatrixItem[];
   ranking: RankItem[];
@@ -182,7 +184,12 @@ export default function CorrelationsPage() {
     <div className="min-h-screen bg-surface text-slate-900 h-screen overflow-y-auto">
       <DetailHeader
         title="변수 상관관계 분석"
-        description={`판매량 중심 · ${data.dataRange.totalDays}일 데이터 (${data.dataRange.from} ~ ${data.dataRange.to})`}
+        description={
+          // 경쟁사 페어 평균 일수(commonDays) 우선, 없으면 totalDays(구형 스냅샷 fallback)
+          data.dataRange.commonDays != null && data.dataRange.commonDays > 0
+            ? `판매량 중심 · 최근 ${data.dataRange.commonDays}일 페어 기준 (sales_data ${data.dataRange.totalDays}일 ∩ price_history)`
+            : `판매량 중심 · ${data.dataRange.totalDays}일 데이터 (${data.dataRange.from} ~ ${data.dataRange.to})`
+        }
       />
 
       <div className="max-w-[1280px] mx-auto px-6 py-6 space-y-6">
@@ -197,13 +204,26 @@ export default function CorrelationsPage() {
             </div>
           </div>
           {/* 중심 변수 */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-3">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-600/20 border border-amber-500/30">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
               <span className="text-[12px] font-bold text-amber-400">판매량</span>
             </span>
             <span className="text-[11px] text-slate-700">← 중심 변수 · 변수 클릭 → 아래 산점도</span>
           </div>
+          {/* 분석 대상 메타 노트 — "왜 이 주유소들이 분석됐는지" 투명 공개 */}
+          {(() => {
+            const compVars = data.variables.filter((v) => v.group === "competitor" && v.distance_km != null);
+            if (compVars.length === 0) return null;
+            const dists = compVars.map((v) => v.distance_km!).sort((a, b) => a - b);
+            const minD = dists[0];
+            const maxD = dists[dists.length - 1];
+            return (
+              <div className="mb-4 text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5">
+                분석 대상: 본인 + 경쟁사 {compVars.length}곳 (5km 내, 거리 {minD.toFixed(2)}~{maxD.toFixed(2)}km · |r| 내림차순)
+              </div>
+            );
+          })()}
           {/* 그룹별 바 */}
           <div className="space-y-3">
             {(["strong", "moderate", "weak"] as InfluenceGroup[]).map((group) => {
@@ -221,13 +241,17 @@ export default function CorrelationsPage() {
                         ? `η²=${v.absEffect.toFixed(2)}`
                         : `${(v.r ?? 0) >= 0 ? "+" : ""}${(v.r ?? 0).toFixed(2)}`;
                       const isSelected = selectedNode === v.id;
+                      // 경쟁사 라벨엔 거리 병기 (e.g. "산곡주유소 (3.56km)")
+                      const labelText = v.group === "competitor" && v.distance_km != null
+                        ? `${v.label} (${v.distance_km}km)`
+                        : v.label;
                       return (
                         <div
                           key={v.id}
                           className={`flex items-center gap-3 py-1 px-2 rounded cursor-pointer transition-colors ${isSelected ? "bg-slate-100" : "hover:bg-slate-50"}`}
                           onClick={() => setSelectedNode((prev) => prev === v.id ? null : v.id)}
                         >
-                          <span className="text-[13px] text-slate-800 w-[100px] truncate text-right flex-shrink-0 font-medium" title={v.label}>{v.label}</span>
+                          <span className="text-[13px] text-slate-800 w-[160px] truncate text-right flex-shrink-0 font-medium" title={labelText}>{labelText}</span>
                           <div className="flex-1 h-[18px] rounded-sm overflow-hidden relative" style={{ backgroundColor: "#f0f0f0" }}>
                             <div
                               className="h-full rounded-sm transition-all duration-500"

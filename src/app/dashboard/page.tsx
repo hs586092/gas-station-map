@@ -550,11 +550,13 @@ export default function DashboardPage() {
   }
 
   const [correlationMatrix, setCorrelationMatrix] = useState<{
-    dataRange: { totalDays: number };
+    // commonDays: 경쟁사 페어 평균 일수 (구형 스냅샷에는 없을 수 있어 optional)
+    dataRange: { totalDays: number; commonDays?: number };
     variables: Array<{
       id: string; label: string; group: string; color: string;
       metric: string; r: number | null; etaSq: number | null;
       p: number | null; n: number; significant: boolean; lowSample: boolean;
+      distance_km?: number; // 경쟁사 변수에만 채워짐
     }>;
     ranking: Array<{
       id: string; label: string; absEffect: number; r: number;
@@ -2265,8 +2267,14 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* ⑪ 영향력 순위 바 차트 */}
+          {/* ⑪ 영향력 순위 바 차트
+              - 경쟁사: |r| ≥ 0.10 필터 + 상위 8 (5km 내 cap=15 중에서)
+              - 비경쟁사(날씨/유가/세차/요일): 항상 노출
+              - 라벨: 경쟁사만 "(N km)" 거리 병기 */}
           {loading.correlationMatrix ? <CardSkeleton /> : correlationMatrix && correlationMatrix.variables.length > 1 && (() => {
+            const TOP_N_COMPETITORS = 8;
+            const COMPETITOR_R_FLOOR = 0.10;
+
             const vars = correlationMatrix.variables
               .filter(v => v.id !== "sales")
               .map(v => {
@@ -2275,7 +2283,15 @@ export default function DashboardPage() {
               })
               .sort((a, b) => b.absEffect - a.absEffect);
 
-            const maxEffect = Math.max(...vars.map(v => v.absEffect), 0.01);
+            // 경쟁사만 |r| 필터 + 상위 N. 비경쟁사는 변동 없이 모두 표시.
+            const competitorVars = vars
+              .filter(v => v.group === "competitor" && v.absEffect >= COMPETITOR_R_FLOOR)
+              .slice(0, TOP_N_COMPETITORS);
+            const otherVars = vars.filter(v => v.group !== "competitor");
+            const displayVars = [...otherVars, ...competitorVars]
+              .sort((a, b) => b.absEffect - a.absEffect);
+
+            const maxEffect = Math.max(...displayVars.map(v => v.absEffect), 0.01);
 
             type InfluenceGroup = "strong" | "moderate" | "weak";
             const getGroup = (abs: number): InfluenceGroup =>
@@ -2287,20 +2303,32 @@ export default function DashboardPage() {
               weak: { label: "약한/없음 |r| < 0.2", borderColor: "#888" },
             };
 
-            const grouped: Record<InfluenceGroup, typeof vars> = { strong: [], moderate: [], weak: [] };
-            vars.forEach(v => grouped[getGroup(v.absEffect)].push(v));
+            const grouped: Record<InfluenceGroup, typeof displayVars> = { strong: [], moderate: [], weak: [] };
+            displayVars.forEach(v => grouped[getGroup(v.absEffect)].push(v));
 
-            const getBarColor = (v: typeof vars[0]) =>
+            const getBarColor = (v: typeof displayVars[0]) =>
               v.metric === "eta_squared" ? "#7F77DD"
                 : (v.r ?? 0) > 0 ? "#1D9E75" : (v.r ?? 0) < 0 ? "#E24B4A" : "#6B7280";
 
+            // "최근 N일 기준" — 경쟁사 페어 평균 일수 우선, 없으면 totalDays(구형 스냅샷 fallback)
+            const dayLabel = correlationMatrix.dataRange.commonDays != null && correlationMatrix.dataRange.commonDays > 0
+              ? `최근 ${correlationMatrix.dataRange.commonDays}일 기준`
+              : `${correlationMatrix.dataRange.totalDays}일 기준`;
+
+            // 5km 내 전체 경쟁사 중 |r|<0.10 으로 모두 절단된 경우 fallback 메시지
+            const allCompetitors = vars.filter(v => v.group === "competitor");
+            const noCompetitorPasses = allCompetitors.length > 0 && competitorVars.length === 0;
+
             return (
               <ClickableCard href="/dashboard/correlations" className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">영향력 순위</div>
-                  <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
-                    {correlationMatrix.dataRange.totalDays}일 기준
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-text-tertiary">5km 내 영향 큰 순</span>
+                    <span className="text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
+                      {dayLabel}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-600/20 border border-amber-500/30">
@@ -2324,9 +2352,13 @@ export default function DashboardPage() {
                             const displayValue = v.metric === "eta_squared"
                               ? `η²=${v.absEffect.toFixed(2)}`
                               : `${(v.r ?? 0) >= 0 ? "+" : ""}${(v.r ?? 0).toFixed(2)}`;
+                            // 경쟁사는 라벨에 거리 병기 → truncate 시 hover로 풀네임 확인
+                            const labelText = v.group === "competitor" && v.distance_km != null
+                              ? `${v.label} (${v.distance_km}km)`
+                              : v.label;
                             return (
                               <div key={v.id} className="flex items-center gap-2">
-                                <span className="text-[11px] text-text-secondary w-[72px] truncate text-right flex-shrink-0" title={v.label}>{v.label}</span>
+                                <span className="text-[11px] text-text-secondary w-[110px] truncate text-right flex-shrink-0" title={labelText}>{labelText}</span>
                                 <div className="flex-1 h-[14px] rounded-sm overflow-hidden relative" style={{ backgroundColor: "#f0f0f0" }}>
                                   <div className="h-full rounded-sm transition-all duration-500" style={{ width: `${barWidth}%`, backgroundColor: barColor }} />
                                 </div>
@@ -2342,6 +2374,12 @@ export default function DashboardPage() {
                     );
                   })}
                 </div>
+                {/* 경쟁사 전부가 |r|<0.10 으로 절단된 경우 안내 */}
+                {noCompetitorPasses && (
+                  <div className="mt-2 text-[11px] text-text-tertiary bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5">
+                    5km 내 경쟁사 {allCompetitors.length}곳 모두 약한 영향(|r|&lt;0.10) — 가격은 다른 요인이 더 결정적
+                  </div>
+                )}
                 <div className="flex items-center gap-3 mt-2 text-[10px] text-text-tertiary">
                   <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#1D9E75" }} /> 양의 상관</span>
                   <span className="flex items-center gap-1"><span className="w-3 h-1.5 inline-block rounded-sm" style={{ backgroundColor: "#E24B4A" }} /> 음의 상관</span>
