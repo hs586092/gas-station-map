@@ -1680,9 +1680,8 @@ export default function DashboardPage() {
                         <div className="mt-3 space-y-3">
                           {/* 한 줄 설명 — 비전공자 대상 */}
                           <div className="text-[12px] text-text-secondary leading-relaxed">
-                            시스템이 매일 &lsquo;어제까지의 평균 오차&rsquo; 만큼 예측을 보정해보고,
-                            그게 실제로 도움이 됐는지 관찰하는 실험입니다.
-                            <span className="font-bold text-text-primary"> 사장님 화면의 예측값에는 영향이 없습니다.</span>
+                            <span className="font-bold text-text-primary">스스로 오차를 발견하고, 자동으로 학습해 매일 더 정확해집니다.</span>
+                            {" "}사장님이 따로 할 일은 없습니다.
                           </div>
 
                           {/* 진행 상태 박스 */}
