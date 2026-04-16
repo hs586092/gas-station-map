@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildDashboardSnapshot } from "@/lib/dashboard/build-snapshot";
 import { backfillForecastActuals } from "@/lib/dashboard/backfill-forecast-actuals";
+import { computeAndStoreShadowCorrection } from "@/lib/dashboard/forecast-correction-shadow";
 
 export const maxDuration = 300;
 
@@ -23,7 +24,19 @@ async function runRebuild(stationId: string, origin: string) {
   // 1) forecast_history.actual_* 를 sales_data / carwash_daily 로부터 먼저 채운다.
   const backfill = await backfillForecastActuals(stationId);
 
-  // 2) weather forecast (스냅샷 빌드 입력)
+  // 2) Phase 1 Shadow Mode — 평균 잔차 기반 보정값 계산/기록 (실패 격리)
+  //    actual 이 backfill 된 직후, 스냅샷 빌드 직전에 수행해야 함.
+  //    실패해도 snapshot 빌드는 계속 진행 (관찰 가능성 < 가용성).
+  let shadowCorrection: Awaited<ReturnType<typeof computeAndStoreShadowCorrection>> | { error: string } | null = null;
+  try {
+    shadowCorrection = await computeAndStoreShadowCorrection(stationId);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown error";
+    console.error("[shadow-correction] failed:", msg);
+    shadowCorrection = { error: msg };
+  }
+
+  // 3) weather forecast (스냅샷 빌드 입력)
   let weatherForecast = null;
   try {
     const wxRes = await fetch(`${origin}/api/weather`, {
@@ -32,9 +45,9 @@ async function runRebuild(stationId: string, origin: string) {
     if (wxRes.ok) weatherForecast = await wxRes.json();
   } catch {}
 
-  // 3) 스냅샷 생성 (이 시점에 forecast_history 는 최신이 되어 있다)
+  // 4) 스냅샷 생성 (이 시점에 forecast_history 는 최신이 되어 있다)
   const result = await buildDashboardSnapshot(stationId, weatherForecast);
-  return { backfill, result };
+  return { backfill, shadowCorrection, result };
 }
 
 export async function POST(request: NextRequest) {
@@ -50,11 +63,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "stationId required" }, { status: 400 });
   }
 
-  const { backfill, result } = await runRebuild(stationId, request.nextUrl.origin);
+  const { backfill, shadowCorrection, result } = await runRebuild(stationId, request.nextUrl.origin);
 
   if (!result.success) {
     return NextResponse.json(
-      { error: result.error, durationMs: result.durationMs, backfill },
+      { error: result.error, durationMs: result.durationMs, backfill, shadowCorrection },
       { status: 500 }
     );
   }
@@ -64,6 +77,7 @@ export async function POST(request: NextRequest) {
     stationId,
     durationMs: result.durationMs,
     backfill,
+    shadowCorrection,
   });
 }
 
@@ -74,11 +88,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   const stationId = request.nextUrl.searchParams.get("stationId") || "A0003453";
-  const { backfill, result } = await runRebuild(stationId, request.nextUrl.origin);
+  const { backfill, shadowCorrection, result } = await runRebuild(stationId, request.nextUrl.origin);
 
   if (!result.success) {
     return NextResponse.json(
-      { error: result.error, durationMs: result.durationMs, backfill },
+      { error: result.error, durationMs: result.durationMs, backfill, shadowCorrection },
       { status: 500 }
     );
   }
@@ -88,5 +102,6 @@ export async function GET(request: NextRequest) {
     stationId,
     durationMs: result.durationMs,
     backfill,
+    shadowCorrection,
   });
 }

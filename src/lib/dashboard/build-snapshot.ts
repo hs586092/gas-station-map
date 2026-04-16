@@ -10,6 +10,7 @@ import { getCrossInsights } from "./cross-insights";
 import { getIntegratedForecast } from "./integrated-forecast";
 import { checkDataIntegrity } from "./check-data-integrity";
 import { getForecastSelfDiagnosis } from "./forecast-self-diagnosis";
+import { evaluateShadowCorrection } from "./forecast-correction-evaluate";
 
 /**
  * 대시보드 스냅샷을 재생성하여 dashboard_snapshot 테이블에 저장한다.
@@ -41,11 +42,16 @@ export async function buildDashboardSnapshot(
     const selfDiagnosis = await getForecastSelfDiagnosis(stationId).catch(() => null);
     const forecast = await getForecastReview(stationId, coeffs, selfDiagnosis).catch(() => null);
 
+    // Phase 1 Shadow Mode 평가 (실패 시 null — 카드 UI는 graceful degrade)
+    // 보정값 계산은 별도 경로(/api/snapshot/rebuild) 에서 이미 끝난 상태.
+    // 여기서는 평가만 수행하여 스냅샷에 freeze.
+    const correctionShadow = await evaluateShadowCorrection(stationId).catch(() => null);
+
     // 데이터 정합성 감시 (체크 실패 시에도 빈 배열이 아닌 check_failed 경고 반환)
     const dataIntegrityWarnings = await checkDataIntegrity(stationId);
 
     const essentialData = { insights, salesAnalysis, weatherSales, forecast, carwash, integratedForecast, dataIntegrityWarnings };
-    const extendedData = { correlation, timing, crossInsights };
+    const extendedData = { correlation, timing, crossInsights, correctionShadow };
 
     const { error } = await supabase
       .from("dashboard_snapshot")
