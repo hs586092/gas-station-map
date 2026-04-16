@@ -1614,256 +1614,251 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                <p className="text-[11px] text-text-tertiary mt-3 mb-0 text-center">
-                  ⚠️ 시스템이 자기 자신의 약점을 관찰 — 데이터 누적에 따라 자동 갱신
-                </p>
-              </div>
-            );
-          })()}
+                {/* ── 🤖 자동 보정 실험 (3번째 섹션, accordion) ──
+                    복기의 복기 카드 안으로 통합. 패턴/편향 분석 아래에 위치하며
+                    상단 구분선으로 시각적 분리. 기본 펼침. */}
+                {correctionShadow && (() => {
+                  const cs = correctionShadow;
+                  const verdict = cs.goNoGo.verdict;
+                  const N_TARGET = 30;
 
-          {/* 🤖 Phase 1 Shadow Mode — 자동 보정 실험
-              평균 차이 기반 가상 보정값을 매일 계산하여 DB에 기록만 함.
-              실제 예측값(predicted_volume)에는 절대 영향을 주지 않음.
-              N≥30 도달 시 Go/No-Go 판정 결과 표시. */}
-          {correctionShadow && (() => {
-            const cs = correctionShadow;
-            const verdict = cs.goNoGo.verdict;
-            const N_TARGET = 30;
+                  const styleByVerdict = {
+                    insufficient: {
+                      badge: "🌑 데이터 축적 중",
+                      badgeBg: "bg-slate-100 border-slate-300 text-slate-700",
+                      accent: "border-slate-200 bg-slate-50",
+                      accentText: "text-slate-700",
+                    },
+                    inconclusive: {
+                      badge: "🟡 관찰 중 · 판정 대기",
+                      badgeBg: "bg-amber-100 border-amber-300 text-amber-800",
+                      accent: "border-amber-200 bg-amber-50",
+                      accentText: "text-amber-800",
+                    },
+                    go: {
+                      badge: "🟢 효과 확인됨",
+                      badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-800",
+                      accent: "border-emerald-200 bg-emerald-50",
+                      accentText: "text-emerald-800",
+                    },
+                    no_go: {
+                      badge: "🔴 효과 없음",
+                      badgeBg: "bg-rose-100 border-rose-300 text-rose-800",
+                      accent: "border-rose-200 bg-rose-50",
+                      accentText: "text-rose-800",
+                    },
+                  } as const;
+                  const style = styleByVerdict[verdict];
 
-            // verdict 별 색상/문구 매핑
-            const styleByVerdict = {
-              insufficient: {
-                badge: "🌑 데이터 축적 중",
-                badgeBg: "bg-slate-100 border-slate-300 text-slate-700",
-                accent: "border-slate-200 bg-slate-50",
-                accentText: "text-slate-700",
-              },
-              inconclusive: {
-                badge: "🟡 관찰 중 · 판정 대기",
-                badgeBg: "bg-amber-100 border-amber-300 text-amber-800",
-                accent: "border-amber-200 bg-amber-50",
-                accentText: "text-amber-800",
-              },
-              go: {
-                badge: "🟢 효과 확인됨",
-                badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-800",
-                accent: "border-emerald-200 bg-emerald-50",
-                accentText: "text-emerald-800",
-              },
-              no_go: {
-                badge: "🔴 효과 없음",
-                badgeBg: "bg-rose-100 border-rose-300 text-rose-800",
-                accent: "border-rose-200 bg-rose-50",
-                accentText: "text-rose-800",
-              },
-            } as const;
-            const style = styleByVerdict[verdict];
+                  const sampleN = cs.evaluated?.sampleN ?? 0;
+                  const obsDays = cs.observationDays;
+                  const meanDiffL = cs.policy.meanResidualL;
 
-            const sampleN = cs.evaluated?.sampleN ?? 0;
-            const obsDays = cs.observationDays;
-            const meanDiffL = cs.policy.meanResidualL;
-
-            return (
-              <div className="bg-surface-raised rounded-xl p-5 border border-border">
-                {/* 헤더 — 클릭하면 펼침/접힘 */}
-                <button
-                  type="button"
-                  onClick={() => setShadowOpen((v) => !v)}
-                  className="w-full flex items-center justify-between gap-3 text-left"
-                  aria-expanded={shadowOpen}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">
-                      🤖 자동 보정 실험
-                    </div>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full border ${style.badgeBg}`}>
-                      {style.badge}
-                    </span>
-                  </div>
-                  <span className="text-[14px] text-text-tertiary tabular-nums">
-                    {shadowOpen ? "▼" : "▶"}
-                  </span>
-                </button>
-
-                {shadowOpen && (
-                  <div className="mt-3 space-y-3">
-                    {/* 한 줄 설명 — 비전공자 대상 */}
-                    <div className="text-[12px] text-text-secondary leading-relaxed">
-                      시스템이 매일 &lsquo;어제까지의 평균 오차&rsquo; 만큼 예측을 보정해보고,
-                      그게 실제로 도움이 됐는지 관찰하는 실험입니다.
-                      <span className="font-bold text-text-primary"> 사장님 화면의 예측값에는 영향이 없습니다.</span>
-                    </div>
-
-                    {/* 진행 상태 박스 */}
-                    <div className={`rounded-lg border px-3 py-3 ${style.accent}`}>
-                      {/* ── insufficient — 데이터 축적 중 ── */}
-                      {verdict === "insufficient" && (
-                        <>
-                          <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
-                            데이터 축적 중 (관찰 {obsDays}일째)
+                  return (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      {/* 헤더 — 클릭하면 펼침/접힘 */}
+                      <button
+                        type="button"
+                        onClick={() => setShadowOpen((v) => !v)}
+                        className="w-full flex items-center justify-between gap-3 text-left"
+                        aria-expanded={shadowOpen}
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">
+                            🤖 자동 보정 실험
                           </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex-1 h-2 rounded-full overflow-hidden bg-slate-200">
-                              <div
-                                className="h-full rounded-full bg-slate-500 transition-all duration-500"
-                                style={{
-                                  width: `${Math.min(100, Math.max(4, (sampleN / N_TARGET) * 100))}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-[12px] font-mono text-slate-700 tabular-nums shrink-0">
-                              {sampleN}/{N_TARGET}
-                            </span>
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full border ${style.badgeBg}`}>
+                            {style.badge}
+                          </span>
+                        </div>
+                        <span className="text-[14px] text-text-tertiary tabular-nums shrink-0">
+                          {shadowOpen ? "▼" : "▶"}
+                        </span>
+                      </button>
+
+                      {shadowOpen && (
+                        <div className="mt-3 space-y-3">
+                          {/* 한 줄 설명 — 비전공자 대상 */}
+                          <div className="text-[12px] text-text-secondary leading-relaxed">
+                            시스템이 매일 &lsquo;어제까지의 평균 오차&rsquo; 만큼 예측을 보정해보고,
+                            그게 실제로 도움이 됐는지 관찰하는 실험입니다.
+                            <span className="font-bold text-text-primary"> 사장님 화면의 예측값에는 영향이 없습니다.</span>
                           </div>
-                          <div className="text-[11px] text-slate-600 leading-relaxed">
-                            평가 가능한 샘플이 {N_TARGET}개 모이면 자동으로 효과 판정을 시작합니다.
-                            {meanDiffL != null && (
-                              <span className="block mt-1">
-                                현재 계산된 평균 차이:{" "}
-                                <span className="font-mono font-bold text-slate-800">
-                                  {meanDiffL >= 0 ? "+" : ""}{meanDiffL.toLocaleString()}L
-                                </span>
-                                {" "}(예측값에 적용 안 됨)
-                              </span>
+
+                          {/* 진행 상태 박스 */}
+                          <div className={`rounded-lg border px-3 py-3 ${style.accent}`}>
+                            {/* ── insufficient — 데이터 축적 중 ── */}
+                            {verdict === "insufficient" && (
+                              <>
+                                <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
+                                  데이터 축적 중 (관찰 {obsDays}일째)
+                                </div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="flex-1 h-2 rounded-full overflow-hidden bg-slate-200">
+                                    <div
+                                      className="h-full rounded-full bg-slate-500 transition-all duration-500"
+                                      style={{
+                                        width: `${Math.min(100, Math.max(4, (sampleN / N_TARGET) * 100))}%`,
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="text-[12px] font-mono text-slate-700 tabular-nums shrink-0">
+                                    {sampleN}/{N_TARGET}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-slate-600 leading-relaxed">
+                                  평가 가능한 샘플이 {N_TARGET}개 모이면 자동으로 효과 판정을 시작합니다.
+                                  {meanDiffL != null && (
+                                    <span className="block mt-1">
+                                      현재 계산된 평균 차이:{" "}
+                                      <span className="font-mono font-bold text-slate-800">
+                                        {meanDiffL >= 0 ? "+" : ""}{meanDiffL.toLocaleString()}L
+                                      </span>
+                                      {" "}(예측값에 적용 안 됨)
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            )}
+
+                            {/* ── inconclusive — 관찰 중, 판정 대기 ── */}
+                            {verdict === "inconclusive" && cs.evaluated && (
+                              <>
+                                <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
+                                  관찰 중 · 판정 대기 (관찰 {obsDays}일째 · 샘플 {sampleN}개)
+                                </div>
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between text-[12px] text-amber-900">
+                                    <span>현재 평균 오차</span>
+                                    <span className="font-mono font-bold">{cs.evaluated.beforeMape}%</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[12px] text-amber-900">
+                                    <span>가상 보정 후 오차</span>
+                                    <span className="font-mono font-bold">{cs.evaluated.afterMape}%</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[12px] text-amber-900 font-semibold pt-1 border-t border-amber-200">
+                                    <span>차이</span>
+                                    <span className="font-mono">
+                                      {cs.evaluated.improvementPp >= 0 ? "−" : "+"}
+                                      {Math.abs(cs.evaluated.improvementPp)}%p
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-amber-700 italic mt-1">
+                                    개선됐던 날 {cs.evaluated.betterDays}일 · 비슷했던 날 {cs.evaluated.sameDays}일 · 오히려 나빴던 날 {cs.evaluated.worseDays}일
+                                  </div>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-amber-200 text-[11px] text-amber-700 leading-relaxed">
+                                  {cs.goNoGo.reasons.join(" · ")}
+                                </div>
+                              </>
+                            )}
+
+                            {/* ── go — 효과 확인됨 ── */}
+                            {verdict === "go" && cs.evaluated && (
+                              <>
+                                <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
+                                  효과 확인됨 — Phase 2 진입 권장
+                                </div>
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between text-[12px] text-emerald-900">
+                                    <span>현재 평균 오차</span>
+                                    <span className="font-mono font-bold">{cs.evaluated.beforeMape}%</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[12px] text-emerald-900">
+                                    <span>가상 보정 후 오차</span>
+                                    <span className="font-mono font-bold text-emerald-700">{cs.evaluated.afterMape}%</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[12px] text-emerald-900 font-semibold pt-1 border-t border-emerald-200">
+                                    <span>개선폭</span>
+                                    <span className="font-mono text-emerald-700">
+                                      −{cs.evaluated.improvementPp}%p
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-emerald-700 italic mt-1">
+                                    개선된 날 {cs.evaluated.betterDays}일 / 전체 {sampleN}일 · 악화일 비율 {(cs.evaluated.worseDaysRatio * 100).toFixed(0)}%
+                                  </div>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-emerald-200 text-[11px] text-emerald-700 leading-relaxed">
+                                  ✅ {cs.goNoGo.reasons.join(" · ")}
+                                  <div className="mt-1 font-semibold text-emerald-800">
+                                    → Phase 2 (실제 예측에 보정 적용) 진입을 검토하세요
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {/* ── no_go — 효과 없음 ── */}
+                            {verdict === "no_go" && cs.evaluated && (
+                              <>
+                                <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
+                                  효과 없음 — 보정 방식 재검토 필요
+                                </div>
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between text-[12px] text-rose-900">
+                                    <span>현재 평균 오차</span>
+                                    <span className="font-mono font-bold">{cs.evaluated.beforeMape}%</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[12px] text-rose-900">
+                                    <span>가상 보정 후 오차</span>
+                                    <span className="font-mono font-bold text-rose-700">{cs.evaluated.afterMape}%</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[12px] text-rose-900 font-semibold pt-1 border-t border-rose-200">
+                                    <span>변화</span>
+                                    <span className="font-mono">
+                                      {cs.evaluated.improvementPp >= 0 ? "−" : "+"}
+                                      {Math.abs(cs.evaluated.improvementPp)}%p
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-rose-700 italic mt-1">
+                                    개선된 날 {cs.evaluated.betterDays}일 · 오히려 나빴던 날 {cs.evaluated.worseDays}일 (비율 {(cs.evaluated.worseDaysRatio * 100).toFixed(0)}%)
+                                  </div>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-rose-200 text-[11px] text-rose-700 leading-relaxed">
+                                  ❌ {cs.goNoGo.reasons.join(" · ")}
+                                  <div className="mt-1 font-semibold text-rose-800">
+                                    → 평균 차이 보정만으로는 부족. 요일·날씨별 세분화 보정 검토 필요
+                                  </div>
+                                </div>
+                              </>
                             )}
                           </div>
-                        </>
-                      )}
 
-                      {/* ── inconclusive — 관찰 중, 판정 대기 ── */}
-                      {verdict === "inconclusive" && cs.evaluated && (
-                        <>
-                          <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
-                            관찰 중 · 판정 대기 (관찰 {obsDays}일째 · 샘플 {sampleN}개)
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between text-[12px] text-amber-900">
-                              <span>현재 평균 오차</span>
-                              <span className="font-mono font-bold">{cs.evaluated.beforeMape}%</span>
+                          {/* 타임라인 (있을 때만, 최근 7개) */}
+                          {cs.evaluated && cs.evaluated.timeline.length > 0 && verdict !== "insufficient" && (
+                            <div className="rounded-lg border border-border bg-surface px-3 py-3">
+                              <div className="text-[11px] font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                                📈 최근 일별 효과
+                              </div>
+                              <div className="space-y-1">
+                                {cs.evaluated.timeline.slice(-7).map((t) => {
+                                  const improved = t.delta < -0.05;
+                                  const worse = t.delta > 0.05;
+                                  return (
+                                    <div key={t.date} className="flex items-center justify-between text-[11px] font-mono">
+                                      <span className="text-text-tertiary">{t.date.slice(5)}</span>
+                                      <span className="text-text-secondary">
+                                        {t.beforeAbsErrPct}% → <span className={improved ? "text-emerald-700 font-bold" : worse ? "text-rose-700 font-bold" : "text-text-secondary"}>{t.afterAbsErrPct}%</span>
+                                      </span>
+                                      <span className={`tabular-nums shrink-0 ${improved ? "text-emerald-600" : worse ? "text-rose-600" : "text-text-tertiary"}`}>
+                                        {improved ? "▼" : worse ? "▲" : "─"} {Math.abs(t.delta).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between text-[12px] text-amber-900">
-                              <span>가상 보정 후 오차</span>
-                              <span className="font-mono font-bold">{cs.evaluated.afterMape}%</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[12px] text-amber-900 font-semibold pt-1 border-t border-amber-200">
-                              <span>차이</span>
-                              <span className="font-mono">
-                                {cs.evaluated.improvementPp >= 0 ? "−" : "+"}
-                                {Math.abs(cs.evaluated.improvementPp)}%p
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-amber-700 italic mt-1">
-                              개선됐던 날 {cs.evaluated.betterDays}일 · 비슷했던 날 {cs.evaluated.sameDays}일 · 오히려 나빴던 날 {cs.evaluated.worseDays}일
-                            </div>
-                          </div>
-                          <div className="mt-2 pt-2 border-t border-amber-200 text-[11px] text-amber-700 leading-relaxed">
-                            {cs.goNoGo.reasons.join(" · ")}
-                          </div>
-                        </>
-                      )}
+                          )}
 
-                      {/* ── go — 효과 확인됨 ── */}
-                      {verdict === "go" && cs.evaluated && (
-                        <>
-                          <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
-                            효과 확인됨 — Phase 2 진입 권장
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between text-[12px] text-emerald-900">
-                              <span>현재 평균 오차</span>
-                              <span className="font-mono font-bold">{cs.evaluated.beforeMape}%</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[12px] text-emerald-900">
-                              <span>가상 보정 후 오차</span>
-                              <span className="font-mono font-bold text-emerald-700">{cs.evaluated.afterMape}%</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[12px] text-emerald-900 font-semibold pt-1 border-t border-emerald-200">
-                              <span>개선폭</span>
-                              <span className="font-mono text-emerald-700">
-                                −{cs.evaluated.improvementPp}%p
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-emerald-700 italic mt-1">
-                              개선된 날 {cs.evaluated.betterDays}일 / 전체 {sampleN}일 · 악화일 비율 {(cs.evaluated.worseDaysRatio * 100).toFixed(0)}%
-                            </div>
-                          </div>
-                          <div className="mt-2 pt-2 border-t border-emerald-200 text-[11px] text-emerald-700 leading-relaxed">
-                            ✅ {cs.goNoGo.reasons.join(" · ")}
-                            <div className="mt-1 font-semibold text-emerald-800">
-                              → Phase 2 (실제 예측에 보정 적용) 진입을 검토하세요
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* ── no_go — 효과 없음 ── */}
-                      {verdict === "no_go" && cs.evaluated && (
-                        <>
-                          <div className={`text-[12px] font-bold ${style.accentText} mb-2`}>
-                            효과 없음 — 보정 방식 재검토 필요
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between text-[12px] text-rose-900">
-                              <span>현재 평균 오차</span>
-                              <span className="font-mono font-bold">{cs.evaluated.beforeMape}%</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[12px] text-rose-900">
-                              <span>가상 보정 후 오차</span>
-                              <span className="font-mono font-bold text-rose-700">{cs.evaluated.afterMape}%</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[12px] text-rose-900 font-semibold pt-1 border-t border-rose-200">
-                              <span>변화</span>
-                              <span className="font-mono">
-                                {cs.evaluated.improvementPp >= 0 ? "−" : "+"}
-                                {Math.abs(cs.evaluated.improvementPp)}%p
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-rose-700 italic mt-1">
-                              개선된 날 {cs.evaluated.betterDays}일 · 오히려 나빴던 날 {cs.evaluated.worseDays}일 (비율 {(cs.evaluated.worseDaysRatio * 100).toFixed(0)}%)
-                            </div>
-                          </div>
-                          <div className="mt-2 pt-2 border-t border-rose-200 text-[11px] text-rose-700 leading-relaxed">
-                            ❌ {cs.goNoGo.reasons.join(" · ")}
-                            <div className="mt-1 font-semibold text-rose-800">
-                              → 평균 차이 보정만으로는 부족. 요일·날씨별 세분화 보정 검토 필요
-                            </div>
-                          </div>
-                        </>
+                          {/* 하단 면책 문구 */}
+                          <p className="text-[11px] text-text-tertiary text-center mb-0">
+                            ⚠️ 이 실험은 예측값에 영향을 주지 않습니다 (Shadow Mode = 관찰 전용)
+                          </p>
+                        </div>
                       )}
                     </div>
+                  );
+                })()}
 
-                    {/* 타임라인 (있을 때만, 최근 7개) */}
-                    {cs.evaluated && cs.evaluated.timeline.length > 0 && verdict !== "insufficient" && (
-                      <div className="rounded-lg border border-border bg-surface px-3 py-3">
-                        <div className="text-[11px] font-bold text-text-tertiary uppercase tracking-wide mb-2">
-                          📈 최근 일별 효과
-                        </div>
-                        <div className="space-y-1">
-                          {cs.evaluated.timeline.slice(-7).map((t) => {
-                            const improved = t.delta < -0.05;
-                            const worse = t.delta > 0.05;
-                            return (
-                              <div key={t.date} className="flex items-center justify-between text-[11px] font-mono">
-                                <span className="text-text-tertiary">{t.date.slice(5)}</span>
-                                <span className="text-text-secondary">
-                                  {t.beforeAbsErrPct}% → <span className={improved ? "text-emerald-700 font-bold" : worse ? "text-rose-700 font-bold" : "text-text-secondary"}>{t.afterAbsErrPct}%</span>
-                                </span>
-                                <span className={`tabular-nums shrink-0 ${improved ? "text-emerald-600" : worse ? "text-rose-600" : "text-text-tertiary"}`}>
-                                  {improved ? "▼" : worse ? "▲" : "─"} {Math.abs(t.delta).toFixed(2)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 하단 면책 문구 */}
-                    <p className="text-[11px] text-text-tertiary text-center mb-0">
-                      ⚠️ 이 실험은 예측값에 영향을 주지 않습니다 (Shadow Mode = 관찰 전용)
-                    </p>
-                  </div>
-                )}
               </div>
             );
           })()}
