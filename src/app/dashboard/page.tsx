@@ -2089,56 +2089,6 @@ export default function DashboardPage() {
                   <div className="text-[12px] text-text-tertiary mb-3">
                     현재 {fuelLabel} {myPrice.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위
                   </div>
-
-                  {/* 최근 실제 반응 미니 섹션 — 휘발유 카드만 (경유 표본 적음).
-                      카드 ⑧ 삭제 후 핵심 정보 흡수: 최근 가격 변경 1건 + 30일 평균 + 탄력성.
-                      클릭 시 /dashboard/sales-analysis 진입 (상세 8섹션 풍부).
-                      명세: memory/spec_card8_remove_and_merge.md */}
-                  {!isDiesel && fuelEvents.length > 0 && (() => {
-                    const e0 = fuelEvents[0];
-                    const avg30 = salesAnalysis?.summary?.avg30d?.gasoline;
-                    const elast = salesAnalysis?.summary?.elasticity;
-                    const elastLabel = salesAnalysis?.summary?.elasticityLabel;
-                    return (
-                      <ClickableCard
-                        href="/dashboard/sales-analysis"
-                        className="mb-3 rounded-lg bg-slate-50 border border-slate-200 p-3"
-                      >
-                        <div className="flex items-center justify-between mb-1.5 gap-2">
-                          <div className="text-[11px] font-bold text-text-secondary tracking-wide">
-                            최근 실제 반응
-                          </div>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
-                            최근 1건
-                          </span>
-                        </div>
-                        <div className="text-[12px] text-text-primary mb-1">
-                          <span className="font-semibold">{e0.date.slice(5)}</span>
-                          {" "}{e0.priceChange > 0 ? "+" : ""}{e0.priceChange}원
-                          <span className="mx-1.5 text-text-tertiary">→</span>
-                          판매량{" "}
-                          <span className={`font-bold ${e0.volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                            {e0.volumeChangeRate > 0 ? "+" : ""}{e0.volumeChangeRate}%
-                          </span>
-                        </div>
-                        {(avg30 != null || elast != null) && (
-                          <div className="text-[11px] text-text-tertiary">
-                            {avg30 != null && <>30일 평균 <span className="font-semibold text-text-secondary">{avg30.toLocaleString()}L</span></>}
-                            {avg30 != null && elast != null && <span className="mx-1">·</span>}
-                            {elast != null && (
-                              <>
-                                탄력성{" "}
-                                <span className={`font-semibold ${elastLabel === "민감" ? "text-red-500" : elastLabel === "둔감" ? "text-emerald-600" : "text-amber-500"}`}>
-                                  {elast} ({elastLabel})
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </ClickableCard>
-                    );
-                  })()}
-
                   <div className="grid grid-cols-1 gap-2">
                     {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
                       const isUp = delta > 0;
@@ -2258,9 +2208,10 @@ export default function DashboardPage() {
 
           <SectionDivider title="매출 영향 요인" description="영향 변수 · 세차 · 환경" />
 
-          {/* 카드 ⑧ 판매량·가격 분석 — 2026-04-17 삭제.
-              핵심 정보는 시뮬레이터 카드(⑩) 의 "최근 실제 반응" 미니 섹션으로 이동.
-              명세: memory/spec_card8_remove_and_merge.md */}
+          {/* 카드 ⑧ 판매량·가격 분석 — 2026-04-17 삭제 (1건 raw vs 시뮬 다건 평균 모순 정리).
+              미니 섹션으로 흡수 시도 (75c0dc8) 했으나 같은 모순 재발 → 미니 섹션도 제거.
+              상세 페이지(/dashboard/sales-analysis) 진입점은 발표 후 별도 검토.
+              백엔드 sales-analysis.ts 데이터는 그대로 유지 (AI 브리핑이 사용). */}
 
           {/* ⑪ 영향력 순위 바 차트
               - 경쟁사: |r| ≥ 0.10 필터 + 상위 8 (5km 내 cap=15 중에서)
