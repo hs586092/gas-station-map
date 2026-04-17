@@ -717,6 +717,14 @@ export default function DashboardPage() {
         windowDays: number;
       };
     } | null;
+    // 다변수 시뮬 Phase 1 — page.tsx 시뮬레이터가 직접 사용
+    // 명세: memory/spec_simulator_multivariate_phase1.md
+    coefficients?: {
+      myPriceElasticity: { perWon: number; n: number; reliable: boolean } | null;
+      compGapElasticity: { perWon: number; n: number; reliable: boolean } | null;
+      overallMean: number;
+      // dowMean 등 다른 계수는 forecast-review 전용이라 여기엔 미정의 (page.tsx 무사용)
+    };
   } | null>(null);
 
   const [loading, setLoading] = useState({
@@ -2152,24 +2160,71 @@ export default function DashboardPage() {
                 return v.length > 0 ? v.reduce((s, e) => s + Math.abs(e.priceChange), 0) / v.length : 10;
               })();
 
+              // ── 다변수 시뮬 Phase 1 (옵션 D: 단변수 + compGap 가산) ──
+              // 공식: salesImpact = univariate(옵션3·유종) + cg.perWon × delta / overallMean × 100 × cgWeight
+              //       cgWeight = min(1.0, cg.n / 60)
+              //       my_price 미사용 (backtest 폭주 원인, n=3 unreliable)
+              //       sanity cap: |impact| > 50% → 50%로 cap (capped flag)
+              // 명세: memory/spec_simulator_multivariate_phase1.md (v2 옵션 D)
+              const SIM_SANITY_CAP_PCT = 50;
+              const COMP_GAP_FULL_N = 60;
+              const mvCg = integratedForecast?.coefficients?.compGapElasticity ?? null;
+              const mvOverallMean = integratedForecast?.coefficients?.overallMean ?? null;
+              const canCompGapCorrection =
+                mvCg != null && mvCg.perWon != null && mvOverallMean != null && mvOverallMean > 0;
+              const cgWeight = canCompGapCorrection
+                ? Math.min(1, (mvCg!.n ?? 0) / COMP_GAP_FULL_N)
+                : 0;
+
+              const computeUnivariate = (delta: number): number | null => {
+                if (delta > 0 && upInfo && upInfo.count >= 3 && upInfo.avgPriceChange > 0) {
+                  const perWon = upInfo.avgVolumeChangeRate / upInfo.avgPriceChange;
+                  return perWon * delta;
+                }
+                if (delta < 0 && downInfo && downInfo.count >= 3 && downInfo.avgPriceChange < 0) {
+                  const perWon = downInfo.avgVolumeChangeRate / Math.abs(downInfo.avgPriceChange);
+                  return perWon * Math.abs(delta);
+                }
+                if (dowElasticity != null) {
+                  const absElast = Math.abs(dowElasticity / avgAbsChange);
+                  return -absElast * delta;
+                }
+                return null;
+              };
+
+              const computeCompGapCorrection = (delta: number): number => {
+                if (!canCompGapCorrection) return 0;
+                // 가정: "내가 +N원 변경 시 compGap도 +N원 즉시 변화" (경쟁사 미반응)
+                // 가중치 cg.n/60 으로 점진 적용 → 데이터 누적 시 자동 풀반영
+                const correctionPct = (mvCg!.perWon * delta / mvOverallMean!) * 100;
+                return correctionPct * cgWeight;
+              };
+
               const simulations = [10, 20, 30, -10, -20].map((delta) => {
                 const simPrice = myPrice + delta;
                 const simPrices = [simPrice, ...compPrices].sort((a, b) => a - b);
                 const simRank = simPrices.indexOf(simPrice) + 1;
+
+                const baseImpact = computeUnivariate(delta);
                 let salesImpact: number | null = null;
-                // 옵션 3: 방향별 실측 계수. 대칭 공식 폐기. 반올림은 렌더 시점(formatImpact)에서만.
-                if (delta > 0 && upInfo && upInfo.count >= 3 && upInfo.avgPriceChange > 0) {
-                  const perWon = upInfo.avgVolumeChangeRate / upInfo.avgPriceChange;
-                  salesImpact = perWon * delta;
-                } else if (delta < 0 && downInfo && downInfo.count >= 3 && downInfo.avgPriceChange < 0) {
-                  const perWon = downInfo.avgVolumeChangeRate / Math.abs(downInfo.avgPriceChange);
-                  salesImpact = perWon * Math.abs(delta);
-                } else if (dowElasticity != null) {
-                  // 레거시 fallback: 신규 필드 없거나 n<3 인 경우. 기존 대칭 공식.
-                  const absElast = Math.abs(dowElasticity / avgAbsChange);
-                  salesImpact = -absElast * delta;
+                let capped = false;
+                if (baseImpact != null) {
+                  const correction = computeCompGapCorrection(delta);
+                  salesImpact = baseImpact + correction;
+                  if (Math.abs(salesImpact) > SIM_SANITY_CAP_PCT) {
+                    salesImpact = Math.sign(salesImpact) * SIM_SANITY_CAP_PCT;
+                    capped = true;
+                  }
                 }
-                return { delta, simPrice, simRank, total: simPrices.length, rankChange: simRank - currentRank, salesImpact };
+                return {
+                  delta,
+                  simPrice,
+                  simRank,
+                  total: simPrices.length,
+                  rankChange: simRank - currentRank,
+                  salesImpact,
+                  capped,
+                };
               });
 
               // 동적 정밀도: |v|>=1 → 소수 1자리 / <1 → 소수 2자리. 작은 값 정보 보존.
@@ -2199,7 +2254,7 @@ export default function DashboardPage() {
                     현재 {fuelLabel} {myPrice.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위
                   </div>
                   <div className="grid grid-cols-1 gap-2">
-                    {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
+                    {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact, capped }) => {
                       const isUp = delta > 0;
                       return (
                         <div key={delta} className={`rounded-lg px-4 py-2.5 border flex items-center justify-between ${isUp ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
@@ -2221,8 +2276,9 @@ export default function DashboardPage() {
                               <div className="text-[11px] text-text-tertiary">-</div>
                             )}
                             {salesImpact != null && (
-                              <div className={`text-[11px] font-bold pl-2 border-l tabular-nums text-right min-w-[72px] ${isUp ? "border-red-200" : "border-blue-200"} ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
+                              <div className={`text-[11px] font-bold pl-2 border-l tabular-nums text-right min-w-[88px] ${isUp ? "border-red-200" : "border-blue-200"} ${salesImpact <= -3 ? "text-red-600" : salesImpact >= 3 ? "text-emerald-600" : "text-text-secondary"}`}>
                                 판매 {salesImpact > 0 ? "+" : ""}{formatImpact(salesImpact)}%
+                                {capped && <span className="ml-1 text-amber-600" title="모델 한계 (50% cap 발동)">⚠️cap</span>}
                               </div>
                             )}
                           </div>
@@ -2230,30 +2286,50 @@ export default function DashboardPage() {
                       );
                     })}
                   </div>
+                  {/* 메타 라벨 — 옵션 D: 단변수 (옵션3·유종) + compGap 보정 (가중치)
+                      명세: memory/spec_simulator_multivariate_phase1.md §2-3 (v2 옵션 D) */}
                   {dowElasticity != null && (
                     <div className="mt-2 text-[10px] text-text-tertiary leading-relaxed">
                       {upInfo && downInfo
-                        ? <>* 단변수 모델 (내 가격) · 인상 n={upInfo.count}건 / 인하 n={downInfo.count}건 실측 반응 · {dowLabel}</>
-                        : <>* 단변수 모델 (내 가격) · {fuelLabel} 가격변경 {sampleCount}건 가중평균{((isDiesel ? salesAnalysis?.splitElasticityByFuel?.diesel : salesAnalysis?.splitElasticity) && ` · ${dowLabel} 보정`)}</>}
-                      <br />
-                      &nbsp;&nbsp;다변수 예측(경쟁사·날씨 포함)은 위 통합 판매 예측 참고
+                        ? <>* 단변수 (옵션3·유종) · 인상 n={upInfo.count} / 인하 n={downInfo.count} · {dowLabel}</>
+                        : <>* 단변수 (옵션3·유종) · {fuelLabel} {sampleCount}건 가중평균{((isDiesel ? salesAnalysis?.splitElasticityByFuel?.diesel : salesAnalysis?.splitElasticity) && ` · ${dowLabel} 보정`)}</>}
+                      {canCompGapCorrection ? (
+                        <>
+                          <br />
+                          &nbsp;&nbsp;+ compGap 보정 (가중치 {mvCg!.n}/{COMP_GAP_FULL_N} = {Math.round(cgWeight * 100)}%) · perWon {mvCg!.perWon.toFixed(0)} L/원 ({mvCg!.reliable ? "신뢰" : "축적 중"})
+                          <br />
+                          &nbsp;&nbsp;{COMP_GAP_FULL_N}건 도달 시 보정 100% 적용
+                        </>
+                      ) : (
+                        <>
+                          <br />
+                          &nbsp;&nbsp;다변수 예측(경쟁사·날씨 포함)은 위 통합 판매 예측 참고
+                        </>
+                      )}
                     </div>
                   )}
 
-                  {/* 데이터 축적 진행도 — 인상+인하 이벤트 합계 / 60.
-                      시뮬레이터가 실제 사용하는 그룹의 표본 = 주중·주말 양쪽 up+down 합.
-                      60건 도달 시 자동 숨김. integrated compGapElasticity.reliable 임계와 통일.
-                      자기진단 카드 패턴 (h-1.5 + 모노 카운터). 명세: spec_simulator_data_progress.md */}
+                  {/* 데이터 축적 진행도 — 옵션 D: cg.n / 60 (compGap 보정 풀반영까지).
+                      compGap 미사용 fallback: 단변수 표본 합계 / 60 (이전 진척도 바 동일)
+                      자기진단 카드 패턴 (h-1.5 + 모노 카운터).
+                      명세: memory/spec_simulator_multivariate_phase1.md §2-4 */}
                   {(() => {
-                    const SIMULATOR_DATA_TARGET = 60;
-                    const byFuelAll = salesAnalysis?.splitElasticityByFuel?.[fuelType];
-                    const wkUp = byFuelAll?.weekday?.up?.count ?? 0;
-                    const wkDown = byFuelAll?.weekday?.down?.count ?? 0;
-                    const weUp = byFuelAll?.weekend?.up?.count ?? 0;
-                    const weDown = byFuelAll?.weekend?.down?.count ?? 0;
-                    const totalEvents = wkUp + wkDown + weUp + weDown;
-                    if (totalEvents <= 0 || totalEvents >= SIMULATOR_DATA_TARGET) return null;
-                    const widthPct = Math.min(100, Math.max(4, (totalEvents / SIMULATOR_DATA_TARGET) * 100));
+                    let progress: number;
+                    let progressLabel: string;
+                    if (canCompGapCorrection) {
+                      progress = mvCg!.n ?? 0;
+                      progressLabel = `compGap 보정 풀반영까지 — ${COMP_GAP_FULL_N}건 도달 시 가중치 100%`;
+                    } else {
+                      const byFuelAll = salesAnalysis?.splitElasticityByFuel?.[fuelType];
+                      const wkUp = byFuelAll?.weekday?.up?.count ?? 0;
+                      const wkDown = byFuelAll?.weekday?.down?.count ?? 0;
+                      const weUp = byFuelAll?.weekend?.up?.count ?? 0;
+                      const weDown = byFuelAll?.weekend?.down?.count ?? 0;
+                      progress = wkUp + wkDown + weUp + weDown;
+                      progressLabel = `가격 변경 데이터 축적 중 — ${COMP_GAP_FULL_N}건 도달 시 정확도 향상`;
+                    }
+                    if (progress <= 0 || progress >= COMP_GAP_FULL_N) return null;
+                    const widthPct = Math.min(100, Math.max(4, (progress / COMP_GAP_FULL_N) * 100));
                     return (
                       <div className="mt-2">
                         <div className="flex items-center gap-2 mb-1">
@@ -2264,11 +2340,11 @@ export default function DashboardPage() {
                             />
                           </div>
                           <span className="text-[10px] font-mono text-text-tertiary tabular-nums shrink-0">
-                            {totalEvents}/{SIMULATOR_DATA_TARGET}
+                            {progress}/{COMP_GAP_FULL_N}
                           </span>
                         </div>
                         <div className="text-[10px] text-text-tertiary">
-                          가격 변경 데이터 축적 중 — {SIMULATOR_DATA_TARGET}건 도달 시 정확도 향상
+                          {progressLabel}
                         </div>
                       </div>
                     );
