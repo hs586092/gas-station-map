@@ -1,5 +1,12 @@
 import { supabase } from "@/lib/supabase";
 
+// PostgREST 기본 1000행 cap 회피용. correlation-matrix.ts 와 같은 값(50000)을
+// 사용하지만 모듈 분리 유지 (다른 도메인, 미래에 한쪽만 변경 가능성).
+// 본 모듈의 4개 쿼리(sales_data, price_history × 3) 모두에 적용.
+// 5년 안전, 7년 임계 (19~30 station × 365 × 5 ≈ 35K~55K 행 가정).
+// 명세: memory/spec_sales_analysis_limit.md
+const FETCH_LIMIT = 50000;
+
 function dowFromDateStr(dateStr: string): number {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
@@ -43,7 +50,8 @@ export async function getSalesAnalysis(id: string): Promise<any> {
     .from("sales_data")
     .select("date, gasoline_volume, gasoline_count, gasoline_amount, diesel_volume, diesel_count, diesel_amount")
     .eq("station_id", id)
-    .order("date", { ascending: true });
+    .order("date", { ascending: true })
+    .limit(FETCH_LIMIT);
 
   if (!salesRaw || salesRaw.length === 0) {
     return null;
@@ -55,7 +63,8 @@ export async function getSalesAnalysis(id: string): Promise<any> {
     .select("gasoline_price, diesel_price, collected_at")
     .eq("station_id", id)
     .not("gasoline_price", "is", null)
-    .order("collected_at", { ascending: true });
+    .order("collected_at", { ascending: true })
+    .limit(FETCH_LIMIT);
 
   // price_history를 날짜별 맵으로 (마지막 값 기준)
   const priceByDate = new Map<string, { gasoline: number; diesel: number | null }>();
@@ -461,7 +470,8 @@ export async function getSalesAnalysis(id: string): Promise<any> {
         .select("station_id, gasoline_price, collected_at")
         .in("station_id", compIds)
         .not("gasoline_price", "is", null)
-        .order("collected_at", { ascending: true });
+        .order("collected_at", { ascending: true })
+        .limit(FETCH_LIMIT);
 
       // 경쟁사 일별 평균 가격 맵
       const compDayPrices = new Map<string, number[]>();
@@ -619,7 +629,8 @@ export async function getSalesAnalysis(id: string): Promise<any> {
       .select("station_id, gasoline_price, collected_at")
       .in("station_id", keyCompIds)
       .not("gasoline_price", "is", null)
-      .order("collected_at", { ascending: true });
+      .order("collected_at", { ascending: true })
+      .limit(FETCH_LIMIT);
 
     // 경쟁사별 날짜→가격 맵 (마지막 값)
     const compPriceByDateStation = new Map<string, Map<string, number>>();
