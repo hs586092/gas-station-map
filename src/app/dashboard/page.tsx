@@ -388,6 +388,115 @@ function OilReflectionProgress({ direction, brentChange, priceChange, competitor
   );
 }
 
+// ─── 시뮬레이터 자동 인사이트 ───
+// 시뮬 데이터(splitElasticityByFuel.{fuel}) 에서 4가지 패턴 자동 감지.
+// 우선순위: 비대칭(1) > 둔감(2) > 주중주말차(3) > 데이터부족(4)
+// 명세: memory/spec_simulator_auto_insights.md
+type SimSplitDir = { count: number; avgPriceChange: number; avgVolumeChangeRate: number } | null | undefined;
+type SimSplit = { up?: SimSplitDir; down?: SimSplitDir } | null | undefined;
+type SimInsight = { priority: number; tag: string; text: string };
+
+function detectSimulatorInsights(split: { weekday: SimSplit; weekend: SimSplit }): SimInsight[] {
+  const RATIO_CAP = 10;
+  const INSENSITIVE_PCT = 0.5;     // |10원당 %| < 0.5 → 둔감
+  const LOW_N_THRESHOLD = 5;       // n < 5 → 후보 제외 (데이터부족 인사이트는 발동)
+  const OUTLIER_PCT = 100;         // |10원당 %| > 100 → outlier 제외
+  const ASYM_RATIO = 2;            // 비대칭 비율 임계
+  const DOW_RATIO = 2;             // 주중/주말 비율 임계
+
+  // 10원당 % = (avgVolumeChangeRate / |avgPriceChange|) × 10
+  const per10 = (d: SimSplitDir): number | null => {
+    if (!d || d.count < 1 || !d.avgPriceChange) return null;
+    return (d.avgVolumeChangeRate / Math.abs(d.avgPriceChange)) * 10;
+  };
+  // outlier·표본 가드 통과한 방향만 비교용으로 반환
+  const validDir = (d: SimSplitDir): SimSplitDir => {
+    if (!d || d.count < LOW_N_THRESHOLD) return null;
+    const p = per10(d);
+    if (p == null || Math.abs(p) > OUTLIER_PCT) return null;
+    return d;
+  };
+
+  const wkUp = validDir(split.weekday?.up);
+  const wkDown = validDir(split.weekday?.down);
+  const weUp = validDir(split.weekend?.up);
+  const weDown = validDir(split.weekend?.down);
+  // 비교용 통합 방향: 주중 우선, 없으면 주말
+  const upAny = wkUp ?? weUp;
+  const downAny = wkDown ?? weDown;
+
+  const candidates: SimInsight[] = [];
+
+  // (1) 비대칭 — 인상 vs 인하 |10원당 %| 비율
+  if (upAny && downAny) {
+    const upP = Math.abs(per10(upAny)!);
+    const downP = Math.abs(per10(downAny)!);
+    if (upP > 0 && downP > 0) {
+      const ratio = Math.max(upP, downP) / Math.min(upP, downP);
+      if (ratio >= ASYM_RATIO) {
+        const bigger = downP > upP ? "인하" : "인상";
+        const smaller = bigger === "인하" ? "인상" : "인하";
+        const text = ratio >= RATIO_CAP
+          ? `${bigger} 반응이 ${smaller}보다 압도적으로 큼`
+          : `${bigger} 반응이 ${smaller}의 ${ratio.toFixed(1)}배`;
+        candidates.push({ priority: 1, tag: "비대칭", text });
+      }
+    }
+  }
+
+  // (2) 둔감 — 인상 또는 인하 |10원당 %| < 0.5
+  for (const [d, label] of [[upAny, "인상"], [downAny, "인하"]] as const) {
+    if (!d) continue;
+    const p = per10(d)!;
+    if (Math.abs(p) < INSENSITIVE_PCT) {
+      const sign = p >= 0 ? "+" : "";
+      const note = label === "인상"
+        ? "가격 외 요인 영향"
+        : "가격 인하로 판매 회복 어려움";
+      candidates.push({
+        priority: 2,
+        tag: "둔감",
+        text: `${label}에 둔감 (10원 ${label} 시 ${sign}${p.toFixed(2)}%) — ${note}`,
+      });
+      break; // 둔감은 하나만 (인상·인하 둘 다 둔감하면 인상 우선)
+    }
+  }
+
+  // (3) 주중주말차 — 인상 기준 (인하는 주말 표본 적은 경우 多)
+  if (wkUp && weUp) {
+    const wkP = Math.abs(per10(wkUp)!);
+    const weP = Math.abs(per10(weUp)!);
+    if (wkP > 0 && weP > 0) {
+      const ratio = Math.max(wkP, weP) / Math.min(wkP, weP);
+      if (ratio >= DOW_RATIO) {
+        const bigger = weP > wkP ? "주말" : "주중";
+        const smaller = bigger === "주말" ? "주중" : "주말";
+        const text = ratio >= RATIO_CAP
+          ? `${bigger} 반응이 ${smaller}보다 압도적으로 큼`
+          : `${bigger} 반응이 ${smaller}의 ${ratio.toFixed(1)}배`;
+        candidates.push({ priority: 3, tag: "주중주말", text });
+      }
+    }
+  }
+
+  // (4) 데이터부족 — 방향별 n < 5 (raw split, validDir 거치기 전)
+  const rawUpN = split.weekday?.up?.count ?? split.weekend?.up?.count ?? 0;
+  const rawDownN = split.weekday?.down?.count ?? split.weekend?.down?.count ?? 0;
+  const lowDirs: string[] = [];
+  if (rawUpN > 0 && rawUpN < LOW_N_THRESHOLD) lowDirs.push(`인상 n=${rawUpN}`);
+  if (rawDownN > 0 && rawDownN < LOW_N_THRESHOLD) lowDirs.push(`인하 n=${rawDownN}`);
+  if (lowDirs.length > 0) {
+    candidates.push({
+      priority: 4,
+      tag: "데이터부족",
+      text: `${lowDirs.join(" / ")} — 축적 필요`,
+    });
+  }
+
+  // 우선순위 sort (낮은 숫자 먼저)
+  return candidates.sort((a, b) => a.priority - b.priority);
+}
+
 // ─── 메인 ───
 export default function DashboardPage() {
   const router = useRouter();
@@ -2161,6 +2270,30 @@ export default function DashboardPage() {
                         <div className="text-[10px] text-text-tertiary">
                           가격 변경 데이터 축적 중 — {SIMULATOR_DATA_TARGET}건 도달 시 정확도 향상
                         </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 자동 인사이트 — splitElasticityByFuel 에서 4가지 패턴 감지 (최대 2개)
+                      우선순위: 비대칭 > 둔감 > 주중주말차 > 데이터부족
+                      sanity: n<5 제외, |10원당 %|>100 제외, 비율 cap 10
+                      명세: memory/spec_simulator_auto_insights.md */}
+                  {(() => {
+                    const byFuelAll = salesAnalysis?.splitElasticityByFuel?.[fuelType];
+                    if (!byFuelAll) return null;
+                    const insights = detectSimulatorInsights({
+                      weekday: byFuelAll.weekday,
+                      weekend: byFuelAll.weekend,
+                    });
+                    if (insights.length === 0) return null;
+                    return (
+                      <div className="mt-2 space-y-1">
+                        {insights.slice(0, 2).map((ins, i) => (
+                          <div key={i} className="text-[11px] text-text-secondary leading-relaxed flex items-start gap-1">
+                            <span className="shrink-0">💡</span>
+                            <span>{ins.text}</span>
+                          </div>
+                        ))}
                       </div>
                     );
                   })()}
