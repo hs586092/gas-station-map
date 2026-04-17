@@ -454,10 +454,15 @@ export function checkCoreNumbers(parsed: ParsedBriefing, ctx: BriefingContext): 
       detail: `경쟁사평균 ${ctx.avgPrice.toLocaleString()}원이 응답 어디에도 나오지 않습니다.`,
     });
   }
+  // 판매량은 만 단위라 0.5% (예: 30,000L → 150L) 도 충분한 폭이고,
+  // Claude 환각 (입력 30,311L → 출력 30,098L · 213L/0.70%) 을 차단하기 위해
+  // 가격(±1%) 보다 빡빡하게 검증한다.
+  // 명세: memory/spec_ai_briefing_volume_hallucination.md
+  const VOLUME_TOLERANCE_PCT = 0.5;
   if (
     ctx.expectedVolumeToday != null &&
     litValues.size > 0 &&
-    !withinTolerance(ctx.expectedVolumeToday, litValues)
+    !withinTolerance(ctx.expectedVolumeToday, litValues, VOLUME_TOLERANCE_PCT)
   ) {
     warnings.push({
       rule: "number",
