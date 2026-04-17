@@ -2130,6 +2130,40 @@ export default function DashboardPage() {
                       &nbsp;&nbsp;다변수 예측(경쟁사·날씨 포함)은 위 통합 판매 예측 참고
                     </div>
                   )}
+
+                  {/* 데이터 축적 진행도 — 인상+인하 이벤트 합계 / 60.
+                      시뮬레이터가 실제 사용하는 그룹의 표본 = 주중·주말 양쪽 up+down 합.
+                      60건 도달 시 자동 숨김. integrated compGapElasticity.reliable 임계와 통일.
+                      자기진단 카드 패턴 (h-1.5 + 모노 카운터). 명세: spec_simulator_data_progress.md */}
+                  {(() => {
+                    const SIMULATOR_DATA_TARGET = 60;
+                    const byFuelAll = salesAnalysis?.splitElasticityByFuel?.[fuelType];
+                    const wkUp = byFuelAll?.weekday?.up?.count ?? 0;
+                    const wkDown = byFuelAll?.weekday?.down?.count ?? 0;
+                    const weUp = byFuelAll?.weekend?.up?.count ?? 0;
+                    const weDown = byFuelAll?.weekend?.down?.count ?? 0;
+                    const totalEvents = wkUp + wkDown + weUp + weDown;
+                    if (totalEvents <= 0 || totalEvents >= SIMULATOR_DATA_TARGET) return null;
+                    const widthPct = Math.min(100, Math.max(4, (totalEvents / SIMULATOR_DATA_TARGET) * 100));
+                    return (
+                      <div className="mt-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-slate-200">
+                            <div
+                              className="h-full rounded-full bg-slate-400 transition-all duration-500"
+                              style={{ width: `${widthPct}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-mono text-text-tertiary tabular-nums shrink-0">
+                            {totalEvents}/{SIMULATOR_DATA_TARGET}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-text-tertiary">
+                          가격 변경 데이터 축적 중 — {SIMULATOR_DATA_TARGET}건 도달 시 정확도 향상
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             };
