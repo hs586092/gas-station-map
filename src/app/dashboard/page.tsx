@@ -2214,7 +2214,11 @@ export default function DashboardPage() {
             const gasEvents = salesAnalysis.events.filter((e) => (e.fuel ?? "gasoline") === "gasoline");
             return (
             <ClickableCard href="/dashboard/sales-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase mb-3">판매량 · 가격 분석</div>
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">판매량 · 가격 분석</div>
+                {/* "최근 1건" 배지 — 시뮬레이터(다건 평균) 와 가공 방식 다름을 헤더에서 명시 */}
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">최근 1건</span>
+              </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
@@ -2257,9 +2261,16 @@ export default function DashboardPage() {
                   const lastEvent = gasEvents[0];
                   const pctPer10 = lastEvent.priceChange !== 0 ? (lastEvent.volumeChangeRate / Math.abs(lastEvent.priceChange)) * 10 : null;
                   return pctPer10 != null ? (
-                    <div className="mt-1.5 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-text-secondary">
-                      10원 인상 시 예상 판매 변동: <span className={`font-bold ${pctPer10 <= 0 ? "text-red-500" : "text-emerald-600"}`}>{pctPer10 > 0 ? "+" : ""}{pctPer10.toFixed(1)}%</span>
-                    </div>
+                    <>
+                      <div className="mt-1.5 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-text-secondary">
+                        10원 인상 시 예상 판매 변동: <span className={`font-bold ${pctPer10 <= 0 ? "text-red-500" : "text-emerald-600"}`}>{pctPer10 > 0 ? "+" : ""}{pctPer10.toFixed(1)}%</span>
+                      </div>
+                      {/* 계산 방식 안내 — 시뮬레이터(다건 평균/방향분리) 와 숫자 다른 이유 명시 (사장 혼동 방지) */}
+                      <div className="mt-1.5 text-[11px] text-text-tertiary leading-relaxed">
+                        * 위 수치는 가장 최근 가격 변경 1건만 본 직접 결과입니다.<br />
+                        &nbsp;&nbsp;주중·주말, 인상·인하 등을 종합한 평균 추정은 위 카드 &lsquo;가격 시뮬레이터&rsquo; 참고.
+                      </div>
+                    </>
                   ) : null;
                 })()}
               </div>
