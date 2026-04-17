@@ -2122,10 +2122,12 @@ export default function DashboardPage() {
                     })}
                   </div>
                   {dowElasticity != null && (
-                    <div className="mt-2 text-[10px] text-text-tertiary">
+                    <div className="mt-2 text-[10px] text-text-tertiary leading-relaxed">
                       {upInfo && downInfo
-                        ? `* 인상 n=${upInfo.count}건 / 인하 n=${downInfo.count}건 실측 반응 기반 · ${dowLabel}`
-                        : <>* {fuelLabel} 가격변경 {sampleCount}건의 가중평균 탄력성 기반{((isDiesel ? salesAnalysis?.splitElasticityByFuel?.diesel : salesAnalysis?.splitElasticity) && ` · ${dowLabel} 보정`)}</>}
+                        ? <>* 단변수 모델 (내 가격) · 인상 n={upInfo.count}건 / 인하 n={downInfo.count}건 실측 반응 · {dowLabel}</>
+                        : <>* 단변수 모델 (내 가격) · {fuelLabel} 가격변경 {sampleCount}건 가중평균{((isDiesel ? salesAnalysis?.splitElasticityByFuel?.diesel : salesAnalysis?.splitElasticity) && ` · ${dowLabel} 보정`)}</>}
+                      <br />
+                      &nbsp;&nbsp;다변수 예측(경쟁사·날씨 포함)은 위 통합 판매 예측 참고
                     </div>
                   )}
                 </div>
