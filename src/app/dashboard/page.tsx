@@ -2089,6 +2089,56 @@ export default function DashboardPage() {
                   <div className="text-[12px] text-text-tertiary mb-3">
                     현재 {fuelLabel} {myPrice.toLocaleString()}원 · {allPrices.length}개 중 {currentRank}위
                   </div>
+
+                  {/* 최근 실제 반응 미니 섹션 — 휘발유 카드만 (경유 표본 적음).
+                      카드 ⑧ 삭제 후 핵심 정보 흡수: 최근 가격 변경 1건 + 30일 평균 + 탄력성.
+                      클릭 시 /dashboard/sales-analysis 진입 (상세 8섹션 풍부).
+                      명세: memory/spec_card8_remove_and_merge.md */}
+                  {!isDiesel && fuelEvents.length > 0 && (() => {
+                    const e0 = fuelEvents[0];
+                    const avg30 = salesAnalysis?.summary?.avg30d?.gasoline;
+                    const elast = salesAnalysis?.summary?.elasticity;
+                    const elastLabel = salesAnalysis?.summary?.elasticityLabel;
+                    return (
+                      <ClickableCard
+                        href="/dashboard/sales-analysis"
+                        className="mb-3 rounded-lg bg-slate-50 border border-slate-200 p-3"
+                      >
+                        <div className="flex items-center justify-between mb-1.5 gap-2">
+                          <div className="text-[11px] font-bold text-text-secondary tracking-wide">
+                            최근 실제 반응
+                          </div>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                            최근 1건
+                          </span>
+                        </div>
+                        <div className="text-[12px] text-text-primary mb-1">
+                          <span className="font-semibold">{e0.date.slice(5)}</span>
+                          {" "}{e0.priceChange > 0 ? "+" : ""}{e0.priceChange}원
+                          <span className="mx-1.5 text-text-tertiary">→</span>
+                          판매량{" "}
+                          <span className={`font-bold ${e0.volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                            {e0.volumeChangeRate > 0 ? "+" : ""}{e0.volumeChangeRate}%
+                          </span>
+                        </div>
+                        {(avg30 != null || elast != null) && (
+                          <div className="text-[11px] text-text-tertiary">
+                            {avg30 != null && <>30일 평균 <span className="font-semibold text-text-secondary">{avg30.toLocaleString()}L</span></>}
+                            {avg30 != null && elast != null && <span className="mx-1">·</span>}
+                            {elast != null && (
+                              <>
+                                탄력성{" "}
+                                <span className={`font-semibold ${elastLabel === "민감" ? "text-red-500" : elastLabel === "둔감" ? "text-emerald-600" : "text-amber-500"}`}>
+                                  {elast} ({elastLabel})
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </ClickableCard>
+                    );
+                  })()}
+
                   <div className="grid grid-cols-1 gap-2">
                     {simulations.map(({ delta, simPrice, simRank, total, rankChange, salesImpact }) => {
                       const isUp = delta > 0;
@@ -2206,77 +2256,11 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <SectionDivider title="내 매출 현황" description="판매량 · 세차 · 영향 요인" />
+          <SectionDivider title="매출 영향 요인" description="영향 변수 · 세차 · 환경" />
 
-          {/* ⑧ 판매량·가격 분석 — 휘발유 기준 유지 (기존 UI 계약).
-              sales-analysis.ts 확장으로 events 에 경유 이벤트도 섞이므로 여기서 필터. */}
-          {loading.salesAnalysis ? <CardSkeleton /> : salesAnalysis && (() => {
-            const gasEvents = salesAnalysis.events.filter((e) => (e.fuel ?? "gasoline") === "gasoline");
-            return (
-            <ClickableCard href="/dashboard/sales-analysis" className="bg-surface-raised rounded-xl p-5 border border-border">
-              <div className="flex items-center justify-between mb-3 gap-2">
-                <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">판매량 · 가격 분석</div>
-                {/* "최근 1건" 배지 — 시뮬레이터(다건 평균) 와 가공 방식 다름을 헤더에서 명시 */}
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">최근 1건</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-text-secondary">일 평균 판매량</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[18px] font-extrabold text-text-primary tnum tracking-tight">{salesAnalysis.summary.avg30d.gasoline.toLocaleString()}L</span>
-                    {gasEvents.length > 0 && (
-                      <span className={`text-[16px] font-extrabold ${gasEvents[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-500"}`}>
-                        {gasEvents[0].volumeChangeRate >= 0 ? "↗" : "↘"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {gasEvents.length > 0 ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-text-secondary">최근 가격 변경</span>
-                      <span className="text-[12px] font-semibold text-text-primary">{gasEvents[0].date.slice(5)} {gasEvents[0].priceChange > 0 ? "+" : ""}{gasEvents[0].priceChange}원</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] text-text-secondary">판매량 영향</span>
-                      <span className={`text-[14px] font-bold ${gasEvents[0].volumeChangeRate < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                        {gasEvents[0].volumeChangeRate > 0 ? "+" : ""}{gasEvents[0].volumeChangeRate}%
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-[14px] text-text-tertiary m-0">가격 변경 이벤트 감지 대기 중</p>
-                )}
-                <div className="pt-2 border-t border-border flex items-center justify-between">
-                  <span className="text-[14px] text-text-secondary">가격 탄력성</span>
-                  {salesAnalysis.summary.elasticity != null ? (
-                    <span className={`text-[14px] font-bold ${salesAnalysis.summary.elasticityLabel === "민감" ? "text-red-500" : salesAnalysis.summary.elasticityLabel === "둔감" ? "text-emerald-600" : "text-amber-500"}`}>
-                      {salesAnalysis.summary.elasticity} ({salesAnalysis.summary.elasticityLabel})
-                    </span>
-                  ) : (
-                    <span className="text-[14px] text-text-tertiary">데이터 축적 중</span>
-                  )}
-                </div>
-                {salesAnalysis.summary.elasticity != null && gasEvents.length > 0 && (() => {
-                  const lastEvent = gasEvents[0];
-                  const pctPer10 = lastEvent.priceChange !== 0 ? (lastEvent.volumeChangeRate / Math.abs(lastEvent.priceChange)) * 10 : null;
-                  return pctPer10 != null ? (
-                    <>
-                      <div className="mt-1.5 rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-[12px] text-text-secondary">
-                        10원 인상 시 예상 판매 변동: <span className={`font-bold ${pctPer10 <= 0 ? "text-red-500" : "text-emerald-600"}`}>{pctPer10 > 0 ? "+" : ""}{pctPer10.toFixed(1)}%</span>
-                      </div>
-                      {/* 계산 방식 안내 — 시뮬레이터(다건 평균/방향분리) 와 숫자 다른 이유 명시 (사장 혼동 방지) */}
-                      <div className="mt-1.5 text-[11px] text-text-tertiary leading-relaxed">
-                        * 위 수치는 가장 최근 가격 변경 1건만 본 직접 결과입니다.<br />
-                        &nbsp;&nbsp;주중·주말, 인상·인하 등을 종합한 평균 추정은 위 카드 &lsquo;가격 시뮬레이터&rsquo; 참고.
-                      </div>
-                    </>
-                  ) : null;
-                })()}
-              </div>
-            </ClickableCard>
-            );
-          })()}
+          {/* 카드 ⑧ 판매량·가격 분석 — 2026-04-17 삭제.
+              핵심 정보는 시뮬레이터 카드(⑩) 의 "최근 실제 반응" 미니 섹션으로 이동.
+              명세: memory/spec_card8_remove_and_merge.md */}
 
           {/* ⑪ 영향력 순위 바 차트
               - 경쟁사: |r| ≥ 0.10 필터 + 상위 8 (5km 내 cap=15 중에서)
