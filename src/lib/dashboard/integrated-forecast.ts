@@ -610,6 +610,10 @@ export async function getIntegratedForecast(
     };
 
     // forecast_history에 통합 모델 예측값 저장 (fire-and-forget)
+    // INSERT-only: 같은 날짜 레코드는 첫 저장값 보존 (복기 신뢰성 유지).
+    // cron 하루 6회 확대(2026-04-20 배포) 후 덮어쓰기 방지 목적. 하루 중
+    // 날씨/가격 변화로 재계산된 값이 "어제 예측"을 소급 변경하는 것을 차단.
+    // actual_volume 채우기는 backfillForecastActuals 가 별도로 UPDATE 한다.
     supabase
       .from("forecast_history")
       .upsert(
@@ -622,7 +626,7 @@ export async function getIntegratedForecast(
           day_of_week: dow,
           confidence,
         },
-        { onConflict: "station_id,forecast_date", ignoreDuplicates: false }
+        { onConflict: "station_id,forecast_date", ignoreDuplicates: true }
       )
       .then(() => {});
 

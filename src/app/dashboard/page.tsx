@@ -1458,9 +1458,14 @@ export default function DashboardPage() {
             }
             return (
               <div className="bg-surface-raised rounded-xl p-5 border border-border">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-start justify-between mb-3">
                   <div className="text-[13px] font-bold text-text-tertiary tracking-wider uppercase">예측 복기 · 어제</div>
-                  {y && <span className="text-[12px] text-text-tertiary">{y.date.slice(5)}</span>}
+                  {y && (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[12px] text-text-tertiary">{y.date.slice(5)}</span>
+                      <span className="text-[10px] text-text-tertiary mt-0.5">당일 아침 첫 예측 기준</span>
+                    </div>
+                  )}
                 </div>
                 {y ? (
                   <div className="space-y-3">
