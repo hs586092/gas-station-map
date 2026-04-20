@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildBriefingContext } from "@/lib/dashboard/ai-briefing-context";
 import { runGuards, applyOverride } from "@/lib/dashboard/ai-briefing-guard";
+import { loadDashboardSnapshot } from "@/lib/dashboard/load-snapshot";
 import { createServiceClient } from "@/lib/supabase";
 
 const client = new Anthropic();
@@ -30,41 +31,40 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // ── 1. 기존 API에서 데이터 수집 ──
+  // ── 1. 데이터 수집: snapshot 단일 소스 + 외부 날씨 예보 ──
+  // 헤더 API 와 동일한 dashboard_snapshot 행을 공용 로더로 읽는다.
+  // 이전에는 8개 HTTP fetch 가 각자 다른 캐시 버킷에 있어 헤더와 값이 갈렸다.
+  // weatherData(/api/weather) 만 예외적으로 외부 예보 API 원문이므로 계속 별도 fetch.
   const baseUrl = request.nextUrl.origin;
 
-  let insights: Record<string, unknown> | null = null;
-  let salesAnalysis: Record<string, unknown> | null = null;
-  let timingData: Record<string, unknown> | null = null;
-  let weatherData: Record<string, unknown> | null = null;
-  let weatherImpactData: Record<string, unknown> | null = null;
-  let forecastData: Record<string, unknown> | null = null;
-  let crossData: Record<string, unknown> | null = null;
-  let integratedData: Record<string, unknown> | null = null;
-
-  try {
-    const [insightsRes, salesRes, timingRes, weatherRes, weatherImpactRes, forecastRes, crossRes, integratedRes] = await Promise.all([
-      fetch(`${baseUrl}/api/stations/${id}/dashboard-insights`, { next: { revalidate: 1800 } }),
-      fetch(`${baseUrl}/api/stations/${id}/sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
-      fetch(`${baseUrl}/api/stations/${id}/timing-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
-      fetch(`${baseUrl}/api/weather`, { next: { revalidate: 600 } }).catch(() => null),
-      fetch(`${baseUrl}/api/stations/${id}/weather-sales-analysis`, { next: { revalidate: 3600 } }).catch(() => null),
-      fetch(`${baseUrl}/api/stations/${id}/forecast-review?t=${Date.now()}`, { cache: "no-store" }).catch(() => null),
-      fetch(`${baseUrl}/api/stations/${id}/cross-insights?compact=1`, { next: { revalidate: 1800 } }).catch(() => null),
-      fetch(`${baseUrl}/api/stations/${id}/integrated-forecast`, { next: { revalidate: 1800 } }).catch(() => null),
-    ]);
-
-    if (insightsRes.ok) insights = await insightsRes.json();
-    if (salesRes?.ok) salesAnalysis = await salesRes.json();
-    if (timingRes?.ok) timingData = await timingRes.json();
-    if (weatherRes?.ok) weatherData = await weatherRes.json();
-    if (weatherImpactRes?.ok) weatherImpactData = await weatherImpactRes.json();
-    if (forecastRes?.ok) forecastData = await forecastRes.json();
-    if (crossRes?.ok) crossData = await crossRes.json();
-    if (integratedRes?.ok) integratedData = await integratedRes.json();
-  } catch {
-    // 데이터 수집 실패 시 insights 없이 진행
+  const snap = await loadDashboardSnapshot(id);
+  if (!snap) {
+    return NextResponse.json(
+      {
+        aiBriefing: null,
+        fallback: true,
+        error: "데이터 준비 중입니다. 잠시 후 새로고침해주세요.",
+        code: "SNAPSHOT_NOT_READY",
+      },
+      { status: 503 }
+    );
   }
+
+  let weatherData: Record<string, unknown> | null = null;
+  try {
+    const wxRes = await fetch(`${baseUrl}/api/weather`, { next: { revalidate: 600 } });
+    if (wxRes.ok) weatherData = await wxRes.json();
+  } catch {
+    // 날씨 예보 실패는 브리핑 생성을 막지 않음 (라벨만 누락)
+  }
+
+  const insights = snap.essential.insights as Record<string, unknown> | null;
+  const salesAnalysis = snap.essential.salesAnalysis as Record<string, unknown> | null;
+  const weatherImpactData = snap.essential.weatherSales as Record<string, unknown> | null;
+  const forecastData = snap.essential.forecast as Record<string, unknown> | null;
+  const integratedData = snap.essential.integratedForecast as Record<string, unknown> | null;
+  const timingData = snap.extended.timing as Record<string, unknown> | null;
+  const crossData = snap.extended.crossInsights as Record<string, unknown> | null;
 
   if (!insights) {
     return NextResponse.json(
@@ -160,7 +160,9 @@ export async function GET(
           outputTokens: message.usage.output_tokens,
         },
       },
-      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600" } }
+      // 캐시 키는 클라이언트가 붙여주는 ?v={snapshot.updatedAt} 쿼리로 분리된다.
+      // snapshot 이 갱신되면 URL 이 달라져 자동 무효화되므로 s-maxage 를 길게 가져가도 안전.
+      { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=600" } }
     );
   } catch (err) {
     console.error("Claude API error:", err);

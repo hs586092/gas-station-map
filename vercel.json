@@ -51,7 +51,7 @@
     },
     {
       "path": "/api/snapshot/rebuild",
-      "schedule": "30 0 * * *"
+      "schedule": "0 15,19,23,3,7,11 * * *"
     },
     {
       "path": "/api/collect-population",

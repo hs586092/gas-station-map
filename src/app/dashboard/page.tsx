@@ -510,6 +510,7 @@ export default function DashboardPage() {
     byIntensity: Array<{ key: string; label: string; n: number; adjustedDiffPct: number }>;
     tTest: { significant: boolean; label: string } | null;
     todayForecast: {
+      date?: string;  // 예측 기준일 (YYYY-MM-DD)
       intensity: "dry" | "light" | "heavy";
       intensityLabel: string;
       expectedVolume: number;
@@ -692,6 +693,7 @@ export default function DashboardPage() {
 
   const [integratedForecast, setIntegratedForecast] = useState<{
     forecast: {
+      date?: string;  // 예측 기준일 (YYYY-MM-DD) — UI 카피에서 "MM-DD 기준" 표기에 사용
       expectedVolume: number;
       expectedCount: number;
       confidence: "high" | "medium" | "low";
@@ -806,6 +808,29 @@ export default function DashboardPage() {
       })
       .then((data) => {
         if (data._snapshot?.updatedAt) setSnapshotUpdatedAt(data._snapshot.updatedAt);
+
+        // ── dev invariant: 같은 snapshot 안의 두 "오늘 예측" 기준일이 일치해야 한다 ──
+        // 2026-04-19 수치 불일치 사고 재발 방지용 dev-only 감시.
+        // 프로덕션 차단 로직 없음 — 콘솔 경고만.
+        if (process.env.NODE_ENV !== "production") {
+          const igDateDev = data.integratedForecast?.forecast?.date;
+          const wsDateDev = data.weatherSales?.todayForecast?.date;
+          if (igDateDev && wsDateDev && igDateDev !== wsDateDev) {
+            console.warn(
+              "[invariant] snapshot 내부 referenceDate mismatch:",
+              { integratedForecast: igDateDev, weatherSales: wsDateDev }
+            );
+          }
+          const todayKSTDev = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+          const todayStr = `${todayKSTDev.getFullYear()}-${String(todayKSTDev.getMonth() + 1).padStart(2, "0")}-${String(todayKSTDev.getDate()).padStart(2, "0")}`;
+          const refDev = igDateDev || wsDateDev;
+          if (refDev && refDev !== todayStr) {
+            console.warn(
+              "[invariant] snapshot referenceDate 가 오늘(KST)과 다릅니다:",
+              { referenceDate: refDev, todayKST: todayStr, hint: "snapshot rebuild 필요" }
+            );
+          }
+        }
 
         if (data.insights) setInsights(data.insights);
         setLoading((p) => ({ ...p, insights: false }));
@@ -1105,6 +1130,13 @@ export default function DashboardPage() {
 
               // 예상 판매량
               const expectedVol = integratedForecast?.forecast?.expectedVolume ?? weatherImpact?.todayForecast?.expectedVolume;
+              // 예측 기준일 (integratedForecast 우선, 없으면 weatherSales 차선)
+              const igDate = integratedForecast?.forecast?.date;
+              const wsDate = weatherImpact?.todayForecast?.date;
+              const refDate = typeof igDate === "string" ? igDate : (typeof wsDate === "string" ? wsDate : null);
+              const refMMDD = refDate && /^\d{4}-\d{2}-\d{2}$/.test(refDate)
+                ? refDate.slice(5) // "04-18"
+                : null;
 
               return (
                 <>
@@ -1120,7 +1152,9 @@ export default function DashboardPage() {
                   </p>
                   {expectedVol && (
                     <p className="text-[12px] text-text-secondary m-0 mt-1">
-                      오늘 예상 판매량: {expectedVol.toLocaleString()}L
+                      {refMMDD
+                        ? `예상 판매량 (${refMMDD} 기준): ${expectedVol.toLocaleString()}L`
+                        : `오늘 예상 판매량: ${expectedVol.toLocaleString()}L`}
                       {insights.recommendation.suggestedRange && (
                         <span className="ml-2">· 추천 가격대: {insights.recommendation.suggestedRange.min.toLocaleString()}~{insights.recommendation.suggestedRange.max.toLocaleString()}원</span>
                       )}
@@ -1135,12 +1169,44 @@ export default function DashboardPage() {
               const warnings = aiBriefing.validation?.warnings ?? [];
               const hasError = warnings.some((w) => w.severity === "error");
               const displayText = aiBriefing.aiBriefingOverridden ?? aiBriefing.aiBriefing;
+              // 업데이트 타임스탬프 (snapshot 기준 — 브리핑은 snapshot과 동일 시점)
+              const updatedLabel = snapshotUpdatedAt ? (() => {
+                const d = new Date(snapshotUpdatedAt);
+                const mm = String(d.getMonth() + 1).padStart(2, "0");
+                const dd = String(d.getDate()).padStart(2, "0");
+                const hh = String(d.getHours()).padStart(2, "0");
+                const mi = String(d.getMinutes()).padStart(2, "0");
+                return `${mm}-${dd} ${hh}:${mi}`;
+              })() : null;
+              // referenceDate vs 오늘(KST) 비교 → stale 여부
+              const igDate2 = integratedForecast?.forecast?.date;
+              const wsDate2 = weatherImpact?.todayForecast?.date;
+              const refDate2 = typeof igDate2 === "string" ? igDate2 : (typeof wsDate2 === "string" ? wsDate2 : null);
+              const todayKST = (() => {
+                const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, "0");
+                const d = String(now.getDate()).padStart(2, "0");
+                return `${y}-${m}-${d}`;
+              })();
+              const isStale = refDate2 !== null && refDate2 !== todayKST;
               return (
                 <div className="mt-3 rounded-lg bg-violet-50 border border-violet-100 px-4 py-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] font-bold bg-violet-600 text-white px-1.5 py-0.5 rounded">AI</span>
                       <span className="text-[11px] font-bold text-violet-700">심층 분석</span>
+                      {updatedLabel && (
+                        <span className="text-[10px] text-violet-500 ml-1">업데이트: {updatedLabel}</span>
+                      )}
+                      {isStale && (
+                        <span
+                          className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded"
+                          title={`예측 기준일 ${refDate2} — 오늘(${todayKST})과 다릅니다. 새로고침 버튼으로 최신화하세요.`}
+                        >
+                          ⚠ 최신 예측 아님
+                        </span>
+                      )}
                     </div>
                     {warnings.length > 0 && (
                       <div
@@ -1203,7 +1269,11 @@ export default function DashboardPage() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setAiLoading(true);
-                      fetch(`/api/stations/${STATION_ID}/ai-briefing`)
+                      // snapshot.updatedAt 을 캐시 키에 포함 → snapshot 갱신 시 자동 무효화.
+                      // snapshot 이 먼저 도착해 snapshotUpdatedAt 상태가 세팅된 뒤에 이 버튼을 누르므로
+                      // 일반적으로는 값이 존재. 없으면 캐시 키 없이 호출(구 동작).
+                      const v = snapshotUpdatedAt ? `?v=${encodeURIComponent(snapshotUpdatedAt)}` : "";
+                      fetch(`/api/stations/${STATION_ID}/ai-briefing${v}`)
                         .then((r) => r.json())
                         .then((d) => { setAiBriefing(d); setAiLoading(false); })
                         .catch(() => setAiLoading(false));
