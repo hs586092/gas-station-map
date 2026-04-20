@@ -101,7 +101,20 @@ export function buildBriefingContext(rawData: {
   dataPrompt += `7일경쟁추세: ${weeklyTrend.message || "정보없음"}\n`;
 
   if (sales?.summary) {
-    dataPrompt += `판매량: 30일평균 ${sales.summary.avg30d?.gasoline?.toLocaleString() ?? "?"}L/일`;
+    // 오늘 예상값(integratedForecast.expectedVolume)은 합계 단위(휘발유+경유)이므로
+    // 30일평균도 합계 기준으로 제시하여 단위 일치 유지. 이전엔 휘발유 단독값만 주입하여
+    // LLM 이 "오늘 합계 vs 30일평균 휘발유" 비교를 출력하는 사고 발생 (2026-04-20).
+    const g = sales.summary.avg30d?.gasoline;
+    const d = sales.summary.avg30d?.diesel;
+    if (typeof g === "number" && typeof d === "number") {
+      const total = g + d;
+      dataPrompt += `판매량: 30일평균 ${total.toLocaleString()}L/일(합계, 휘발유 ${g.toLocaleString()}L + 경유 ${d.toLocaleString()}L)`;
+    } else if (typeof g === "number") {
+      // 경유 값 누락 fallback — 휘발유 단독이라는 점 명시
+      dataPrompt += `판매량: 30일평균 ${g.toLocaleString()}L/일(휘발유 단독, 경유 데이터 없음)`;
+    } else {
+      dataPrompt += `판매량: 30일평균 데이터 부족`;
+    }
     if (sales.summary.elasticity != null) dataPrompt += ` 탄력성: ${sales.summary.elasticity}(${sales.summary.elasticityLabel})`;
     dataPrompt += `\n`;
     if (sales.events?.[0]) {
