@@ -285,16 +285,19 @@ export async function getAroundStations(
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Opinet API error: ${res.status}`);
   const data = await res.json();
-  return data.RESULT.OIL;
+  // 오피넷은 결과 없음 / 한도 초과 시 RESULT.OIL 이 누락되거나 빈 배열로 옴.
+  return Array.isArray(data?.RESULT?.OIL) ? data.RESULT.OIL : [];
 }
 
 /** 주유소 상세 조회 (detailById.do) */
 export async function getStationDetail(
   uniId: string
-): Promise<StationDetail> {
+): Promise<StationDetail | null> {
   const url = `${OPINET_BASE_URL}/detailById.do?code=${API_KEY}&id=${uniId}&out=json`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Opinet API error: ${res.status}`);
   const data = await res.json();
-  return data.RESULT.OIL[0];
+  // 오피넷은 존재하지 않는 UNI_ID 나 한도 초과 시 RESULT.OIL 을 빈 배열로 리턴.
+  const first = data?.RESULT?.OIL?.[0];
+  return first ?? null;
 }

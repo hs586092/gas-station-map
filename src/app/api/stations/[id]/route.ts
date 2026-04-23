@@ -26,6 +26,7 @@ export async function GET(
   if (!data.old_address && !data.new_address) {
     try {
       const detail = await getStationDetail(id);
+      if (!detail) throw new Error("Opinet returned empty response");
       const wgs = katecToWgs84(detail.GIS_X_COOR, detail.GIS_Y_COOR);
 
       const updates = {

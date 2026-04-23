@@ -112,6 +112,7 @@ export async function GET(request: Request) {
         apiCalls++;
 
         for (const s of stations) {
+          if (!s || !s.UNI_ID) continue;
           const existing = stationMap.get(s.UNI_ID);
           if (existing) {
             // 이미 수집된 주유소 → 해당 유종 가격만 추가
@@ -160,6 +161,12 @@ export async function GET(request: Request) {
     for (const result of results) {
       if (result.status === "fulfilled") {
         const detail = result.value;
+        if (!detail || !detail.UNI_ID) {
+          // 오피넷이 빈 응답을 내린 케이스 (한도 초과 / 존재하지 않는 UNI_ID). 스킵.
+          console.warn("[collect-prices] detailById empty response, skipping");
+          errors++;
+          continue;
+        }
         const entry = stationMap.get(detail.UNI_ID);
         if (entry) {
           entry.old_address = detail.VAN_ADR || null;
