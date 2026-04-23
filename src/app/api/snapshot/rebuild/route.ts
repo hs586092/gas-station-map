@@ -40,7 +40,7 @@ async function runRebuild(stationId: string, origin: string) {
   let weatherForecast = null;
   try {
     const wxRes = await fetch(`${origin}/api/weather`, {
-      next: { revalidate: 600 },
+      cache: "no-store",
     });
     if (wxRes.ok) weatherForecast = await wxRes.json();
   } catch {}

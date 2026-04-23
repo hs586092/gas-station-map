@@ -10,7 +10,7 @@ export async function GET(
   // Fetch weather for todayForecast
   let weatherForecast = null;
   try {
-    const wxRes = await fetch(`${request.nextUrl.origin}/api/weather`, { next: { revalidate: 600 } });
+    const wxRes = await fetch(`${request.nextUrl.origin}/api/weather`, { cache: "no-store" });
     if (wxRes.ok) weatherForecast = await wxRes.json();
   } catch {}
 

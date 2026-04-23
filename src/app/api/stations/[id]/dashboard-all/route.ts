@@ -31,7 +31,7 @@ export async function GET(
   // weather forecast를 한 번만 가져와서 필요한 함수에 주입
   let weatherForecast: any = null;
   try {
-    const wxRes = await fetch(`${request.nextUrl.origin}/api/weather`, { next: { revalidate: 600 } });
+    const wxRes = await fetch(`${request.nextUrl.origin}/api/weather`, { cache: "no-store" });
     if (wxRes.ok) weatherForecast = await wxRes.json();
   } catch {}
 

@@ -9,7 +9,7 @@ export async function GET(
   const compact = request.nextUrl.searchParams.get("compact") === "1";
   let weatherForecast = null;
   try {
-    const wxRes = await fetch(`${request.nextUrl.origin}/api/weather`, { next: { revalidate: 600 } });
+    const wxRes = await fetch(`${request.nextUrl.origin}/api/weather`, { cache: "no-store" });
     if (wxRes.ok) weatherForecast = await wxRes.json();
   } catch {}
   const data = await getCarwashSummary(id, { compact, weatherForecast });

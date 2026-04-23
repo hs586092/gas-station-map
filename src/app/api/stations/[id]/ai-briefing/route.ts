@@ -52,7 +52,7 @@ export async function GET(
 
   let weatherData: Record<string, unknown> | null = null;
   try {
-    const wxRes = await fetch(`${baseUrl}/api/weather`, { next: { revalidate: 600 } });
+    const wxRes = await fetch(`${baseUrl}/api/weather`, { cache: "no-store" });
     if (wxRes.ok) weatherData = await wxRes.json();
   } catch {
     // 날씨 예보 실패는 브리핑 생성을 막지 않음 (라벨만 누락)
